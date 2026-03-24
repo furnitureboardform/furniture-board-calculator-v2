@@ -222,6 +222,35 @@ export function useThreeScene(
     []
   );
 
+  const HDF_COLOR = new THREE.Color(0x5c4033); // dark brown for HDF hardboard
+
+  const rebuildHdf = useCallback(
+    (parent: THREE.Mesh, element: BoxElement, emissive: THREE.Color) => {
+      parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
+        if (c instanceof THREE.Mesh) {
+          c.geometry.dispose();
+          (c.material as THREE.MeshStandardMaterial).dispose();
+        }
+        parent.remove(c);
+      });
+      const { width, height, depth } = element.dimensions;
+      const geo = new THREE.BoxGeometry(width, height, depth);
+      const mat = new THREE.MeshStandardMaterial({
+        color: HDF_COLOR,
+        emissive,
+        roughness: 0.6,
+        metalness: 0.05,
+        side: THREE.DoubleSide,
+      });
+      const panel = new THREE.Mesh(geo, mat);
+      panel.castShadow = true;
+      panel.receiveShadow = true;
+      panel.userData = { elementId: element.id };
+      parent.add(panel);
+    },
+    []
+  );
+
   const ROD_RADIUS = 0.0125; // 25 mm diameter wardrobe rail
 
   const rebuildRod = useCallback(
@@ -375,6 +404,7 @@ export function useThreeScene(
         if (element.type === 'shelf') rebuildShelf(mesh, element, color, emissive);
         else if (element.type === 'divider') rebuildDivider(mesh, element, color, emissive);
         else if (element.type === 'front') rebuildFront(mesh, element, emissive);
+        else if (element.type === 'hdf') rebuildHdf(mesh, element, emissive);
         else if (element.type === 'rod') rebuildRod(mesh, element, color, emissive);
         else if (element.type === 'leg') rebuildLeg(mesh, element, color, emissive);
         else rebuildPanels(mesh, element, color, emissive);
@@ -396,6 +426,7 @@ export function useThreeScene(
         if (element.type === 'shelf') rebuildShelf(mesh, element, color, emissive);
         else if (element.type === 'divider') rebuildDivider(mesh, element, color, emissive);
         else if (element.type === 'front') rebuildFront(mesh, element, emissive);
+        else if (element.type === 'hdf') rebuildHdf(mesh, element, emissive);
         else if (element.type === 'rod') rebuildRod(mesh, element, color, emissive);
         else if (element.type === 'leg') rebuildLeg(mesh, element, color, emissive);
         else rebuildPanels(mesh, element, color, emissive);

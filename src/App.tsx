@@ -13,6 +13,7 @@ let dividerCounter = 1;
 let frontCounter = 1;
 let rodCounter = 1;
 let legCounter = 1;
+let hdfCounter = 1;
 
 // Snap / attach constants (must be declared before helpers that use them)
 const PANEL_T = 0.018; // panel thickness in metres (~18 mm); must match useThreeScene.ts
@@ -20,6 +21,25 @@ const SNAP_DIST = 0.05; // side-by-side wall snap tolerance (5 cm)
 const FRONT_INSET = 0.002; // 2 mm gap on each side between front panel and cabinet edge
 const LEG_CORNER_OFFSET = 0.03; // 30 mm inset from each cabinet edge to leg center
 const LEG_D = 0.04; // leg bounding-box side (2 × 20 mm radius)
+const HDF_T = 0.003; // HDF back panel thickness 3 mm
+const HDF_INSET = 0.002; // 2 mm inset on each side of the HDF panel
+
+// Computes position/dimensions of an HDF back panel bound to its cabinet.
+function computeHdfForCabinet(hdf: BoxElement, cab: BoxElement): BoxElement {
+  return {
+    ...hdf,
+    dimensions: {
+      width: Math.max(0.001, cab.dimensions.width - 2 * HDF_INSET),
+      height: Math.max(0.001, cab.dimensions.height - 2 * HDF_INSET),
+      depth: HDF_T,
+    },
+    position: {
+      x: cab.position.x,
+      y: cab.position.y + HDF_INSET,
+      z: cab.position.z - cab.dimensions.depth / 2 - HDF_T / 2,
+    },
+  };
+}
 
 // Computes position of one leg at its assigned corner, hanging below the cabinet floor.
 function computeLegForCabinet(leg: BoxElement, cab: BoxElement): BoxElement {
@@ -95,7 +115,7 @@ function computeYForBox(box: BoxElement, allElements: BoxElement[]): number {
   let maxTop = 0;
   for (const other of allElements) {
     if (other.id === box.id) continue;
-    if (other.type === 'shelf' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg') continue;
+    if (other.type === 'shelf' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf') continue;
     if (getBoxStackOverlap(box, other)) {
       maxTop = Math.max(maxTop, other.position.y + other.dimensions.height);
     }
@@ -115,12 +135,12 @@ function recomputeAllY(elements: BoxElement[]): BoxElement[] {
   );
   for (const el of ordered) {
     const box = resultMap.get(el.id)!;
-    if (box.type === 'shelf' || box.type === 'divider' || box.type === 'front' || box.type === 'rod' || box.type === 'leg') continue; // preserve their Y
+    if (box.type === 'shelf' || box.type === 'divider' || box.type === 'front' || box.type === 'rod' || box.type === 'leg' || box.type === 'hdf') continue; // preserve their Y
     const elOriginalY = originalY.get(el.id) ?? 0;
     let maxTop = 0;
     for (const [id, other] of resultMap) {
       if (id === box.id) continue;
-      if (other.type === 'shelf' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg') continue;
+      if (other.type === 'shelf' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf') continue;
       // Only stack on boxes that were originally below (or at same level as) this box
       if ((originalY.get(id) ?? 0) <= elOriginalY + 0.001) {
         if (getBoxStackOverlap(box, other)) {
@@ -158,6 +178,13 @@ function recomputeAllY(elements: BoxElement[]): BoxElement[] {
     if (el.type !== 'leg' || !el.cabinetId) continue;
     const cab = allSettled3.find((e) => e.id === el.cabinetId);
     if (cab) resultMap.set(el.id, computeLegForCabinet(el, cab));
+  }
+  // Recompute HDF back panel positions/dims based on updated cabinet positions
+  const allSettled4 = [...resultMap.values()];
+  for (const el of allSettled4) {
+    if (el.type !== 'hdf' || !el.cabinetId) continue;
+    const cab = allSettled4.find((e) => e.id === el.cabinetId);
+    if (cab) resultMap.set(el.id, computeHdfForCabinet(el, cab));
   }
   return elements.map((el) => resultMap.get(el.id)!);
 }
@@ -528,8 +555,8 @@ const App: React.FC = () => {
         );
         const movedAfter = afterMove.find((e) => e.id === id)!;
 
-        // Fronts and cabinet-bound rods/legs are always locked in XZ — block manual movement
-        if (movedEl.type === 'front' || (movedEl.type === 'rod' && movedEl.cabinetId) || (movedEl.type === 'leg' && movedEl.cabinetId)) return prev;
+        // Fronts, HDF and cabinet-bound rods/legs are always locked in XZ — block manual movement
+        if (movedEl.type === 'front' || movedEl.type === 'hdf' || (movedEl.type === 'rod' && movedEl.cabinetId) || (movedEl.type === 'leg' && movedEl.cabinetId)) return prev;
 
         if (movedEl.type === 'shelf' || movedEl.type === 'divider') {
           if (movedEl.cabinetId) {
@@ -623,20 +650,21 @@ const App: React.FC = () => {
           const fitted = fitCabinetToBelow(movedFinal, withFinalY);
           if (fitted !== movedFinal) {
             const withFitted = withFinalY.map((el) => (el.id === id ? fitted : el));
-            // Move bound elements and recompute fronts/legs for this cabinet
-            const adx = fitted.position.x - movedEl.position.x;
-            const ady = fitted.position.y - movedEl.position.y;
-            const adz = fitted.position.z - movedEl.position.z;
-            return withFitted.map((el) => {
-              if (el.id === id) return el;
-              if (el.cabinetId !== id) return el;
-              if (el.type === 'front') return computeFrontForCabinet(el, fitted);
+          // Move bound elements and recompute fronts/hdf/legs for this cabinet
+          const adx = fitted.position.x - movedEl.position.x;
+          const ady = fitted.position.y - movedEl.position.y;
+          const adz = fitted.position.z - movedEl.position.z;
+          return withFitted.map((el) => {
+            if (el.id === id) return el;
+            if (el.cabinetId !== id) return el;
+            if (el.type === 'front') return computeFrontForCabinet(el, fitted);
+            if (el.type === 'hdf') return computeHdfForCabinet(el, fitted);
               if (el.type === 'leg') return computeLegForCabinet(el, fitted);
               return { ...el, position: { x: el.position.x + adx, y: el.position.y + ady, z: el.position.z + adz } };
             });
           }
         }
-        // Move bound elements and recompute fronts/legs for the moved cabinet
+        // Move bound elements and recompute fronts/hdf/legs for the moved cabinet
         const movedFinal2 = withFinalY.find((e) => e.id === id)!;
         const adx = movedFinal2.position.x - movedEl.position.x;
         const ady = movedFinal2.position.y - movedEl.position.y;
@@ -645,6 +673,7 @@ const App: React.FC = () => {
           if (el.id === id) return el;
           if (el.cabinetId !== id) return el;
           if (el.type === 'front') return computeFrontForCabinet(el, movedFinal2);
+          if (el.type === 'hdf') return computeHdfForCabinet(el, movedFinal2);
           if (el.type === 'leg') return computeLegForCabinet(el, movedFinal2);
           return { ...el, position: { x: el.position.x + adx, y: el.position.y + ady, z: el.position.z + adz } };
         });
@@ -708,6 +737,7 @@ const App: React.FC = () => {
             if (e.id === id) return movedCab;
             if (e.cabinetId !== id) return e;
             if (e.type === 'front') return computeFrontForCabinet(e, movedCab);
+            if (e.type === 'hdf') return computeHdfForCabinet(e, movedCab);
             if (e.type === 'leg') return computeLegForCabinet(e, movedCab);
             return { ...e, position: { ...e.position, y: e.position.y + actualDy } };
           });
@@ -831,6 +861,7 @@ const App: React.FC = () => {
         if (e.id === cabinetId) return liftedCab;
         if (e.cabinetId !== cabinetId) return e;
         if (e.type === 'front') return computeFrontForCabinet(e, liftedCab);
+        if (e.type === 'hdf') return computeHdfForCabinet(e, liftedCab);
         return { ...e, position: { ...e.position, y: e.position.y + h } };
       });
       const legs = corners.map(({ corner, label }) =>
@@ -850,6 +881,25 @@ const App: React.FC = () => {
       );
       setSelectedId(cabinetId);
       return [...updatedPrev, ...legs];
+    });
+  }, []);
+
+  const handleAddHdfToCabinet = useCallback((cabinetId: string) => {
+    setElements((prev) => {
+      const cab = prev.find((e) => e.id === cabinetId);
+      if (!cab) return prev;
+      if (prev.some((e) => e.type === 'hdf' && e.cabinetId === cabinetId)) return prev;
+      const hdf: BoxElement = computeHdfForCabinet({
+        id: crypto.randomUUID(),
+        name: `HDF ${hdfCounter++}`,
+        type: 'hdf',
+        cabinetId,
+        dimensions: { width: 0, height: 0, depth: 0 },
+        position: { x: 0, y: 0, z: 0 },
+        color: cab.color,
+      }, cab);
+      setSelectedId(cabinetId);
+      return [...prev, hdf];
     });
   }, []);
 
@@ -952,6 +1002,7 @@ const App: React.FC = () => {
           onAddDoubleFrontToCabinet={handleAddDoubleFrontToCabinet}
           onAddRodToCabinet={handleAddRodToCabinet}
           onAddLegsToCabinet={handleAddLegsToCabinet}
+          onAddHdfToCabinet={handleAddHdfToCabinet}
           onDelete={handleDelete}
         />
       </aside>

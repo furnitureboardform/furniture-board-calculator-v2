@@ -50,10 +50,11 @@ interface Props {
   onAddDoubleFrontToCabinet: (cabinetId: string) => void;
   onAddRodToCabinet: (cabinetId: string) => void;
   onAddLegsToCabinet: (cabinetId: string) => void;
+  onAddHdfToCabinet: (cabinetId: string) => void;
   onDelete: (id: string) => void;
 }
 
-const ElementLibrary: React.FC<Props> = ({ elements, selectedId, onSelect, onAdd, onAddShelfToCabinet, onAddDividerToCabinet, onAddFrontToCabinet, onAddDoubleFrontToCabinet, onAddRodToCabinet, onAddLegsToCabinet, onDelete }) => {
+const ElementLibrary: React.FC<Props> = ({ elements, selectedId, onSelect, onAdd, onAddShelfToCabinet, onAddDividerToCabinet, onAddFrontToCabinet, onAddDoubleFrontToCabinet, onAddRodToCabinet, onAddLegsToCabinet, onAddHdfToCabinet, onDelete }) => {
   const cabinets = elements.filter((e) => e.type === 'cabinet');
   const freeShelves = elements.filter((e) => (e.type === 'shelf' || e.type === 'rod') && !e.cabinetId);
 
@@ -144,6 +145,13 @@ const ElementLibrary: React.FC<Props> = ({ elements, selectedId, onSelect, onAdd
                       <span className="element-indent-line" />
                       <span className="element-add-icon">＋</span>
                       <span className="element-name" style={{ color: '#6060a0' }}>Dodaj nóżki</span>
+                    </li>
+                  )}
+                  {!elements.some((e) => e.type === 'hdf' && e.cabinetId === cab.id) && (
+                    <li className="element-item element-item--add" onClick={() => onAddHdfToCabinet(cab.id)}>
+                      <span className="element-indent-line" />
+                      <span className="element-add-icon">️＋</span>
+                      <span className="element-name" style={{ color: '#6060a0' }}>Dodaj płytę HDF</span>
                     </li>
                   )}
                   {!elements.some((e) => e.type === 'front' && e.cabinetId === cab.id) && (
