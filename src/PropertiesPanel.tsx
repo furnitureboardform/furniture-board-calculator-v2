@@ -54,7 +54,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, onChange, onYChange }) => {
     onYChange?.(element.id, m);
   };
 
-  const labels: Record<DimKey, string> = element.type === 'shelf'
+  const labels: Record<DimKey, string> = (element.type === 'shelf' || element.type === 'rod')
     ? { width: 'Szerokość', height: 'Grubość', depth: 'Głębokość' }
     : { width: 'Szerokość (X)', height: 'Wysokość (Y)', depth: 'Głębokość (Z)' };
   const colors: Record<DimKey, string> = { width: '#ff4444', height: '#44ff44', depth: '#4488ff' };
@@ -62,7 +62,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, onChange, onYChange }) => {
   return (
     <div className="properties">
       <h2 className="properties-title">{element.name}</h2>
-      {element.type === 'shelf' ? (
+      {(element.type === 'shelf' || element.type === 'rod') ? (
         <div className="properties-hint">Ustaw wymiary i pozycję pionową półki</div>
       ) : (
         <div className="properties-hint">Przeciągnij uchwyty na modelu lub wpisz wartości</div>
@@ -85,7 +85,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, onChange, onYChange }) => {
         </div>
       ))}
 
-      {element.type === 'shelf' && onYChange && (
+      {(element.type === 'shelf' || element.type === 'rod') && onYChange && (
         <>
           <div className="prop-divider" />
           <div className="prop-row">

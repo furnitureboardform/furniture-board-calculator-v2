@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import type { BoxElement, BoxDimensions } from './types';
 import { useThreeScene } from './useThreeScene';
 import ElementLibrary from './ElementLibrary';
@@ -10,6 +10,47 @@ let colorIndex = 0;
 let boxCounter = 1;
 let shelfCounter = 1;
 let dividerCounter = 1;
+let frontCounter = 1;
+let rodCounter = 1;
+
+// Snap / attach constants (must be declared before helpers that use them)
+const PANEL_T = 0.018; // panel thickness in metres (~18 mm); must match useThreeScene.ts
+const SNAP_DIST = 0.05; // side-by-side wall snap tolerance (5 cm)
+const FRONT_INSET = 0.002; // 2 mm gap on each side between front panel and cabinet edge
+
+// Computes the position/dimensions of a front panel bound to its cabinet.
+// For double fronts: each leaf gets 2mm inset on all four of its own edges.
+function computeFrontForCabinet(front: BoxElement, cab: BoxElement): BoxElement {
+  const z = cab.position.z + cab.dimensions.depth / 2 + PANEL_T / 2;
+  const fullH = Math.max(0.001, cab.dimensions.height - 2 * FRONT_INSET);
+  const yPos = cab.position.y + FRONT_INSET;
+  if (front.frontSide === 'left' || front.frontSide === 'right') {
+    // Each leaf: half cabinet width minus 2mm on each of its own sides (outer edge + centre gap)
+    const leafW = Math.max(0.001, cab.dimensions.width / 2 - 2 * FRONT_INSET);
+    // Leaf centres sit at ±W/4 from cabinet centre (the 2mm insets cancel out symmetrically)
+    const leftX  = cab.position.x - cab.dimensions.width / 4;
+    const rightX = cab.position.x + cab.dimensions.width / 4;
+    return {
+      ...front,
+      dimensions: { width: leafW, height: fullH, depth: PANEL_T },
+      position: {
+        x: front.frontSide === 'left' ? leftX : rightX,
+        y: yPos,
+        z,
+      },
+    };
+  }
+  // Single front
+  return {
+    ...front,
+    dimensions: {
+      width: Math.max(0.001, cab.dimensions.width - 2 * FRONT_INSET),
+      height: fullH,
+      depth: PANEL_T,
+    },
+    position: { x: cab.position.x, y: yPos, z },
+  };
+}
 
 // Returns true if boxes a and b have any XZ footprint overlap (used by fit/snap helpers)
 function getBoxOverlap(a: BoxElement, b: BoxElement): boolean {
@@ -34,7 +75,7 @@ function computeYForBox(box: BoxElement, allElements: BoxElement[]): number {
   let maxTop = 0;
   for (const other of allElements) {
     if (other.id === box.id) continue;
-    if (other.type === 'shelf' || other.type === 'divider') continue;
+    if (other.type === 'shelf' || other.type === 'divider' || other.type === 'front' || other.type === 'rod') continue;
     if (getBoxStackOverlap(box, other)) {
       maxTop = Math.max(maxTop, other.position.y + other.dimensions.height);
     }
@@ -54,12 +95,12 @@ function recomputeAllY(elements: BoxElement[]): BoxElement[] {
   );
   for (const el of ordered) {
     const box = resultMap.get(el.id)!;
-    if (box.type === 'shelf' || box.type === 'divider') continue; // preserve their Y
+    if (box.type === 'shelf' || box.type === 'divider' || box.type === 'front' || box.type === 'rod') continue; // preserve their Y
     const elOriginalY = originalY.get(el.id) ?? 0;
     let maxTop = 0;
     for (const [id, other] of resultMap) {
       if (id === box.id) continue;
-      if (other.type === 'shelf' || other.type === 'divider') continue;
+      if (other.type === 'shelf' || other.type === 'divider' || other.type === 'front' || other.type === 'rod') continue;
       // Only stack on boxes that were originally below (or at same level as) this box
       if ((originalY.get(id) ?? 0) <= elOriginalY + 0.001) {
         if (getBoxStackOverlap(box, other)) {
@@ -83,6 +124,13 @@ function recomputeAllY(elements: BoxElement[]): BoxElement[] {
       dimensions: { ...el.dimensions, height: bounds.height, depth: cab ? cab.dimensions.depth : el.dimensions.depth },
       position: { ...el.position, y: bounds.y },
     });
+  }
+  // Recompute front panel positions/dims based on updated cabinet positions
+  const allSettled2 = [...resultMap.values()];
+  for (const el of allSettled2) {
+    if (el.type !== 'front' || !el.cabinetId) continue;
+    const cab = allSettled2.find((e) => e.id === el.cabinetId);
+    if (cab) resultMap.set(el.id, computeFrontForCabinet(el, cab));
   }
   return elements.map((el) => resultMap.get(el.id)!);
 }
@@ -128,6 +176,76 @@ function fitCabinetToBelow(cabinet: BoxElement, allElements: BoxElement[]): BoxE
   return cabinet;
 }
 
+// Maximum distance (m) from a cabinet boundary within which a free shelf/divider auto-attaches
+const ATTACH_DIST = SNAP_DIST;
+// Straight-line drag displacement (m) required to detach a bound element from its cabinet
+const DETACH_DIST = 0.08; // 80 mm
+// How far outside the cabinet the element must travel before same-cabinet re-snap is allowed again
+const HYSTERESIS_DIST = 0.15; // 150 mm
+
+// Like findNearCabinet but skips `avoidCabId` until the element has moved past the hysteresis zone.
+function findNearCabinetHysteresis(
+  elem: BoxElement,
+  allElements: BoxElement[],
+  avoidCabId: string | null
+): BoxElement | null {
+  for (const other of allElements) {
+    if (other.id === elem.id || other.type !== 'cabinet') continue;
+    const yOverlap =
+      elem.position.y < other.position.y + other.dimensions.height &&
+      elem.position.y + elem.dimensions.height > other.position.y;
+    if (!yOverlap) continue;
+    const inX = Math.abs(elem.position.x - other.position.x) < other.dimensions.width / 2 + ATTACH_DIST;
+    const inZ = Math.abs(elem.position.z - other.position.z) < other.dimensions.depth / 2 + ATTACH_DIST;
+    if (!inX || !inZ) continue;
+    if (other.id === avoidCabId) continue; // still in hysteresis cooldown for this cabinet
+    return other;
+  }
+  return null;
+}
+
+// Attaches a free shelf/divider to the given cabinet and fits its dimensions/position.
+function attachAndFit(elem: BoxElement, cab: BoxElement, allElements: BoxElement[]): BoxElement {
+  if (elem.type === 'shelf') {
+    const innerWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T);
+    const depth = cab.dimensions.depth;
+    const maxY = cab.position.y + cab.dimensions.height - elem.dimensions.height;
+    const clampedY = Math.min(Math.max(cab.position.y, elem.position.y), maxY);
+    return {
+      ...elem,
+      cabinetId: cab.id,
+      dimensions: { ...elem.dimensions, width: innerWidth, depth },
+      position: { x: cab.position.x, y: clampedY, z: cab.position.z },
+    };
+  }
+  if (elem.type === 'rod') {
+    const ROD_D = 0.025;
+    const innerWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T);
+    const minY = cab.position.y + PANEL_T;
+    const maxY = cab.position.y + cab.dimensions.height - PANEL_T - ROD_D;
+    const clampedY = Math.min(Math.max(minY, elem.position.y), Math.max(minY, maxY));
+    return {
+      ...elem,
+      cabinetId: cab.id,
+      dimensions: { ...elem.dimensions, width: innerWidth, height: ROD_D, depth: ROD_D },
+      position: { x: cab.position.x, y: clampedY, z: cab.position.z },
+    };
+  }
+  if (elem.type === 'divider') {
+    const halfInner = (cab.dimensions.width - 2 * PANEL_T) / 2 - PANEL_T / 2;
+    const clampedX = Math.max(cab.position.x - halfInner, Math.min(cab.position.x + halfInner, elem.position.x));
+    const attached = { ...elem, cabinetId: cab.id, position: { ...elem.position, x: clampedX, z: cab.position.z } };
+    const allWithAttached = allElements.map((e) => e.id === elem.id ? attached : e);
+    const bounds = computeDividerBounds(cab.id, attached.position.y + attached.dimensions.height / 2, allWithAttached);
+    return {
+      ...attached,
+      dimensions: { ...attached.dimensions, height: bounds.height, depth: cab.dimensions.depth },
+      position: { ...attached.position, y: bounds.y },
+    };
+  }
+  return elem;
+}
+
 // Returns the Y bottom and height for a divider based on shelves above/below in the same cabinet
 function computeDividerBounds(
   cabinetId: string,
@@ -137,8 +255,8 @@ function computeDividerBounds(
   const cab = allElements.find((e) => e.id === cabinetId);
   if (!cab) return { y: 0, height: PANEL_T };
 
-  const cabBottom = cab.position.y;
-  const cabTop = cab.position.y + cab.dimensions.height;
+  const cabBottom = cab.position.y + PANEL_T;          // inner face of bottom panel
+  const cabTop = cab.position.y + cab.dimensions.height - PANEL_T; // inner face of top panel
 
   // Collect horizontal surfaces (shelves in the same cabinet): their top face Y
   const surfaces: number[] = [cabBottom, cabTop];
@@ -162,10 +280,6 @@ function computeDividerBounds(
 
   return { y: floorY, height: Math.max(PANEL_T, ceilY - floorY) };
 }
-
-// Snap tolerance for side-by-side wall snap (5 cm)
-const SNAP_DIST = 0.05;
-const PANEL_T = 0.018; // must match useThreeScene.ts
 
 // During resize: if the moving edge of a shelf is close to a cabinet inner wall,
 // snap the edge exactly to that wall (fixed edge stays, dimension adjusts)
@@ -307,6 +421,10 @@ const App: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Tracks accumulated drag Y for dividers so tiny increments build up across frames
   const dividerYHintRef = useRef<Map<string, number>>(new Map());
+  // Cumulative XZ pointer delta from drag start (per element) — used for detach displacement check
+  const dragDeltaRef = useRef<Map<string, { dx: number; dz: number }>>(new Map());
+  // Cabinet id that an element just detached from, prevents immediate re-snap to same cabinet
+  const detachedFromRef = useRef<Map<string, string>>(new Map());
 
   const handleSelect = useCallback((id: string | null) => {
     setSelectedId(id);
@@ -372,31 +490,80 @@ const App: React.FC = () => {
             ? { ...el, position: { ...el.position, x: el.position.x + dx, z: el.position.z + dz } }
             : el
         );
-        if (movedEl.type === 'divider' && movedEl.cabinetId) {
-          // Divider: move only on X axis, clamp inside cabinet inner walls
-          const cab = prev.find((e) => e.id === movedEl.cabinetId);
-          if (!cab) return prev;
-          const halfInner = (cab.dimensions.width - 2 * PANEL_T) / 2 - PANEL_T / 2;
-          const newX = Math.max(cab.position.x - halfInner, Math.min(cab.position.x + halfInner, movedEl.position.x + dx));
-          const moved = { ...movedEl, position: { ...movedEl.position, x: newX } };
-          // Recompute height based on shelves above/below
-          const intermediate = prev.map((e) => (e.id === id ? moved : e));
-          const bounds = computeDividerBounds(movedEl.cabinetId, moved.position.y + moved.dimensions.height / 2, intermediate);
-          return prev.map((e) => e.id === id ? { ...moved, position: { ...moved.position, y: bounds.y }, dimensions: { ...moved.dimensions, height: bounds.height } } : e);
-        }
+        const movedAfter = afterMove.find((e) => e.id === id)!;
 
-        if (movedEl.type === 'shelf') {
-          // Shelf bound to a cabinet: block XZ movement entirely
-          if (movedEl.cabinetId) return prev;
-          // Free shelf: snap XZ but keep their set Y
-          const prelim = afterMove.find((e) => e.id === id)!;;
-          const snapped = snapToNeighbors(prelim, afterMove);
-          const shelfWithXZ = { ...prelim, position: { ...prelim.position, x: snapped.x, z: snapped.z } };
-          // Auto-fit depth to the cabinet the shelf is inside of
-          const fittedShelf = fitShelfDepthToCabinet(shelfWithXZ, afterMove);
-          return afterMove.map((el) =>
-            el.id === id ? fittedShelf : el
-          );
+        // Fronts and cabinet-bound rods are always locked in XZ — block manual movement
+        if (movedEl.type === 'front' || (movedEl.type === 'rod' && movedEl.cabinetId)) return prev;
+
+        if (movedEl.type === 'shelf' || movedEl.type === 'divider') {
+          if (movedEl.cabinetId) {
+            // Accumulate pointer delta for this drag session
+            const d = dragDeltaRef.current.get(id) ?? { dx: 0, dz: 0 };
+            const nd = { dx: d.dx + dx, dz: d.dz + dz };
+            dragDeltaRef.current.set(id, nd);
+
+            if (movedEl.type === 'divider') {
+              // Divider: Z-displacement triggers detach; X-only movement is intentional repositioning
+              const zDisp = Math.abs(nd.dz);
+              if (zDisp < DETACH_DIST) {
+                // Still bound — move only on X, clamped inside cabinet
+                const cab = prev.find((e) => e.id === movedEl.cabinetId)!;
+                const halfInner = (cab.dimensions.width - 2 * PANEL_T) / 2 - PANEL_T / 2;
+                const newX = Math.max(cab.position.x - halfInner, Math.min(cab.position.x + halfInner, movedEl.position.x + dx));
+                const moved = { ...movedEl, position: { ...movedEl.position, x: newX } };
+                const intermediate = prev.map((e) => (e.id === id ? moved : e));
+                const bounds = computeDividerBounds(movedEl.cabinetId, moved.position.y + moved.dimensions.height / 2, intermediate);
+                return prev.map((e) => e.id === id ? { ...moved, position: { ...moved.position, y: bounds.y }, dimensions: { ...moved.dimensions, height: bounds.height } } : e);
+              }
+            } else {
+              // Shelf: fully locked until straight-line displacement exceeds threshold
+              const disp = Math.sqrt(nd.dx * nd.dx + nd.dz * nd.dz);
+              if (disp < DETACH_DIST) return prev;
+            }
+
+            // Threshold exceeded — detach
+            dividerYHintRef.current.delete(id);
+            detachedFromRef.current.set(id, movedEl.cabinetId!);
+            const detached = { ...movedAfter, cabinetId: undefined };
+            const withDetached = afterMove.map((e) => e.id === id ? detached : e);
+            // Re-attach to a *different* nearby cabinet immediately
+            const nearCab = findNearCabinetHysteresis(detached, withDetached, movedEl.cabinetId!);
+            if (nearCab) {
+              detachedFromRef.current.delete(id);
+              dragDeltaRef.current.set(id, { dx: 0, dz: 0 });
+              return withDetached.map((e) => e.id === id ? attachAndFit(detached, nearCab, withDetached) : e);
+            }
+            return withDetached;
+          }
+
+          // Free element — check hysteresis: reset avoid once far enough away from last cabinet
+          let avoidCabId = detachedFromRef.current.get(id) ?? null;
+          if (avoidCabId) {
+            const avoidCab = afterMove.find((e) => e.id === avoidCabId);
+            if (!avoidCab ||
+              Math.abs(movedAfter.position.x - avoidCab.position.x) > avoidCab.dimensions.width  / 2 + HYSTERESIS_DIST ||
+              Math.abs(movedAfter.position.z - avoidCab.position.z) > avoidCab.dimensions.depth / 2 + HYSTERESIS_DIST) {
+              detachedFromRef.current.delete(id);
+              avoidCabId = null;
+            }
+          }
+
+          // Check for nearby cabinet to re-attach (respecting hysteresis)
+          const nearCab = findNearCabinetHysteresis(movedAfter, afterMove, avoidCabId);
+          if (nearCab) {
+            detachedFromRef.current.delete(id);
+            dragDeltaRef.current.set(id, { dx: 0, dz: 0 });
+            return afterMove.map((e) => e.id === id ? attachAndFit(movedAfter, nearCab, afterMove) : e);
+          }
+          if (movedEl.type === 'shelf') {
+            // Free shelf: snap XZ, fit dims to any cabinet it overlaps
+            const snapped = snapToNeighbors(movedAfter, afterMove);
+            const shelfWithXZ = { ...movedAfter, position: { ...movedAfter.position, x: snapped.x, z: snapped.z } };
+            const fittedShelf = fitShelfDepthToCabinet(shelfWithXZ, afterMove);
+            return afterMove.map((el) => el.id === id ? fittedShelf : el);
+          }
+          // Free rod / divider: move freely
+          return afterMove;
         }
         // 2. Compute preliminary Y so snap can check Y overlap correctly
         const prelim = afterMove.find((e) => e.id === id)!;
@@ -419,10 +586,16 @@ const App: React.FC = () => {
           const movedFinal = withFinalY.find((e) => e.id === id)!;
           const fitted = fitCabinetToBelow(movedFinal, withFinalY);
           if (fitted !== movedFinal) {
-            return withFinalY.map((el) => (el.id === id ? fitted : el));
+            const withFitted = withFinalY.map((el) => (el.id === id ? fitted : el));
+            // Recompute fronts for this cabinet
+            return withFitted.map((el) => el.type === 'front' && el.cabinetId === id
+              ? computeFrontForCabinet(el, fitted) : el);
           }
         }
-        return withFinalY;
+        // Recompute fronts for the moved cabinet
+        const movedFinal2 = withFinalY.find((e) => e.id === id)!;
+        return withFinalY.map((el) => el.type === 'front' && el.cabinetId === id
+          ? computeFrontForCabinet(el, movedFinal2) : el);
       });
     },
     []
@@ -436,8 +609,9 @@ const App: React.FC = () => {
         if (el.cabinetId) {
           const cab = prev.find((e) => e.id === el.cabinetId);
           if (cab) {
-            const maxY = cab.position.y + cab.dimensions.height - el.dimensions.height;
-            newY = Math.min(Math.max(cab.position.y, newY), maxY);
+            const minY = cab.position.y + PANEL_T;
+            const maxY = cab.position.y + cab.dimensions.height - PANEL_T - el.dimensions.height;
+            newY = Math.min(Math.max(minY, newY), Math.max(minY, maxY));
           }
         }
         return prev.map((e) => (e.id === id ? { ...e, position: { ...e.position, y: newY } } : e));
@@ -456,7 +630,7 @@ const App: React.FC = () => {
           if (!cab) return prev;
           // Accumulate drag delta into hint (independent of snapped position)
           const currentHint = dividerYHintRef.current.get(id) ?? (el.position.y + el.dimensions.height / 2);
-          const newHint = Math.max(cab.position.y, Math.min(cab.position.y + cab.dimensions.height, currentHint + dy));
+          const newHint = Math.max(cab.position.y + PANEL_T, Math.min(cab.position.y + cab.dimensions.height - PANEL_T, currentHint + dy));
           dividerYHintRef.current.set(id, newHint);
           const bounds = computeDividerBounds(el.cabinetId, newHint, prev);
           return prev.map((e) => e.id === id ? {
@@ -470,8 +644,9 @@ const App: React.FC = () => {
         if (el.cabinetId) {
           const cab = prev.find((e) => e.id === el.cabinetId);
           if (cab) {
-            const maxY = cab.position.y + cab.dimensions.height - el.dimensions.height;
-            newY = Math.min(Math.max(cab.position.y, newY), maxY);
+            const minY = cab.position.y + PANEL_T;
+            const maxY = cab.position.y + cab.dimensions.height - PANEL_T - el.dimensions.height;
+            newY = Math.min(Math.max(minY, newY), Math.max(minY, maxY));
           }
         }
         return prev.map((e) => (e.id === id ? { ...e, position: { ...e.position, y: newY } } : e));
@@ -523,6 +698,81 @@ const App: React.FC = () => {
     });
   }, []);
 
+  const handleAddFrontToCabinet = useCallback((cabinetId: string) => {
+    setElements((prev) => {
+      const cab = prev.find((e) => e.id === cabinetId);
+      if (!cab) return prev;
+      // Only one single front per cabinet (and no single front if double already exists)
+      if (prev.some((e) => e.type === 'front' && e.cabinetId === cabinetId)) return prev;
+      const front: BoxElement = computeFrontForCabinet({
+        id: crypto.randomUUID(),
+        name: `Front ${frontCounter++}`,
+        type: 'front',
+        cabinetId,
+        dimensions: { width: 0, height: 0, depth: 0 },
+        position: { x: 0, y: 0, z: 0 },
+        color: cab.color,
+      }, cab);
+      setSelectedId(cabinetId);
+      return [...prev, front];
+    });
+  }, []);
+
+  const handleAddDoubleFrontToCabinet = useCallback((cabinetId: string) => {
+    setElements((prev) => {
+      const cab = prev.find((e) => e.id === cabinetId);
+      if (!cab) return prev;
+      // Only if no front exists yet
+      if (prev.some((e) => e.type === 'front' && e.cabinetId === cabinetId)) return prev;
+      const leftLeaf: BoxElement = computeFrontForCabinet({
+        id: crypto.randomUUID(),
+        name: `Front L${frontCounter}`,
+        type: 'front',
+        frontSide: 'left',
+        cabinetId,
+        dimensions: { width: 0, height: 0, depth: 0 },
+        position: { x: 0, y: 0, z: 0 },
+        color: cab.color,
+      }, cab);
+      const rightLeaf: BoxElement = computeFrontForCabinet({
+        id: crypto.randomUUID(),
+        name: `Front R${frontCounter++}`,
+        type: 'front',
+        frontSide: 'right',
+        cabinetId,
+        dimensions: { width: 0, height: 0, depth: 0 },
+        position: { x: 0, y: 0, z: 0 },
+        color: cab.color,
+      }, cab);
+      setSelectedId(cabinetId);
+      return [...prev, leftLeaf, rightLeaf];
+    });
+  }, []);
+
+  const handleAddRodToCabinet = useCallback((cabinetId: string) => {
+    setElements((prev) => {
+      const cab = prev.find((e) => e.id === cabinetId);
+      if (!cab) return prev;
+      const ROD_D = 0.025;
+      const innerWidth = Math.max(0.001, cab.dimensions.width - 2 * PANEL_T);
+      const rod: BoxElement = {
+        id: crypto.randomUUID(),
+        name: `Drążek ${rodCounter++}`,
+        type: 'rod',
+        cabinetId,
+        dimensions: { width: innerWidth, height: ROD_D, depth: ROD_D },
+        position: {
+          x: cab.position.x,
+          z: cab.position.z,
+          y: cab.position.y + cab.dimensions.height * 0.75,
+        },
+        color: cab.color,
+      };
+      setSelectedId(cabinetId);
+      return [...prev, rod];
+    });
+  }, []);
+
   const handleAdd = useCallback((type: 'cabinet' | 'shelf') => {
     const el = type === 'shelf' ? createShelf() : createBox();
     setElements((prev) => {
@@ -536,13 +786,19 @@ const App: React.FC = () => {
   const handleDelete = useCallback(
     (id: string) => {
       dividerYHintRef.current.delete(id);
+      dragDeltaRef.current.delete(id);
+      detachedFromRef.current.delete(id);
       setElements((prev) => {
+        // Also remove all children (shelves / dividers / fronts) bound to this element
         const toRemove = new Set<string>([id]);
-        // Also remove all children (shelves/dividers) belonging to this cabinet
         for (const el of prev) {
           if (el.cabinetId === id) toRemove.add(el.id);
         }
-        toRemove.forEach((rid) => dividerYHintRef.current.delete(rid));
+        toRemove.forEach((rid) => {
+          dividerYHintRef.current.delete(rid);
+          dragDeltaRef.current.delete(rid);
+          detachedFromRef.current.delete(rid);
+        });
         return prev.filter((el) => !toRemove.has(el.id));
       });
       setSelectedId((prev) => (prev === id ? null : prev));
@@ -550,19 +806,9 @@ const App: React.FC = () => {
     []
   );
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Delete') return;
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      setSelectedId((prev) => {
-        if (prev) handleDelete(prev);
-        return null;
-      });
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [handleDelete]);
+  const handleDragStart = useCallback((id: string) => {
+    dragDeltaRef.current.set(id, { dx: 0, dz: 0 });
+  }, []);
 
   useThreeScene(containerRef, {
     elements,
@@ -571,6 +817,7 @@ const App: React.FC = () => {
     onDimensionChange: handleDimensionDrag,
     onPositionChange: handlePositionChange,
     onYMove: handleYMove,
+    onDragStart: handleDragStart,
   });
 
   const selectedElement = elements.find((e) => e.id === selectedId) ?? null;
@@ -585,6 +832,9 @@ const App: React.FC = () => {
           onAdd={handleAdd}
           onAddShelfToCabinet={handleAddShelfToCabinet}
           onAddDividerToCabinet={handleAddDividerToCabinet}
+          onAddFrontToCabinet={handleAddFrontToCabinet}
+          onAddDoubleFrontToCabinet={handleAddDoubleFrontToCabinet}
+          onAddRodToCabinet={handleAddRodToCabinet}
           onDelete={handleDelete}
         />
       </aside>

@@ -10,6 +10,7 @@ interface UseThreeSceneOptions {
   onDimensionChange: (id: string, axis: 'width' | 'height' | 'depth', delta: number, dir: number) => void;
   onPositionChange: (id: string, dx: number, dz: number) => void;
   onYMove: (id: string, dy: number) => void;
+  onDragStart?: (id: string) => void;
 }
 
 const PANEL_T = 0.018; // panel thickness in metres (~18 mm)
@@ -193,6 +194,62 @@ export function useThreeScene(
     []
   );
 
+  const rebuildFront = useCallback(
+    (parent: THREE.Mesh, element: BoxElement, emissive: THREE.Color) => {
+      parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
+        if (c instanceof THREE.Mesh) {
+          c.geometry.dispose();
+          (c.material as THREE.MeshStandardMaterial).dispose();
+        }
+        parent.remove(c);
+      });
+      const { width, height, depth } = element.dimensions;
+      const geo = new THREE.BoxGeometry(width, height, depth);
+      const mat = new THREE.MeshStandardMaterial({
+        color: PANEL_COLOR,
+        emissive,
+        roughness: 0.3,
+        metalness: 0.15,
+        transparent: true,
+        opacity: 0.55,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      });
+      const panel = new THREE.Mesh(geo, mat);
+      panel.userData = { elementId: element.id };
+      parent.add(panel);
+    },
+    []
+  );
+
+  const ROD_RADIUS = 0.0125; // 25 mm diameter wardrobe rail
+
+  const rebuildRod = useCallback(
+    (parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) => {
+      parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
+        if (c instanceof THREE.Mesh) {
+          c.geometry.dispose();
+          (c.material as THREE.MeshStandardMaterial).dispose();
+        }
+        parent.remove(c);
+      });
+      const geo = new THREE.CylinderGeometry(ROD_RADIUS, ROD_RADIUS, element.dimensions.width, 24);
+      const mat = new THREE.MeshStandardMaterial({
+        color,
+        emissive,
+        roughness: 0.25,
+        metalness: 0.7,
+      });
+      const rod = new THREE.Mesh(geo, mat);
+      rod.rotation.z = Math.PI / 2; // lay along X axis
+      rod.castShadow = true;
+      rod.receiveShadow = true;
+      rod.userData = { elementId: element.id };
+      parent.add(rod);
+    },
+    []
+  );
+
   // Init scene once
   useEffect(() => {
     const container = containerRef.current;
@@ -290,6 +347,8 @@ export function useThreeScene(
         // Rebuild visible panels
         if (element.type === 'shelf') rebuildShelf(mesh, element, color, emissive);
         else if (element.type === 'divider') rebuildDivider(mesh, element, color, emissive);
+        else if (element.type === 'front') rebuildFront(mesh, element, emissive);
+        else if (element.type === 'rod') rebuildRod(mesh, element, color, emissive);
         else rebuildPanels(mesh, element, color, emissive);
         if (isSelected) placeHandles(mesh, element);
         else mesh.children.slice().filter((c) => c.userData.isHandle).forEach((c) => mesh.remove(c));
@@ -308,6 +367,8 @@ export function useThreeScene(
         meshMapRef.current.set(element.id, mesh);
         if (element.type === 'shelf') rebuildShelf(mesh, element, color, emissive);
         else if (element.type === 'divider') rebuildDivider(mesh, element, color, emissive);
+        else if (element.type === 'front') rebuildFront(mesh, element, emissive);
+        else if (element.type === 'rod') rebuildRod(mesh, element, color, emissive);
         else rebuildPanels(mesh, element, color, emissive);
         if (isSelected) placeHandles(mesh, element);
       }
@@ -382,6 +443,7 @@ export function useThreeScene(
             const worldPos = new THREE.Vector3();
             raycaster.ray.intersectPlane(groundPlane.current, worldPos);
             isDraggingBoxRef.current = true;
+            optionsRef.current.onDragStart?.(id);
             moveDragStateRef.current = { elementId: id, lastWorldPos: worldPos };
             controls.enabled = false;
           }

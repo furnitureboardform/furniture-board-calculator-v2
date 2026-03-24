@@ -46,12 +46,15 @@ interface Props {
   onAdd: (type: 'cabinet' | 'shelf') => void;
   onAddShelfToCabinet: (cabinetId: string) => void;
   onAddDividerToCabinet: (cabinetId: string) => void;
+  onAddFrontToCabinet: (cabinetId: string) => void;
+  onAddDoubleFrontToCabinet: (cabinetId: string) => void;
+  onAddRodToCabinet: (cabinetId: string) => void;
   onDelete: (id: string) => void;
 }
 
-const ElementLibrary: React.FC<Props> = ({ elements, selectedId, onSelect, onAdd, onAddShelfToCabinet, onAddDividerToCabinet, onDelete }) => {
+const ElementLibrary: React.FC<Props> = ({ elements, selectedId, onSelect, onAdd, onAddShelfToCabinet, onAddDividerToCabinet, onAddFrontToCabinet, onAddDoubleFrontToCabinet, onAddRodToCabinet, onDelete }) => {
   const cabinets = elements.filter((e) => e.type === 'cabinet');
-  const freeShelves = elements.filter((e) => e.type === 'shelf' && !e.cabinetId);
+  const freeShelves = elements.filter((e) => (e.type === 'shelf' || e.type === 'rod') && !e.cabinetId);
 
   const renderItem = (el: BoxElement, indent = false) => (
     <li
@@ -98,6 +101,7 @@ const ElementLibrary: React.FC<Props> = ({ elements, selectedId, onSelect, onAdd
         {cabinets.map((cab) => {
           const children = elements.filter((e) => e.cabinetId === cab.id);
           const isSelected = cab.id === selectedId;
+          const isExpanded = isSelected || children.some((c) => c.id === selectedId);
           return (
             <React.Fragment key={cab.id}>
               {/* Cabinet row */}
@@ -115,8 +119,8 @@ const ElementLibrary: React.FC<Props> = ({ elements, selectedId, onSelect, onAdd
                   ✕
                 </button>
               </li>
-              {/* Children (visible only when cabinet selected) */}
-              {isSelected && (
+              {/* Children visible when cabinet or any child is selected */}
+              {isExpanded && (
                 <>
                   {children.map((child) => renderItem(child, true))}
                   <li className="element-item element-item--add" onClick={() => onAddShelfToCabinet(cab.id)}>
@@ -129,6 +133,25 @@ const ElementLibrary: React.FC<Props> = ({ elements, selectedId, onSelect, onAdd
                     <span className="element-add-icon">＋</span>
                     <span className="element-name" style={{ color: '#6060a0' }}>Dodaj przegrodę</span>
                   </li>
+                  <li className="element-item element-item--add" onClick={() => onAddRodToCabinet(cab.id)}>
+                    <span className="element-indent-line" />
+                    <span className="element-add-icon">＋</span>
+                    <span className="element-name" style={{ color: '#6060a0' }}>Dodaj drążek</span>
+                  </li>
+                  {!elements.some((e) => e.type === 'front' && e.cabinetId === cab.id) && (
+                    <>
+                      <li className="element-item element-item--add" onClick={() => onAddFrontToCabinet(cab.id)}>
+                        <span className="element-indent-line" />
+                        <span className="element-add-icon">＋</span>
+                        <span className="element-name" style={{ color: '#6060a0' }}>Dodaj front</span>
+                      </li>
+                      <li className="element-item element-item--add" onClick={() => onAddDoubleFrontToCabinet(cab.id)}>
+                        <span className="element-indent-line" />
+                        <span className="element-add-icon">＋</span>
+                        <span className="element-name" style={{ color: '#6060a0' }}>Dodaj podwójny front</span>
+                      </li>
+                    </>
+                  )}
                 </>
               )}
             </React.Fragment>
