@@ -8,6 +8,225 @@ import './App.css';
 const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
 let colorIndex = 0;
 let boxCounter = 1;
+let shelfCounter = 1;
+
+// Returns true if boxes a and b have any XZ footprint overlap (used by fit/snap helpers)
+function getBoxOverlap(a: BoxElement, b: BoxElement): boolean {
+  return (
+    Math.abs(a.position.x - b.position.x) < (a.dimensions.width + b.dimensions.width) / 2 &&
+    Math.abs(a.position.z - b.position.z) < (a.dimensions.depth + b.dimensions.depth) / 2
+  );
+}
+
+// Minimum overlap in each axis to trigger stacking (10 cm)
+const STACK_OVERLAP = 0.10;
+
+// Returns true when boxes overlap by more than STACK_OVERLAP in BOTH X and Z
+function getBoxStackOverlap(a: BoxElement, b: BoxElement): boolean {
+  const ox = (a.dimensions.width + b.dimensions.width) / 2 - Math.abs(a.position.x - b.position.x);
+  const oz = (a.dimensions.depth + b.dimensions.depth) / 2 - Math.abs(a.position.z - b.position.z);
+  return ox > STACK_OVERLAP && oz > STACK_OVERLAP;
+}
+
+// Returns the Y level (bottom) where box should sit, based on overlapping boxes
+function computeYForBox(box: BoxElement, allElements: BoxElement[]): number {
+  let maxTop = 0;
+  for (const other of allElements) {
+    if (other.id === box.id) continue;
+    if (other.type === 'shelf') continue; // shelves don't act as floors
+    if (getBoxStackOverlap(box, other)) {
+      maxTop = Math.max(maxTop, other.position.y + other.dimensions.height);
+    }
+  }
+  return maxTop;
+}
+
+// Recomputes Y for all boxes bottom-up (used after dimension changes)
+function recomputeAllY(elements: BoxElement[]): BoxElement[] {
+  const originalY = new Map(elements.map((el) => [el.id, el.position.y]));
+  // Process from lowest to highest so lower boxes are settled first
+  const ordered = [...elements].sort(
+    (a, b) => (originalY.get(a.id) ?? 0) - (originalY.get(b.id) ?? 0)
+  );
+  const resultMap = new Map(
+    elements.map((el) => [el.id, { ...el, position: { ...el.position } }])
+  );
+  for (const el of ordered) {
+    const box = resultMap.get(el.id)!;
+    if (box.type === 'shelf') continue; // preserve shelf Y
+    const elOriginalY = originalY.get(el.id) ?? 0;
+    let maxTop = 0;
+    for (const [id, other] of resultMap) {
+      if (id === box.id) continue;
+      if (other.type === 'shelf') continue; // shelves don't act as floors
+      // Only stack on boxes that were originally below (or at same level as) this box
+      if ((originalY.get(id) ?? 0) <= elOriginalY + 0.001) {
+        if (getBoxStackOverlap(box, other)) {
+          maxTop = Math.max(maxTop, other.position.y + other.dimensions.height);
+        }
+      }
+    }
+    const withY = { ...box, position: { ...box.position, y: maxTop } };
+    // If stacked on another cabinet, match its width/depth
+    const fitted = maxTop > 0 ? fitCabinetToBelow(withY, [...resultMap.values()]) : withY;
+    resultMap.set(el.id, fitted);
+  }
+  return elements.map((el) => resultMap.get(el.id)!);
+}
+
+// Auto-fit shelf depth (Z) to the inner depth of the cabinet it's inside
+function fitShelfDepthToCabinet(shelf: BoxElement, allElements: BoxElement[]): BoxElement {
+  for (const other of allElements) {
+    if (other.id === shelf.id || other.type !== 'cabinet') continue;
+    const yOverlap =
+      shelf.position.y < other.position.y + other.dimensions.height &&
+      shelf.position.y + shelf.dimensions.height > other.position.y;
+    if (!yOverlap) continue;
+    const insideX =
+      Math.abs(shelf.position.x - other.position.x) < other.dimensions.width / 2;
+    const insideZ =
+      Math.abs(shelf.position.z - other.position.z) < other.dimensions.depth / 2;
+    if (!insideX || !insideZ) continue;
+    // Width = inner width (between side panels), depth = full cabinet depth (no back panel)
+    const innerWidth = other.dimensions.width - 2 * PANEL_T;
+    const fullDepth = other.dimensions.depth;
+    return {
+      ...shelf,
+      dimensions: { ...shelf.dimensions, width: Math.max(0.01, innerWidth), depth: Math.max(0.01, fullDepth) },
+      position: { ...shelf.position, x: other.position.x, z: other.position.z },
+    };
+  }
+  return shelf;
+}
+
+// When a cabinet is placed on top of another cabinet, match its width/depth to the lower one
+function fitCabinetToBelow(cabinet: BoxElement, allElements: BoxElement[]): BoxElement {
+  for (const other of allElements) {
+    if (other.id === cabinet.id || other.type !== 'cabinet') continue;
+    const otherTop = other.position.y + other.dimensions.height;
+    if (Math.abs(cabinet.position.y - otherTop) > 0.001) continue;
+    if (!getBoxOverlap(cabinet, other)) continue;
+    return {
+      ...cabinet,
+      dimensions: { ...cabinet.dimensions, width: other.dimensions.width, depth: other.dimensions.depth },
+      position: { ...cabinet.position, x: other.position.x, z: other.position.z },
+    };
+  }
+  return cabinet;
+}
+
+// Snap tolerance for side-by-side wall snap (5 cm)
+const SNAP_DIST = 0.05;
+const PANEL_T = 0.018; // must match useThreeScene.ts
+
+// During resize: if the moving edge of a shelf is close to a cabinet inner wall,
+// snap the edge exactly to that wall (fixed edge stays, dimension adjusts)
+function snapShelfEdgeToCabinet(
+  el: BoxElement,
+  axis: 'width' | 'depth',
+  dir: number,
+  allElements: BoxElement[]
+): { dim: number; pos: number } | null {
+  const posAxis = axis === 'width' ? 'x' : 'z';
+  const perpAxis = axis === 'width' ? 'z' : 'x';
+  const perpDim = axis === 'width' ? 'depth' : 'width';
+  const dim = el.dimensions[axis];
+  const pos = el.position[posAxis];
+  const movingEdge = pos + (dim / 2) * dir;
+  const fixedEdge = pos - (dim / 2) * dir;
+
+  let bestSnap: number | null = null;
+  let bestDist = SNAP_DIST;
+
+  for (const other of allElements) {
+    if (other.id === el.id || other.type !== 'cabinet') continue;
+    // Y overlap check (shelf is inside cabinet vertically)
+    const yOverlap =
+      el.position.y < other.position.y + other.dimensions.height &&
+      el.position.y + el.dimensions.height > other.position.y;
+    if (!yOverlap) continue;
+    // Perp axis: shelf should be inside or touching cabinet
+    const shelfPerpCenter = el.position[perpAxis as 'x' | 'z'];
+    const cabPerpCenter = other.position[perpAxis as 'x' | 'z'];
+    const shelfPerpHalf = el.dimensions[perpDim as 'width' | 'depth'] / 2;
+    const cabPerpHalf = other.dimensions[perpDim as 'width' | 'depth'] / 2;
+    if (Math.abs(shelfPerpCenter - cabPerpCenter) > cabPerpHalf + shelfPerpHalf) continue;
+
+    const otherPos = other.position[posAxis as 'x' | 'z'];
+    const otherHalf = other.dimensions[axis] / 2;
+    // Two inner walls of the cabinet along this axis
+    const walls = [
+      otherPos + otherHalf - PANEL_T, // inner right/front
+      otherPos - otherHalf + PANEL_T, // inner left/back
+    ];
+    for (const wall of walls) {
+      const dist = Math.abs(movingEdge - wall);
+      if (dist < bestDist) { bestDist = dist; bestSnap = wall; }
+    }
+  }
+
+  if (bestSnap === null) return null;
+  const newDim = Math.max(0.1, Math.abs(bestSnap - fixedEdge));
+  const newPos = (bestSnap + fixedEdge) / 2;
+  return { dim: newDim, pos: newPos };
+}
+
+// Snaps box XZ position so its walls touch neighbors when close enough,
+// and also aligns faces (front-to-front, back-to-back, left-to-left, right-to-right)
+function snapToNeighbors(box: BoxElement, allElements: BoxElement[]): { x: number; z: number } {
+  let { x, z } = box.position;
+  const hw = box.dimensions.width / 2;
+  const hd = box.dimensions.depth / 2;
+
+  for (const other of allElements) {
+    if (other.id === box.id) continue;
+    const ohw = other.dimensions.width / 2;
+    const ohd = other.dimensions.depth / 2;
+
+    // Only snap to boxes that share some Y range
+    const yOverlap =
+      box.position.y < other.position.y + other.dimensions.height &&
+      box.position.y + box.dimensions.height > other.position.y;
+    if (!yOverlap) continue;
+
+    const zGap = Math.abs(z - other.position.z) - (hd + ohd);
+
+    // --- X axis ---
+    if (zGap < SNAP_DIST) {
+      // Wall-to-wall
+      const gapR = (other.position.x - ohw) - (x + hw);
+      if (gapR >= -0.001 && gapR < SNAP_DIST) { x += gapR; continue; }
+      const gapL = (x - hw) - (other.position.x + ohw);
+      if (gapL >= -0.001 && gapL < SNAP_DIST) { x -= gapL; continue; }
+      // Face alignment (left-to-left, right-to-right, center-to-center)
+      const deltaLL = (other.position.x - ohw) - (x - hw);
+      if (Math.abs(deltaLL) < SNAP_DIST) { x += deltaLL; continue; }
+      const deltaRR = (other.position.x + ohw) - (x + hw);
+      if (Math.abs(deltaRR) < SNAP_DIST) { x += deltaRR; continue; }
+      const deltaCX = other.position.x - x;
+      if (Math.abs(deltaCX) < SNAP_DIST) { x += deltaCX; continue; }
+    }
+
+    // --- Z axis (use updated x for proximity check) ---
+    const xGapUpdated = Math.abs(x - other.position.x) - (hw + ohw);
+    if (xGapUpdated < SNAP_DIST) {
+      // Wall-to-wall
+      const gapF = (other.position.z - ohd) - (z + hd);
+      if (gapF >= -0.001 && gapF < SNAP_DIST) { z += gapF; continue; }
+      const gapB = (z - hd) - (other.position.z + ohd);
+      if (gapB >= -0.001 && gapB < SNAP_DIST) { z -= gapB; continue; }
+      // Face alignment (front-to-front, back-to-back, center-to-center)
+      const deltaFF = (other.position.z + ohd) - (z + hd);
+      if (Math.abs(deltaFF) < SNAP_DIST) { z += deltaFF; continue; }
+      const deltaBB = (other.position.z - ohd) - (z - hd);
+      if (Math.abs(deltaBB) < SNAP_DIST) { z += deltaBB; continue; }
+      const deltaCZ = other.position.z - z;
+      if (Math.abs(deltaCZ) < SNAP_DIST) { z += deltaCZ; continue; }
+    }
+  }
+
+  return { x, z };
+}
 
 function createBox(): BoxElement {
   const color = COLORS[colorIndex % COLORS.length];
@@ -15,8 +234,21 @@ function createBox(): BoxElement {
   return {
     id: crypto.randomUUID(),
     name: `Box ${boxCounter++}`,
+    type: 'cabinet',
     dimensions: { width: 1, height: 1, depth: 1 },
     position: { x: (Math.random() - 0.5) * 4, y: 0, z: (Math.random() - 0.5) * 4 },
+    color,
+  };
+}
+
+function createShelf(): BoxElement {
+  const color = COLORS[colorIndex % COLORS.length];
+  return {
+    id: crypto.randomUUID(),
+    name: `Półka ${shelfCounter++}`,
+    type: 'shelf',
+    dimensions: { width: 0.8, height: 0.018, depth: 0.38 },
+    position: { x: 0, y: 0.3, z: 0 },
     color,
   };
 }
@@ -31,44 +263,132 @@ const App: React.FC = () => {
   }, []);
 
   const handleDimensionDrag = useCallback(
-    (id: string, axis: 'width' | 'height' | 'depth', delta: number) => {
-      setElements((prev) =>
-        prev.map((el) => {
+    (id: string, axis: 'width' | 'height' | 'depth', delta: number, dir: number) => {
+      // Map dimension axis → position axis
+      const posAxis: Record<'width' | 'height' | 'depth', 'x' | 'y' | 'z'> = {
+        width: 'x',
+        height: 'y',
+        depth: 'z',
+      };
+      setElements((prev) => {
+        const updated = prev.map((el) => {
           if (el.id !== id) return el;
-          const newVal = Math.max(0.1, el.dimensions[axis] + delta);
-          return { ...el, dimensions: { ...el.dimensions, [axis]: newVal } };
-        })
-      );
+          const oldVal = el.dimensions[axis];
+          const newVal = Math.max(0.1, oldVal + delta);
+          const actualDelta = newVal - oldVal;
+          const pa = posAxis[axis];
+          const newPosVal = el.position[pa] + actualDelta / 2 * dir;
+          const withDelta = {
+            ...el,
+            dimensions: { ...el.dimensions, [axis]: newVal },
+            position: { ...el.position, [pa]: newPosVal },
+          };
+          // Snap shelf edges to cabinet inner walls
+          if (el.type === 'shelf' && (axis === 'width' || axis === 'depth')) {
+            const snap = snapShelfEdgeToCabinet(withDelta, axis, dir, prev);
+            if (snap) {
+              return {
+                ...withDelta,
+                dimensions: { ...withDelta.dimensions, [axis]: snap.dim },
+                position: { ...withDelta.position, [pa]: snap.pos },
+              };
+            }
+          }
+          return withDelta;
+        });
+        return recomputeAllY(updated);
+      });
     },
     []
   );
 
   const handleDimensionInput = useCallback(
     (id: string, dims: BoxDimensions) => {
-      setElements((prev) =>
-        prev.map((el) => (el.id === id ? { ...el, dimensions: dims } : el))
-      );
+      setElements((prev) => {
+        const updated = prev.map((el) => (el.id === id ? { ...el, dimensions: dims } : el));
+        return recomputeAllY(updated);
+      });
     },
     []
   );
 
   const handlePositionChange = useCallback(
     (id: string, dx: number, dz: number) => {
-      setElements((prev) =>
-        prev.map((el) =>
+      setElements((prev) => {
+        const movedEl = prev.find((e) => e.id === id)!;
+        // 1. Apply movement delta
+        const afterMove = prev.map((el) =>
           el.id === id
             ? { ...el, position: { ...el.position, x: el.position.x + dx, z: el.position.z + dz } }
             : el
-        )
+        );
+        if (movedEl.type === 'shelf') {
+          // Shelves: snap XZ but keep their set Y
+          const prelim = afterMove.find((e) => e.id === id)!;
+          const snapped = snapToNeighbors(prelim, afterMove);
+          const shelfWithXZ = { ...prelim, position: { ...prelim.position, x: snapped.x, z: snapped.z } };
+          // Auto-fit depth to the cabinet the shelf is inside of
+          const fittedShelf = fitShelfDepthToCabinet(shelfWithXZ, afterMove);
+          return afterMove.map((el) =>
+            el.id === id ? fittedShelf : el
+          );
+        }
+        // 2. Compute preliminary Y so snap can check Y overlap correctly
+        const prelim = afterMove.find((e) => e.id === id)!;
+        const prelimY = computeYForBox(prelim, afterMove);
+        const prelimWithY = { ...prelim, position: { ...prelim.position, y: prelimY } };
+        const withPrelimY = afterMove.map((el) => (el.id === id ? prelimWithY : el));
+        // 3. Snap XZ to neighboring walls
+        const snapped = snapToNeighbors(prelimWithY, withPrelimY);
+        // 4. Apply snapped XZ and recompute Y
+        const afterSnap = withPrelimY.map((el) =>
+          el.id === id ? { ...el, position: { x: snapped.x, y: 0, z: snapped.z } } : el
+        );
+        const finalBox = afterSnap.find((e) => e.id === id)!;
+        const finalY = computeYForBox(finalBox, afterSnap);
+        const withFinalY = afterSnap.map((el) =>
+          el.id === id ? { ...el, position: { ...el.position, y: finalY } } : el
+        );
+        // If placed on top of another cabinet, match its width/depth
+        if (finalY > 0) {
+          const movedFinal = withFinalY.find((e) => e.id === id)!;
+          const fitted = fitCabinetToBelow(movedFinal, withFinalY);
+          if (fitted !== movedFinal) {
+            return withFinalY.map((el) => (el.id === id ? fitted : el));
+          }
+        }
+        return withFinalY;
+      });
+    },
+    []
+  );
+
+  const handleYChange = useCallback(
+    (id: string, y: number) => {
+      setElements((prev) =>
+        prev.map((el) => (el.id === id ? { ...el, position: { ...el.position, y: Math.max(0, y) } } : el))
       );
     },
     []
   );
 
-  const handleAdd = useCallback(() => {
-    const box = createBox();
-    setElements((prev) => [...prev, box]);
-    setSelectedId(box.id);
+  const handleYMove = useCallback(
+    (id: string, dy: number) => {
+      setElements((prev) =>
+        prev.map((el) => (el.id === id ? { ...el, position: { ...el.position, y: Math.max(0, el.position.y + dy) } } : el))
+      );
+    },
+    []
+  );
+
+  const handleAdd = useCallback((type: 'cabinet' | 'shelf') => {
+    const el = type === 'shelf' ? createShelf() : createBox();
+    setElements((prev) => {
+      if (type === 'shelf') return [...prev, el];
+      const newY = computeYForBox(el, prev);
+      return [...prev, { ...el, position: { ...el.position, y: newY } }];
+    });
+    setSelectedId(el.id);
   }, []);
 
   const handleDelete = useCallback(
@@ -85,6 +405,7 @@ const App: React.FC = () => {
     onSelect: handleSelect,
     onDimensionChange: handleDimensionDrag,
     onPositionChange: handlePositionChange,
+    onYMove: handleYMove,
   });
 
   const selectedElement = elements.find((e) => e.id === selectedId) ?? null;
@@ -104,7 +425,7 @@ const App: React.FC = () => {
       <main className="viewport" ref={containerRef} />
 
       <aside className="sidebar right">
-        <PropertiesPanel element={selectedElement} onChange={handleDimensionInput} />
+        <PropertiesPanel element={selectedElement} onChange={handleDimensionInput} onYChange={handleYChange} />
       </aside>
     </div>
   );

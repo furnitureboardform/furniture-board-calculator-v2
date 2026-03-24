@@ -1,13 +1,35 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { BoxElement, BoxDimensions } from './types';
 import './PropertiesPanel.css';
 
 interface Props {
   element: BoxElement | null;
   onChange: (id: string, dims: BoxDimensions) => void;
+  onYChange?: (id: string, y: number) => void;
 }
 
-const PropertiesPanel: React.FC<Props> = ({ element, onChange }) => {
+type DimKey = keyof BoxDimensions;
+
+// Convert metres to mm string for display
+const toMm = (m: number) => Math.round(m * 1000).toString();
+const fromMm = (mm: string) => parseFloat(mm) / 1000;
+
+const PropertiesPanel: React.FC<Props> = ({ element, onChange, onYChange }) => {
+  // Local draft strings so the user can type freely
+  const [drafts, setDrafts] = useState<Record<DimKey, string>>({ width: '', height: '', depth: '' });
+  const [yDraft, setYDraft] = useState('');
+
+  // Sync drafts when element changes (different selection or external update)
+  useEffect(() => {
+    if (!element) return;
+    setDrafts({
+      width: toMm(element.dimensions.width),
+      height: toMm(element.dimensions.height),
+      depth: toMm(element.dimensions.depth),
+    });
+    setYDraft(toMm(element.position.y));
+  }, [element?.id, element?.dimensions.width, element?.dimensions.height, element?.dimensions.depth, element?.position.y]);
+
   if (!element) {
     return (
       <div className="properties empty">
@@ -16,59 +38,72 @@ const PropertiesPanel: React.FC<Props> = ({ element, onChange }) => {
     );
   }
 
-  const handleChange = (axis: keyof BoxDimensions, raw: string) => {
-    const value = parseFloat(raw);
-    if (isNaN(value) || value <= 0) return;
-    onChange(element.id, { ...element.dimensions, [axis]: value });
+  const commitDim = (axis: DimKey) => {
+    const m = fromMm(drafts[axis]);
+    if (isNaN(m) || m <= 0) {
+      // reset to current value
+      setDrafts((d) => ({ ...d, [axis]: toMm(element.dimensions[axis]) }));
+      return;
+    }
+    onChange(element.id, { ...element.dimensions, [axis]: m });
   };
+
+  const commitY = () => {
+    const m = fromMm(yDraft);
+    if (isNaN(m) || m < 0) { setYDraft(toMm(element.position.y)); return; }
+    onYChange?.(element.id, m);
+  };
+
+  const labels: Record<DimKey, string> = element.type === 'shelf'
+    ? { width: 'Szerokość', height: 'Grubość', depth: 'Głębokość' }
+    : { width: 'Szerokość (X)', height: 'Wysokość (Y)', depth: 'Głębokość (Z)' };
+  const colors: Record<DimKey, string> = { width: '#ff4444', height: '#44ff44', depth: '#4488ff' };
 
   return (
     <div className="properties">
       <h2 className="properties-title">{element.name}</h2>
-      <div className="properties-hint">
-        Przeciągnij uchwyty na modelu lub wpisz wartości
-      </div>
+      {element.type === 'shelf' ? (
+        <div className="properties-hint">Ustaw wymiary i pozycję pionową półki</div>
+      ) : (
+        <div className="properties-hint">Przeciągnij uchwyty na modelu lub wpisz wartości</div>
+      )}
 
-      {(['width', 'height', 'depth'] as const).map((axis) => {
-        const labels: Record<typeof axis, string> = {
-          width: 'Szerokość (X)',
-          height: 'Wysokość (Y)',
-          depth: 'Głębokość (Z)',
-        };
-        const colors: Record<typeof axis, string> = {
-          width: '#ff4444',
-          height: '#44ff44',
-          depth: '#4488ff',
-        };
-        return (
-          <div className="prop-row" key={axis}>
-            <label className="prop-label" style={{ color: colors[axis] }}>
-              {labels[axis]}
-            </label>
+      {(['width', 'height', 'depth'] as const).map((axis) => (
+        <div className="prop-row" key={axis}>
+          <label className="prop-label" style={{ color: colors[axis] }}>{labels[axis]}</label>
+          <input
+            className="prop-input"
+            type="number"
+            min={1}
+            step={1}
+            value={drafts[axis]}
+            onChange={(e) => setDrafts((d) => ({ ...d, [axis]: e.target.value }))}
+            onBlur={() => commitDim(axis)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { commitDim(axis); (e.target as HTMLInputElement).blur(); } }}
+          />
+          <span className="prop-unit">mm</span>
+        </div>
+      ))}
+
+      {element.type === 'shelf' && onYChange && (
+        <>
+          <div className="prop-divider" />
+          <div className="prop-row">
+            <label className="prop-label" style={{ color: '#ffaa44' }}>Poz. pionowa</label>
             <input
               className="prop-input"
               type="number"
-              min={0.1}
-              step={0.1}
-              value={element.dimensions[axis].toFixed(2)}
-              onChange={(e) => handleChange(axis, e.target.value)}
+              min={0}
+              step={1}
+              value={yDraft}
+              onChange={(e) => setYDraft(e.target.value)}
+              onBlur={commitY}
+              onKeyDown={(e) => { if (e.key === 'Enter') { commitY(); (e.target as HTMLInputElement).blur(); } }}
             />
-            <span className="prop-unit">m</span>
+            <span className="prop-unit">mm</span>
           </div>
-        );
-      })}
-
-      <div className="prop-row">
-        <label className="prop-label" style={{ color: '#aaa' }}>Kolor</label>
-        <input
-          className="prop-color"
-          type="color"
-          value={element.color}
-          onChange={(e) =>
-            onChange(element.id, element.dimensions) /* color handled separately */
-          }
-        />
-      </div>
+        </>
+      )}
     </div>
   );
 };

@@ -7,6 +7,7 @@ export interface BoxDimensions {
 export interface BoxElement {
   id: string;
   name: string;
+  type: 'cabinet' | 'shelf';
   dimensions: BoxDimensions;
   position: { x: number; y: number; z: number };
   color: string;
