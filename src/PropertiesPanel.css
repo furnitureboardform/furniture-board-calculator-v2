@@ -1,0 +1,82 @@
+.properties {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.properties.empty {
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #50507a;
+  font-size: 13px;
+  text-align: center;
+}
+
+.properties-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #c0c0e0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #2a2a4a;
+}
+
+.properties-hint {
+  font-size: 11px;
+  color: #50507a;
+  margin-top: -8px;
+}
+
+.prop-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prop-label {
+  width: 110px;
+  font-size: 12px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.prop-input {
+  flex: 1;
+  background: #0f0f1a;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+  color: #e0e0f0;
+  font-size: 13px;
+  padding: 6px 8px;
+  outline: none;
+  transition: border-color 0.2s;
+  min-width: 0;
+}
+
+.prop-input:focus {
+  border-color: #3b6fd4;
+}
+
+.prop-unit {
+  font-size: 11px;
+  color: #60608a;
+  flex-shrink: 0;
+  width: 14px;
+}
+
+.prop-color {
+  width: 40px;
+  height: 30px;
+  padding: 2px;
+  background: #0f0f1a;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.properties > .prop-row:last-child {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid #1e1e3a;
+}

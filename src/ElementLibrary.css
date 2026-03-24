@@ -1,0 +1,114 @@
+.library {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.library-header {
+  padding: 16px;
+  border-bottom: 1px solid #2a2a4a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.library-header h2 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #a0a0c0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.btn-add {
+  background: #3b6fd4;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-add:hover {
+  background: #4a7fe0;
+}
+
+.element-list {
+  list-style: none;
+  overflow-y: auto;
+  flex: 1;
+  padding: 8px;
+}
+
+.element-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 4px;
+  transition: background 0.15s;
+  border: 1px solid transparent;
+}
+
+.element-item:hover {
+  background: #1e1e3a;
+}
+
+.element-item.selected {
+  background: #1e2d55;
+  border-color: #3b6fd4;
+}
+
+.element-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.element-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: #d0d0f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.element-dims {
+  font-size: 11px;
+  color: #6060a0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-delete {
+  background: none;
+  border: none;
+  color: #604060;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-delete:hover {
+  color: #ff5577;
+  background: #2a1a2a;
+}
+
+.element-empty {
+  color: #50507a;
+  font-size: 13px;
+  text-align: center;
+  padding: 24px 16px;
+}
