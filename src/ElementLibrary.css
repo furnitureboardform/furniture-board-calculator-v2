@@ -139,6 +139,51 @@
   background: #2a1a2a;
 }
 
+/* Child element (shelf inside cabinet) */
+.element-item--child {
+  padding-left: 6px;
+  background: #0e0e22;
+}
+
+.element-item--child:hover {
+  background: #181830;
+}
+
+.element-item--child.selected {
+  background: #162040;
+  border-color: #2a5ac0;
+}
+
+/* Indent connector line */
+.element-indent-line {
+  display: inline-block;
+  width: 2px;
+  align-self: stretch;
+  background: #2a2a50;
+  border-radius: 1px;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+/* Add shelf row */
+.element-item--add {
+  color: #6060a0;
+  cursor: pointer;
+  padding-left: 6px;
+}
+
+.element-item--add:hover {
+  background: #181830;
+  color: #9090d0;
+}
+
+.element-add-icon {
+  font-size: 14px;
+  color: #6060a0;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+
 .element-empty {
   color: #50507a;
   font-size: 13px;

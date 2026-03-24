@@ -44,10 +44,34 @@ interface Props {
   selectedId: string | null;
   onSelect: (id: string) => void;
   onAdd: (type: 'cabinet' | 'shelf') => void;
+  onAddShelfToCabinet: (cabinetId: string) => void;
+  onAddDividerToCabinet: (cabinetId: string) => void;
   onDelete: (id: string) => void;
 }
 
-const ElementLibrary: React.FC<Props> = ({ elements, selectedId, onSelect, onAdd, onDelete }) => {
+const ElementLibrary: React.FC<Props> = ({ elements, selectedId, onSelect, onAdd, onAddShelfToCabinet, onAddDividerToCabinet, onDelete }) => {
+  const cabinets = elements.filter((e) => e.type === 'cabinet');
+  const freeShelves = elements.filter((e) => e.type === 'shelf' && !e.cabinetId);
+
+  const renderItem = (el: BoxElement, indent = false) => (
+    <li
+      key={el.id}
+      className={`element-item ${indent ? 'element-item--child' : ''} ${el.id === selectedId ? 'selected' : ''}`}
+      onClick={() => onSelect(el.id)}
+    >
+      {indent && <span className="element-indent-line" />}
+      <span className="element-color" style={{ background: el.color }} />
+      <span className="element-name">{el.name}</span>
+      <button
+        className="btn-delete"
+        onClick={(e) => { e.stopPropagation(); onDelete(el.id); }}
+        title="Usuń"
+      >
+        ✕
+      </button>
+    </li>
+  );
+
   return (
     <div className="library">
       {/* Catalog */}
@@ -66,32 +90,51 @@ const ElementLibrary: React.FC<Props> = ({ elements, selectedId, onSelect, onAdd
         ))}
       </div>
 
-      {/* Divider */}
       <div className="lib-divider" />
 
-      {/* Added elements */}
+      {/* Tree list */}
       <div className="lib-section-title">Dodane</div>
       <ul className="element-list">
-        {elements.map((el) => (
-          <li
-            key={el.id}
-            className={`element-item ${el.id === selectedId ? 'selected' : ''}`}
-            onClick={() => onSelect(el.id)}
-          >
-            <span className="element-color" style={{ background: el.color }} />
-            <span className="element-name">{el.name}</span>
-            <span className="element-dims">
-              {el.dimensions.width.toFixed(1)} × {el.dimensions.height.toFixed(1)} × {el.dimensions.depth.toFixed(1)}
-            </span>
-            <button
-              className="btn-delete"
-              onClick={(e) => { e.stopPropagation(); onDelete(el.id); }}
-              title="Usuń"
-            >
-              ✕
-            </button>
-          </li>
-        ))}
+        {cabinets.map((cab) => {
+          const children = elements.filter((e) => e.cabinetId === cab.id);
+          const isSelected = cab.id === selectedId;
+          return (
+            <React.Fragment key={cab.id}>
+              {/* Cabinet row */}
+              <li
+                className={`element-item ${isSelected ? 'selected' : ''}`}
+                onClick={() => onSelect(cab.id)}
+              >
+                <span className="element-color" style={{ background: cab.color }} />
+                <span className="element-name">{cab.name}</span>
+                <button
+                  className="btn-delete"
+                  onClick={(e) => { e.stopPropagation(); onDelete(cab.id); }}
+                  title="Usuń"
+                >
+                  ✕
+                </button>
+              </li>
+              {/* Children (visible only when cabinet selected) */}
+              {isSelected && (
+                <>
+                  {children.map((child) => renderItem(child, true))}
+                  <li className="element-item element-item--add" onClick={() => onAddShelfToCabinet(cab.id)}>
+                    <span className="element-indent-line" />
+                    <span className="element-add-icon">＋</span>
+                    <span className="element-name" style={{ color: '#6060a0' }}>Dodaj półkę</span>
+                  </li>
+                  <li className="element-item element-item--add" onClick={() => onAddDividerToCabinet(cab.id)}>
+                    <span className="element-indent-line" />
+                    <span className="element-add-icon">＋</span>
+                    <span className="element-name" style={{ color: '#6060a0' }}>Dodaj przegrodę</span>
+                  </li>
+                </>
+              )}
+            </React.Fragment>
+          );
+        })}
+        {freeShelves.map((el) => renderItem(el, false))}
         {elements.length === 0 && (
           <li className="element-empty">Brak dodanych elementów.</li>
         )}

@@ -166,6 +166,33 @@ export function useThreeScene(
     []
   );
 
+  const rebuildDivider = useCallback(
+    (parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) => {
+      parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
+        if (c instanceof THREE.Mesh) {
+          c.geometry.dispose();
+          (c.material as THREE.MeshStandardMaterial).dispose();
+        }
+        parent.remove(c);
+      });
+      const { width, height, depth } = element.dimensions;
+      const geo = new THREE.BoxGeometry(width, height, depth);
+      const mat = new THREE.MeshStandardMaterial({
+        color,
+        emissive,
+        roughness: 0.5,
+        metalness: 0.1,
+        side: THREE.DoubleSide,
+      });
+      const panel = new THREE.Mesh(geo, mat);
+      panel.castShadow = true;
+      panel.receiveShadow = true;
+      panel.userData = { elementId: element.id };
+      parent.add(panel);
+    },
+    []
+  );
+
   // Init scene once
   useEffect(() => {
     const container = containerRef.current;
@@ -262,6 +289,7 @@ export function useThreeScene(
         mesh.position.set(element.position.x, element.position.y + height / 2, element.position.z);
         // Rebuild visible panels
         if (element.type === 'shelf') rebuildShelf(mesh, element, color, emissive);
+        else if (element.type === 'divider') rebuildDivider(mesh, element, color, emissive);
         else rebuildPanels(mesh, element, color, emissive);
         if (isSelected) placeHandles(mesh, element);
         else mesh.children.slice().filter((c) => c.userData.isHandle).forEach((c) => mesh.remove(c));
@@ -279,6 +307,7 @@ export function useThreeScene(
         scene.add(mesh);
         meshMapRef.current.set(element.id, mesh);
         if (element.type === 'shelf') rebuildShelf(mesh, element, color, emissive);
+        else if (element.type === 'divider') rebuildDivider(mesh, element, color, emissive);
         else rebuildPanels(mesh, element, color, emissive);
         if (isSelected) placeHandles(mesh, element);
       }

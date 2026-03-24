@@ -7,7 +7,8 @@ export interface BoxDimensions {
 export interface BoxElement {
   id: string;
   name: string;
-  type: 'cabinet' | 'shelf';
+  type: 'cabinet' | 'shelf' | 'divider';
+  cabinetId?: string; // if set, element is locked inside this cabinet
   dimensions: BoxDimensions;
   position: { x: number; y: number; z: number };
   color: string;

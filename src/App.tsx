@@ -9,6 +9,7 @@ const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c'
 let colorIndex = 0;
 let boxCounter = 1;
 let shelfCounter = 1;
+let dividerCounter = 1;
 
 // Returns true if boxes a and b have any XZ footprint overlap (used by fit/snap helpers)
 function getBoxOverlap(a: BoxElement, b: BoxElement): boolean {
@@ -33,7 +34,7 @@ function computeYForBox(box: BoxElement, allElements: BoxElement[]): number {
   let maxTop = 0;
   for (const other of allElements) {
     if (other.id === box.id) continue;
-    if (other.type === 'shelf') continue; // shelves don't act as floors
+    if (other.type === 'shelf' || other.type === 'divider') continue;
     if (getBoxStackOverlap(box, other)) {
       maxTop = Math.max(maxTop, other.position.y + other.dimensions.height);
     }
@@ -53,12 +54,12 @@ function recomputeAllY(elements: BoxElement[]): BoxElement[] {
   );
   for (const el of ordered) {
     const box = resultMap.get(el.id)!;
-    if (box.type === 'shelf') continue; // preserve shelf Y
+    if (box.type === 'shelf' || box.type === 'divider') continue; // preserve their Y
     const elOriginalY = originalY.get(el.id) ?? 0;
     let maxTop = 0;
     for (const [id, other] of resultMap) {
       if (id === box.id) continue;
-      if (other.type === 'shelf') continue; // shelves don't act as floors
+      if (other.type === 'shelf' || other.type === 'divider') continue;
       // Only stack on boxes that were originally below (or at same level as) this box
       if ((originalY.get(id) ?? 0) <= elOriginalY + 0.001) {
         if (getBoxStackOverlap(box, other)) {
@@ -70,6 +71,18 @@ function recomputeAllY(elements: BoxElement[]): BoxElement[] {
     // If stacked on another cabinet, match its width/depth
     const fitted = maxTop > 0 ? fitCabinetToBelow(withY, [...resultMap.values()]) : withY;
     resultMap.set(el.id, fitted);
+  }
+  // Recompute divider bounds based on final shelf positions
+  const allSettled = [...resultMap.values()];
+  for (const el of allSettled) {
+    if (el.type !== 'divider' || !el.cabinetId) continue;
+    const bounds = computeDividerBounds(el.cabinetId, el.position.y + el.dimensions.height / 2, allSettled);
+    const cab = allSettled.find((e) => e.id === el.cabinetId);
+    resultMap.set(el.id, {
+      ...el,
+      dimensions: { ...el.dimensions, height: bounds.height, depth: cab ? cab.dimensions.depth : el.dimensions.depth },
+      position: { ...el.position, y: bounds.y },
+    });
   }
   return elements.map((el) => resultMap.get(el.id)!);
 }
@@ -113,6 +126,41 @@ function fitCabinetToBelow(cabinet: BoxElement, allElements: BoxElement[]): BoxE
     };
   }
   return cabinet;
+}
+
+// Returns the Y bottom and height for a divider based on shelves above/below in the same cabinet
+function computeDividerBounds(
+  cabinetId: string,
+  dividerY: number, // current vertical center hint (used to find nearest shelf)
+  allElements: BoxElement[]
+): { y: number; height: number } {
+  const cab = allElements.find((e) => e.id === cabinetId);
+  if (!cab) return { y: 0, height: PANEL_T };
+
+  const cabBottom = cab.position.y;
+  const cabTop = cab.position.y + cab.dimensions.height;
+
+  // Collect horizontal surfaces (shelves in the same cabinet): their top face Y
+  const surfaces: number[] = [cabBottom, cabTop];
+  for (const el of allElements) {
+    if (el.cabinetId !== cabinetId || el.type !== 'shelf') continue;
+    surfaces.push(el.position.y); // bottom of shelf
+    surfaces.push(el.position.y + el.dimensions.height); // top of shelf
+  }
+  surfaces.sort((a, b) => a - b);
+
+  // Find the gap that contains dividerY
+  let floorY = cabBottom;
+  let ceilY = cabTop;
+  for (let i = 0; i < surfaces.length - 1; i++) {
+    if (surfaces[i] <= dividerY + 0.001 && dividerY < surfaces[i + 1]) {
+      floorY = surfaces[i];
+      ceilY = surfaces[i + 1];
+      break;
+    }
+  }
+
+  return { y: floorY, height: Math.max(PANEL_T, ceilY - floorY) };
 }
 
 // Snap tolerance for side-by-side wall snap (5 cm)
@@ -257,6 +305,8 @@ const App: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [elements, setElements] = useState<BoxElement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Tracks accumulated drag Y for dividers so tiny increments build up across frames
+  const dividerYHintRef = useRef<Map<string, number>>(new Map());
 
   const handleSelect = useCallback((id: string | null) => {
     setSelectedId(id);
@@ -322,9 +372,24 @@ const App: React.FC = () => {
             ? { ...el, position: { ...el.position, x: el.position.x + dx, z: el.position.z + dz } }
             : el
         );
+        if (movedEl.type === 'divider' && movedEl.cabinetId) {
+          // Divider: move only on X axis, clamp inside cabinet inner walls
+          const cab = prev.find((e) => e.id === movedEl.cabinetId);
+          if (!cab) return prev;
+          const halfInner = (cab.dimensions.width - 2 * PANEL_T) / 2 - PANEL_T / 2;
+          const newX = Math.max(cab.position.x - halfInner, Math.min(cab.position.x + halfInner, movedEl.position.x + dx));
+          const moved = { ...movedEl, position: { ...movedEl.position, x: newX } };
+          // Recompute height based on shelves above/below
+          const intermediate = prev.map((e) => (e.id === id ? moved : e));
+          const bounds = computeDividerBounds(movedEl.cabinetId, moved.position.y + moved.dimensions.height / 2, intermediate);
+          return prev.map((e) => e.id === id ? { ...moved, position: { ...moved.position, y: bounds.y }, dimensions: { ...moved.dimensions, height: bounds.height } } : e);
+        }
+
         if (movedEl.type === 'shelf') {
-          // Shelves: snap XZ but keep their set Y
-          const prelim = afterMove.find((e) => e.id === id)!;
+          // Shelf bound to a cabinet: block XZ movement entirely
+          if (movedEl.cabinetId) return prev;
+          // Free shelf: snap XZ but keep their set Y
+          const prelim = afterMove.find((e) => e.id === id)!;;
           const snapped = snapToNeighbors(prelim, afterMove);
           const shelfWithXZ = { ...prelim, position: { ...prelim.position, x: snapped.x, z: snapped.z } };
           // Auto-fit depth to the cabinet the shelf is inside of
@@ -365,21 +430,98 @@ const App: React.FC = () => {
 
   const handleYChange = useCallback(
     (id: string, y: number) => {
-      setElements((prev) =>
-        prev.map((el) => (el.id === id ? { ...el, position: { ...el.position, y: Math.max(0, y) } } : el))
-      );
+      setElements((prev) => {
+        const el = prev.find((e) => e.id === id)!;
+        let newY = Math.max(0, y);
+        if (el.cabinetId) {
+          const cab = prev.find((e) => e.id === el.cabinetId);
+          if (cab) {
+            const maxY = cab.position.y + cab.dimensions.height - el.dimensions.height;
+            newY = Math.min(Math.max(cab.position.y, newY), maxY);
+          }
+        }
+        return prev.map((e) => (e.id === id ? { ...e, position: { ...e.position, y: newY } } : e));
+      });
     },
     []
   );
 
   const handleYMove = useCallback(
     (id: string, dy: number) => {
-      setElements((prev) =>
-        prev.map((el) => (el.id === id ? { ...el, position: { ...el.position, y: Math.max(0, el.position.y + dy) } } : el))
-      );
+      setElements((prev) => {
+        const el = prev.find((e) => e.id === id)!;
+
+        if (el.type === 'divider' && el.cabinetId) {
+          const cab = prev.find((e) => e.id === el.cabinetId);
+          if (!cab) return prev;
+          // Accumulate drag delta into hint (independent of snapped position)
+          const currentHint = dividerYHintRef.current.get(id) ?? (el.position.y + el.dimensions.height / 2);
+          const newHint = Math.max(cab.position.y, Math.min(cab.position.y + cab.dimensions.height, currentHint + dy));
+          dividerYHintRef.current.set(id, newHint);
+          const bounds = computeDividerBounds(el.cabinetId, newHint, prev);
+          return prev.map((e) => e.id === id ? {
+            ...e,
+            position: { ...e.position, y: bounds.y },
+            dimensions: { ...e.dimensions, height: bounds.height },
+          } : e);
+        }
+
+        let newY = Math.max(0, el.position.y + dy);
+        if (el.cabinetId) {
+          const cab = prev.find((e) => e.id === el.cabinetId);
+          if (cab) {
+            const maxY = cab.position.y + cab.dimensions.height - el.dimensions.height;
+            newY = Math.min(Math.max(cab.position.y, newY), maxY);
+          }
+        }
+        return prev.map((e) => (e.id === id ? { ...e, position: { ...e.position, y: newY } } : e));
+      });
     },
     []
   );
+
+  const handleAddShelfToCabinet = useCallback((cabinetId: string) => {
+    setElements((prev) => {
+      const cab = prev.find((e) => e.id === cabinetId);
+      if (!cab) return prev;
+      const innerWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T);
+      const shelf: BoxElement = {
+        id: crypto.randomUUID(),
+        name: `Półka ${shelfCounter++}`,
+        type: 'shelf',
+        cabinetId,
+        dimensions: { width: innerWidth, height: PANEL_T, depth: cab.dimensions.depth },
+        position: {
+          x: cab.position.x,
+          z: cab.position.z,
+          y: cab.position.y + cab.dimensions.height / 2,
+        },
+        color: cab.color,
+      };
+      setSelectedId(shelf.id);
+      return [...prev, shelf];
+    });
+  }, []);
+
+  const handleAddDividerToCabinet = useCallback((cabinetId: string) => {
+    setElements((prev) => {
+      const cab = prev.find((e) => e.id === cabinetId);
+      if (!cab) return prev;
+      const midX = cab.position.x; // start in the center
+      const bounds = computeDividerBounds(cabinetId, cab.position.y + cab.dimensions.height / 2, prev);
+      const divider: BoxElement = {
+        id: crypto.randomUUID(),
+        name: `Przegroda ${dividerCounter++}`,
+        type: 'divider',
+        cabinetId,
+        dimensions: { width: PANEL_T, height: bounds.height, depth: cab.dimensions.depth },
+        position: { x: midX, z: cab.position.z, y: bounds.y },
+        color: cab.color,
+      };
+      setSelectedId(divider.id);
+      return [...prev, divider];
+    });
+  }, []);
 
   const handleAdd = useCallback((type: 'cabinet' | 'shelf') => {
     const el = type === 'shelf' ? createShelf() : createBox();
@@ -393,6 +535,7 @@ const App: React.FC = () => {
 
   const handleDelete = useCallback(
     (id: string) => {
+      dividerYHintRef.current.delete(id);
       setElements((prev) => prev.filter((el) => el.id !== id));
       setSelectedId((prev) => (prev === id ? null : prev));
     },
@@ -418,6 +561,8 @@ const App: React.FC = () => {
           selectedId={selectedId}
           onSelect={handleSelect}
           onAdd={handleAdd}
+          onAddShelfToCabinet={handleAddShelfToCabinet}
+          onAddDividerToCabinet={handleAddDividerToCabinet}
           onDelete={handleDelete}
         />
       </aside>
