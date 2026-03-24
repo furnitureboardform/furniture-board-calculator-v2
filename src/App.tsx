@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import type { BoxElement, BoxDimensions } from './types';
 import { useThreeScene } from './useThreeScene';
 import ElementLibrary from './ElementLibrary';
@@ -498,7 +498,7 @@ const App: React.FC = () => {
         },
         color: cab.color,
       };
-      setSelectedId(shelf.id);
+      setSelectedId(cabinetId);
       return [...prev, shelf];
     });
   }, []);
@@ -518,7 +518,7 @@ const App: React.FC = () => {
         position: { x: midX, z: cab.position.z, y: bounds.y },
         color: cab.color,
       };
-      setSelectedId(divider.id);
+      setSelectedId(cabinetId);
       return [...prev, divider];
     });
   }, []);
@@ -536,11 +536,33 @@ const App: React.FC = () => {
   const handleDelete = useCallback(
     (id: string) => {
       dividerYHintRef.current.delete(id);
-      setElements((prev) => prev.filter((el) => el.id !== id));
+      setElements((prev) => {
+        const toRemove = new Set<string>([id]);
+        // Also remove all children (shelves/dividers) belonging to this cabinet
+        for (const el of prev) {
+          if (el.cabinetId === id) toRemove.add(el.id);
+        }
+        toRemove.forEach((rid) => dividerYHintRef.current.delete(rid));
+        return prev.filter((el) => !toRemove.has(el.id));
+      });
       setSelectedId((prev) => (prev === id ? null : prev));
     },
     []
   );
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Delete') return;
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      setSelectedId((prev) => {
+        if (prev) handleDelete(prev);
+        return null;
+      });
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [handleDelete]);
 
   useThreeScene(containerRef, {
     elements,
