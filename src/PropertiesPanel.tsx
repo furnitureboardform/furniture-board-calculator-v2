@@ -56,6 +56,8 @@ const PropertiesPanel: React.FC<Props> = ({ element, onChange, onYChange }) => {
 
   const labels: Record<DimKey, string> = (element.type === 'shelf' || element.type === 'rod')
     ? { width: 'Szerokość', height: 'Grubość', depth: 'Głębokość' }
+    : element.type === 'leg'
+    ? { width: 'Szerokość', height: 'Wysokość', depth: 'Głębokość' }
     : { width: 'Szerokość (X)', height: 'Wysokość (Y)', depth: 'Głębokość (Z)' };
   const colors: Record<DimKey, string> = { width: '#ff4444', height: '#44ff44', depth: '#4488ff' };
 
@@ -64,11 +66,13 @@ const PropertiesPanel: React.FC<Props> = ({ element, onChange, onYChange }) => {
       <h2 className="properties-title">{element.name}</h2>
       {(element.type === 'shelf' || element.type === 'rod') ? (
         <div className="properties-hint">Ustaw wymiary i pozycję pionową półki</div>
+      ) : element.type === 'leg' ? (
+        <div className="properties-hint">Zmiana wysokości zsynchronizuje wszystkie nóżki</div>
       ) : (
         <div className="properties-hint">Przeciągnij uchwyty na modelu lub wpisz wartości</div>
       )}
 
-      {(['width', 'height', 'depth'] as const).map((axis) => (
+      {(['width', 'height', 'depth'] as const).filter((axis) => element.type !== 'leg' || axis === 'height').map((axis) => (
         <div className="prop-row" key={axis}>
           <label className="prop-label" style={{ color: colors[axis] }}>{labels[axis]}</label>
           <input

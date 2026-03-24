@@ -12,11 +12,31 @@ let shelfCounter = 1;
 let dividerCounter = 1;
 let frontCounter = 1;
 let rodCounter = 1;
+let legCounter = 1;
 
 // Snap / attach constants (must be declared before helpers that use them)
 const PANEL_T = 0.018; // panel thickness in metres (~18 mm); must match useThreeScene.ts
 const SNAP_DIST = 0.05; // side-by-side wall snap tolerance (5 cm)
 const FRONT_INSET = 0.002; // 2 mm gap on each side between front panel and cabinet edge
+const LEG_CORNER_OFFSET = 0.03; // 30 mm inset from each cabinet edge to leg center
+const LEG_D = 0.04; // leg bounding-box side (2 × 20 mm radius)
+
+// Computes position of one leg at its assigned corner, hanging below the cabinet floor.
+function computeLegForCabinet(leg: BoxElement, cab: BoxElement): BoxElement {
+  const hw = cab.dimensions.width / 2;
+  const hd = cab.dimensions.depth / 2;
+  const isLeft  = leg.legCorner === 'FL' || leg.legCorner === 'BL';
+  const isFront = leg.legCorner === 'FL' || leg.legCorner === 'FR';
+  return {
+    ...leg,
+    dimensions: { width: LEG_D, height: leg.dimensions.height, depth: LEG_D },
+    position: {
+      x: cab.position.x + (isLeft ? -(hw - LEG_CORNER_OFFSET) : (hw - LEG_CORNER_OFFSET)),
+      z: cab.position.z + (isFront ? (hd - LEG_CORNER_OFFSET) : -(hd - LEG_CORNER_OFFSET)),
+      y: cab.position.y - leg.dimensions.height,
+    },
+  };
+}
 
 // Computes the position/dimensions of a front panel bound to its cabinet.
 // For double fronts: each leaf gets 2mm inset on all four of its own edges.
@@ -75,7 +95,7 @@ function computeYForBox(box: BoxElement, allElements: BoxElement[]): number {
   let maxTop = 0;
   for (const other of allElements) {
     if (other.id === box.id) continue;
-    if (other.type === 'shelf' || other.type === 'divider' || other.type === 'front' || other.type === 'rod') continue;
+    if (other.type === 'shelf' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg') continue;
     if (getBoxStackOverlap(box, other)) {
       maxTop = Math.max(maxTop, other.position.y + other.dimensions.height);
     }
@@ -95,12 +115,12 @@ function recomputeAllY(elements: BoxElement[]): BoxElement[] {
   );
   for (const el of ordered) {
     const box = resultMap.get(el.id)!;
-    if (box.type === 'shelf' || box.type === 'divider' || box.type === 'front' || box.type === 'rod') continue; // preserve their Y
+    if (box.type === 'shelf' || box.type === 'divider' || box.type === 'front' || box.type === 'rod' || box.type === 'leg') continue; // preserve their Y
     const elOriginalY = originalY.get(el.id) ?? 0;
     let maxTop = 0;
     for (const [id, other] of resultMap) {
       if (id === box.id) continue;
-      if (other.type === 'shelf' || other.type === 'divider' || other.type === 'front' || other.type === 'rod') continue;
+      if (other.type === 'shelf' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg') continue;
       // Only stack on boxes that were originally below (or at same level as) this box
       if ((originalY.get(id) ?? 0) <= elOriginalY + 0.001) {
         if (getBoxStackOverlap(box, other)) {
@@ -131,6 +151,13 @@ function recomputeAllY(elements: BoxElement[]): BoxElement[] {
     if (el.type !== 'front' || !el.cabinetId) continue;
     const cab = allSettled2.find((e) => e.id === el.cabinetId);
     if (cab) resultMap.set(el.id, computeFrontForCabinet(el, cab));
+  }
+  // Recompute leg positions based on updated cabinet positions
+  const allSettled3 = [...resultMap.values()];
+  for (const el of allSettled3) {
+    if (el.type !== 'leg' || !el.cabinetId) continue;
+    const cab = allSettled3.find((e) => e.id === el.cabinetId);
+    if (cab) resultMap.set(el.id, computeLegForCabinet(el, cab));
   }
   return elements.map((el) => resultMap.get(el.id)!);
 }
@@ -473,7 +500,14 @@ const App: React.FC = () => {
   const handleDimensionInput = useCallback(
     (id: string, dims: BoxDimensions) => {
       setElements((prev) => {
-        const updated = prev.map((el) => (el.id === id ? { ...el, dimensions: dims } : el));
+        const el = prev.find((e) => e.id === id);
+        // For legs: sync height across all sibling legs of the same cabinet
+        const updated = prev.map((e) => {
+          if (e.id === id) return { ...e, dimensions: dims };
+          if (el?.type === 'leg' && e.type === 'leg' && e.cabinetId === el.cabinetId)
+            return { ...e, dimensions: { ...e.dimensions, height: dims.height } };
+          return e;
+        });
         return recomputeAllY(updated);
       });
     },
@@ -492,8 +526,8 @@ const App: React.FC = () => {
         );
         const movedAfter = afterMove.find((e) => e.id === id)!;
 
-        // Fronts and cabinet-bound rods are always locked in XZ — block manual movement
-        if (movedEl.type === 'front' || (movedEl.type === 'rod' && movedEl.cabinetId)) return prev;
+        // Fronts and cabinet-bound rods/legs are always locked in XZ — block manual movement
+        if (movedEl.type === 'front' || (movedEl.type === 'rod' && movedEl.cabinetId) || (movedEl.type === 'leg' && movedEl.cabinetId)) return prev;
 
         if (movedEl.type === 'shelf' || movedEl.type === 'divider') {
           if (movedEl.cabinetId) {
@@ -749,6 +783,39 @@ const App: React.FC = () => {
     });
   }, []);
 
+  const handleAddLegsToCabinet = useCallback((cabinetId: string) => {
+    setElements((prev) => {
+      const cab = prev.find((e) => e.id === cabinetId);
+      if (!cab) return prev;
+      if (prev.some((e) => e.type === 'leg' && e.cabinetId === cabinetId)) return prev;
+      const h = 0.1; // 10 cm default height
+      const baseName = `Nóżka ${legCounter++}`;
+      const corners: Array<{ corner: 'FL' | 'FR' | 'BL' | 'BR'; label: string }> = [
+        { corner: 'FL', label: 'PL' },
+        { corner: 'FR', label: 'PR' },
+        { corner: 'BL', label: 'TL' },
+        { corner: 'BR', label: 'TR' },
+      ];
+      const legs = corners.map(({ corner, label }) =>
+        computeLegForCabinet(
+          {
+            id: crypto.randomUUID(),
+            name: `${baseName}-${label}`,
+            type: 'leg',
+            cabinetId,
+            legCorner: corner,
+            dimensions: { width: LEG_D, height: h, depth: LEG_D },
+            position: { x: 0, y: 0, z: 0 },
+            color: cab.color,
+          },
+          cab
+        )
+      );
+      setSelectedId(cabinetId);
+      return [...prev, ...legs];
+    });
+  }, []);
+
   const handleAddRodToCabinet = useCallback((cabinetId: string) => {
     setElements((prev) => {
       const cab = prev.find((e) => e.id === cabinetId);
@@ -835,6 +902,7 @@ const App: React.FC = () => {
           onAddFrontToCabinet={handleAddFrontToCabinet}
           onAddDoubleFrontToCabinet={handleAddDoubleFrontToCabinet}
           onAddRodToCabinet={handleAddRodToCabinet}
+          onAddLegsToCabinet={handleAddLegsToCabinet}
           onDelete={handleDelete}
         />
       </aside>

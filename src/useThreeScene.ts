@@ -250,6 +250,33 @@ export function useThreeScene(
     []
   );
 
+  const LEG_RADIUS = 0.02; // 20 mm radius (40 mm diameter leg)
+
+  const rebuildLeg = useCallback(
+    (parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) => {
+      parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
+        if (c instanceof THREE.Mesh) {
+          c.geometry.dispose();
+          (c.material as THREE.MeshStandardMaterial).dispose();
+        }
+        parent.remove(c);
+      });
+      const geo = new THREE.CylinderGeometry(LEG_RADIUS, LEG_RADIUS, element.dimensions.height, 16);
+      const mat = new THREE.MeshStandardMaterial({
+        color,
+        emissive,
+        roughness: 0.4,
+        metalness: 0.3,
+      });
+      const leg = new THREE.Mesh(geo, mat);
+      leg.castShadow = true;
+      leg.receiveShadow = true;
+      leg.userData = { elementId: element.id };
+      parent.add(leg);
+    },
+    []
+  );
+
   // Init scene once
   useEffect(() => {
     const container = containerRef.current;
@@ -349,6 +376,7 @@ export function useThreeScene(
         else if (element.type === 'divider') rebuildDivider(mesh, element, color, emissive);
         else if (element.type === 'front') rebuildFront(mesh, element, emissive);
         else if (element.type === 'rod') rebuildRod(mesh, element, color, emissive);
+        else if (element.type === 'leg') rebuildLeg(mesh, element, color, emissive);
         else rebuildPanels(mesh, element, color, emissive);
         if (isSelected) placeHandles(mesh, element);
         else mesh.children.slice().filter((c) => c.userData.isHandle).forEach((c) => mesh.remove(c));
@@ -369,6 +397,7 @@ export function useThreeScene(
         else if (element.type === 'divider') rebuildDivider(mesh, element, color, emissive);
         else if (element.type === 'front') rebuildFront(mesh, element, emissive);
         else if (element.type === 'rod') rebuildRod(mesh, element, color, emissive);
+        else if (element.type === 'leg') rebuildLeg(mesh, element, color, emissive);
         else rebuildPanels(mesh, element, color, emissive);
         if (isSelected) placeHandles(mesh, element);
       }
