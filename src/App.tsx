@@ -369,6 +369,8 @@ function snapToNeighbors(box: BoxElement, allElements: BoxElement[]): { x: numbe
 
   for (const other of allElements) {
     if (other.id === box.id) continue;
+    // Skip elements bound to a cabinet — they're interior components, not snappable neighbors
+    if (other.cabinetId) continue;
     const ohw = other.dimensions.width / 2;
     const ohd = other.dimensions.depth / 2;
 
@@ -621,15 +623,31 @@ const App: React.FC = () => {
           const fitted = fitCabinetToBelow(movedFinal, withFinalY);
           if (fitted !== movedFinal) {
             const withFitted = withFinalY.map((el) => (el.id === id ? fitted : el));
-            // Recompute fronts for this cabinet
-            return withFitted.map((el) => el.type === 'front' && el.cabinetId === id
-              ? computeFrontForCabinet(el, fitted) : el);
+            // Move bound elements and recompute fronts/legs for this cabinet
+            const adx = fitted.position.x - movedEl.position.x;
+            const ady = fitted.position.y - movedEl.position.y;
+            const adz = fitted.position.z - movedEl.position.z;
+            return withFitted.map((el) => {
+              if (el.id === id) return el;
+              if (el.cabinetId !== id) return el;
+              if (el.type === 'front') return computeFrontForCabinet(el, fitted);
+              if (el.type === 'leg') return computeLegForCabinet(el, fitted);
+              return { ...el, position: { x: el.position.x + adx, y: el.position.y + ady, z: el.position.z + adz } };
+            });
           }
         }
-        // Recompute fronts for the moved cabinet
+        // Move bound elements and recompute fronts/legs for the moved cabinet
         const movedFinal2 = withFinalY.find((e) => e.id === id)!;
-        return withFinalY.map((el) => el.type === 'front' && el.cabinetId === id
-          ? computeFrontForCabinet(el, movedFinal2) : el);
+        const adx = movedFinal2.position.x - movedEl.position.x;
+        const ady = movedFinal2.position.y - movedEl.position.y;
+        const adz = movedFinal2.position.z - movedEl.position.z;
+        return withFinalY.map((el) => {
+          if (el.id === id) return el;
+          if (el.cabinetId !== id) return el;
+          if (el.type === 'front') return computeFrontForCabinet(el, movedFinal2);
+          if (el.type === 'leg') return computeLegForCabinet(el, movedFinal2);
+          return { ...el, position: { x: el.position.x + adx, y: el.position.y + ady, z: el.position.z + adz } };
+        });
       });
     },
     []
@@ -682,6 +700,17 @@ const App: React.FC = () => {
             const maxY = cab.position.y + cab.dimensions.height - PANEL_T - el.dimensions.height;
             newY = Math.min(Math.max(minY, newY), Math.max(minY, maxY));
           }
+        }
+        if (el.type === 'cabinet') {
+          const actualDy = newY - el.position.y;
+          const movedCab = { ...el, position: { ...el.position, y: newY } };
+          return prev.map((e) => {
+            if (e.id === id) return movedCab;
+            if (e.cabinetId !== id) return e;
+            if (e.type === 'front') return computeFrontForCabinet(e, movedCab);
+            if (e.type === 'leg') return computeLegForCabinet(e, movedCab);
+            return { ...e, position: { ...e.position, y: e.position.y + actualDy } };
+          });
         }
         return prev.map((e) => (e.id === id ? { ...e, position: { ...e.position, y: newY } } : e));
       });
@@ -876,6 +905,18 @@ const App: React.FC = () => {
   const handleDragStart = useCallback((id: string) => {
     dragDeltaRef.current.set(id, { dx: 0, dz: 0 });
   }, []);
+
+  // Delete selected element with keyboard Delete key (skip when an input is focused)
+  React.useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Delete') return;
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (selectedId) handleDelete(selectedId);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selectedId, handleDelete]);
 
   useThreeScene(containerRef, {
     elements,
