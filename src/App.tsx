@@ -825,6 +825,14 @@ const App: React.FC = () => {
         { corner: 'BL', label: 'TL' },
         { corner: 'BR', label: 'TR' },
       ];
+      // Lift the cabinet (and all its bound elements) by leg height
+      const liftedCab = { ...cab, position: { ...cab.position, y: cab.position.y + h } };
+      const updatedPrev = prev.map((e) => {
+        if (e.id === cabinetId) return liftedCab;
+        if (e.cabinetId !== cabinetId) return e;
+        if (e.type === 'front') return computeFrontForCabinet(e, liftedCab);
+        return { ...e, position: { ...e.position, y: e.position.y + h } };
+      });
       const legs = corners.map(({ corner, label }) =>
         computeLegForCabinet(
           {
@@ -837,11 +845,11 @@ const App: React.FC = () => {
             position: { x: 0, y: 0, z: 0 },
             color: cab.color,
           },
-          cab
+          liftedCab
         )
       );
       setSelectedId(cabinetId);
-      return [...prev, ...legs];
+      return [...updatedPrev, ...legs];
     });
   }, []);
 
