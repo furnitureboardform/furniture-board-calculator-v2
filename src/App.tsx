@@ -14,6 +14,10 @@ let frontCounter = 1;
 let rodCounter = 1;
 let legCounter = 1;
 let hdfCounter = 1;
+let drawerCounter = 1;
+let drawerboxCounter = 1;
+let blendaCounter = 1;
+let groupCounter = 1;
 
 // Snap / attach constants (must be declared before helpers that use them)
 const PANEL_T = 0.018; // panel thickness in metres (~18 mm); must match useThreeScene.ts
@@ -92,6 +96,66 @@ function computeFrontForCabinet(front: BoxElement, cab: BoxElement): BoxElement 
   };
 }
 
+// Computes the position/dimensions of a front panel that spans all cabinets in a group.
+function computeFrontForGroup(front: BoxElement, allElements: BoxElement[]): BoxElement {
+  const group = allElements.find((e) => e.id === front.cabinetId);
+  if (!group) return front;
+  const members = allElements.filter((e) => e.groupId === group.id && e.type === 'cabinet');
+  if (members.length === 0) return front;
+  const minX = Math.min(...members.map((c) => c.position.x - c.dimensions.width / 2));
+  const maxX = Math.max(...members.map((c) => c.position.x + c.dimensions.width / 2));
+  const minY = Math.min(...members.map((c) => c.position.y));
+  const maxY = Math.max(...members.map((c) => c.position.y + c.dimensions.height));
+  const maxFaceZ = Math.max(...members.map((c) => c.position.z + c.dimensions.depth / 2));
+  return {
+    ...front,
+    dimensions: {
+      width: Math.max(0.001, (maxX - minX) - 2 * FRONT_INSET),
+      height: Math.max(0.001, (maxY - minY) - 2 * FRONT_INSET),
+      depth: PANEL_T,
+    },
+    position: {
+      x: (minX + maxX) / 2,
+      y: minY + FRONT_INSET,
+      z: maxFaceZ + PANEL_T / 2,
+    },
+  };
+}
+
+// Recompute the bounds of a group element from its member cabinets.
+function computeGroupBounds(group: BoxElement, allElements: BoxElement[]): BoxElement {
+  const members = allElements.filter((e) => e.groupId === group.id && e.type === 'cabinet');
+  if (members.length === 0) return group;
+  const minX = Math.min(...members.map((c) => c.position.x - c.dimensions.width / 2));
+  const maxX = Math.max(...members.map((c) => c.position.x + c.dimensions.width / 2));
+  const minY = Math.min(...members.map((c) => c.position.y));
+  const maxY = Math.max(...members.map((c) => c.position.y + c.dimensions.height));
+  const maxFaceZ = Math.max(...members.map((c) => c.position.z + c.dimensions.depth / 2));
+  const avgDepth = members.reduce((s, c) => s + c.dimensions.depth, 0) / members.length;
+  return {
+    ...group,
+    dimensions: { width: maxX - minX, height: maxY - minY, depth: avgDepth },
+    position: { x: (minX + maxX) / 2, y: minY, z: maxFaceZ - avgDepth / 2 },
+  };
+}
+
+// After any mutation, resync all groups and their fronts.
+function recomputeGroups(elements: BoxElement[]): BoxElement[] {
+  const result = elements.map((e) => {
+    if (e.type === 'group') return computeGroupBounds(e, elements);
+    return e;
+  });
+  // Now recompute group fronts using updated group bounds
+  const result2 = result.map((e) => {
+    if (e.type === 'front' && e.cabinetId) {
+      const linked = result.find((g) => g.id === e.cabinetId);
+      if (linked?.type === 'group') return computeFrontForGroup(e, result);
+    }
+    return e;
+  });
+  return result2;
+}
+
 // Returns true if boxes a and b have any XZ footprint overlap (used by fit/snap helpers)
 function getBoxOverlap(a: BoxElement, b: BoxElement): boolean {
   return (
@@ -115,7 +179,7 @@ function computeYForBox(box: BoxElement, allElements: BoxElement[]): number {
   let maxTop = 0;
   for (const other of allElements) {
     if (other.id === box.id) continue;
-    if (other.type === 'shelf' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf') continue;
+    if (other.type === 'shelf' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf') continue;
     if (getBoxStackOverlap(box, other)) {
       maxTop = Math.max(maxTop, other.position.y + other.dimensions.height);
     }
@@ -135,12 +199,12 @@ function recomputeAllY(elements: BoxElement[]): BoxElement[] {
   );
   for (const el of ordered) {
     const box = resultMap.get(el.id)!;
-    if (box.type === 'shelf' || box.type === 'divider' || box.type === 'front' || box.type === 'rod' || box.type === 'leg' || box.type === 'hdf') continue; // preserve their Y
+    if (box.type === 'shelf' || box.type === 'drawer' || box.type === 'drawerbox' || box.type === 'blenda' || box.type === 'divider' || box.type === 'front' || box.type === 'rod' || box.type === 'leg' || box.type === 'hdf') continue; // preserve their Y
     const elOriginalY = originalY.get(el.id) ?? 0;
     let maxTop = 0;
     for (const [id, other] of resultMap) {
       if (id === box.id) continue;
-      if (other.type === 'shelf' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf') continue;
+      if (other.type === 'shelf' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf') continue;
       // Only stack on boxes that were originally below (or at same level as) this box
       if ((originalY.get(id) ?? 0) <= elOriginalY + 0.001) {
         if (getBoxStackOverlap(box, other)) {
@@ -186,7 +250,8 @@ function recomputeAllY(elements: BoxElement[]): BoxElement[] {
     const cab = allSettled4.find((e) => e.id === el.cabinetId);
     if (cab) resultMap.set(el.id, computeHdfForCabinet(el, cab));
   }
-  return elements.map((el) => resultMap.get(el.id)!);
+  const settled = elements.map((el) => resultMap.get(el.id)!);
+  return recomputeGroups(settled);
 }
 
 // Auto-fit shelf depth (Z) to the inner depth of the cabinet it's inside
@@ -446,6 +511,42 @@ function snapToNeighbors(box: BoxElement, allElements: BoxElement[]): { x: numbe
   return { x, z };
 }
 
+// Pushes box out of XZ overlaps with same-level cabinets.
+// Skips pairs that already exceed STACK_OVERLAP threshold (stacking handles those).
+function pushOutCollisions(box: BoxElement, allElements: BoxElement[]): { x: number; z: number } {
+  let x = box.position.x;
+  let z = box.position.z;
+  const hw = box.dimensions.width / 2;
+  const hd = box.dimensions.depth / 2;
+
+  for (const other of allElements) {
+    if (other.id === box.id) continue;
+    if (other.type !== 'cabinet') continue;
+    const ohw = other.dimensions.width / 2;
+    const ohd = other.dimensions.depth / 2;
+
+    const yOverlap =
+      box.position.y < other.position.y + other.dimensions.height &&
+      box.position.y + box.dimensions.height > other.position.y;
+    if (!yOverlap) continue;
+
+    const overlapX = (hw + ohw) - Math.abs(x - other.position.x);
+    const overlapZ = (hd + ohd) - Math.abs(z - other.position.z);
+    if (overlapX <= 0 || overlapZ <= 0) continue;
+
+    // Deep overlap in both axes → let stacking handle it
+    if (overlapX > STACK_OVERLAP && overlapZ > STACK_OVERLAP) continue;
+
+    // Push along the axis with smallest penetration
+    if (overlapX <= overlapZ) {
+      x += overlapX * (x >= other.position.x ? 1 : -1);
+    } else {
+      z += overlapZ * (z >= other.position.z ? 1 : -1);
+    }
+  }
+  return { x, z };
+}
+
 function createBox(): BoxElement {
   const color = COLORS[colorIndex % COLORS.length];
   colorIndex++;
@@ -475,6 +576,7 @@ const App: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [elements, setElements] = useState<BoxElement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [multiSelectedIds, setMultiSelectedIds] = useState<string[]>([]);
   // Tracks accumulated drag Y for dividers so tiny increments build up across frames
   const dividerYHintRef = useRef<Map<string, number>>(new Map());
   // Cumulative XZ pointer delta from drag start (per element) — used for detach displacement check
@@ -484,6 +586,7 @@ const App: React.FC = () => {
 
   const handleSelect = useCallback((id: string | null) => {
     setSelectedId(id);
+    setMultiSelectedIds([]);
   }, []);
 
   const handleDimensionDrag = useCallback(
@@ -654,29 +757,34 @@ const App: React.FC = () => {
           const adx = fitted.position.x - movedEl.position.x;
           const ady = fitted.position.y - movedEl.position.y;
           const adz = fitted.position.z - movedEl.position.z;
-          return withFitted.map((el) => {
+          return recomputeGroups(withFitted.map((el) => {
             if (el.id === id) return el;
             if (el.cabinetId !== id) return el;
             if (el.type === 'front') return computeFrontForCabinet(el, fitted);
             if (el.type === 'hdf') return computeHdfForCabinet(el, fitted);
               if (el.type === 'leg') return computeLegForCabinet(el, fitted);
               return { ...el, position: { x: el.position.x + adx, y: el.position.y + ady, z: el.position.z + adz } };
-            });
+            }));
           }
         }
         // Move bound elements and recompute fronts/hdf/legs for the moved cabinet
-        const movedFinal2 = withFinalY.find((e) => e.id === id)!;
+        // 5. Collision push-out (same-level only, stacking-level overlaps are excluded)
+        const pushedPos = pushOutCollisions(withFinalY.find((e) => e.id === id)!, withFinalY);
+        const withCollision = withFinalY.map((el) =>
+          el.id === id ? { ...el, position: { ...el.position, x: pushedPos.x, z: pushedPos.z } } : el
+        );
+        const movedFinal2 = withCollision.find((e) => e.id === id)!;
         const adx = movedFinal2.position.x - movedEl.position.x;
         const ady = movedFinal2.position.y - movedEl.position.y;
         const adz = movedFinal2.position.z - movedEl.position.z;
-        return withFinalY.map((el) => {
+        return recomputeGroups(withCollision.map((el) => {
           if (el.id === id) return el;
           if (el.cabinetId !== id) return el;
           if (el.type === 'front') return computeFrontForCabinet(el, movedFinal2);
           if (el.type === 'hdf') return computeHdfForCabinet(el, movedFinal2);
           if (el.type === 'leg') return computeLegForCabinet(el, movedFinal2);
           return { ...el, position: { x: el.position.x + adx, y: el.position.y + ady, z: el.position.z + adz } };
-        });
+        }));
       });
     },
     []
@@ -690,12 +798,21 @@ const App: React.FC = () => {
         if (el.cabinetId) {
           const cab = prev.find((e) => e.id === el.cabinetId);
           if (cab) {
-            const minY = cab.position.y + PANEL_T;
+            const bottomOffset = cab.type === 'drawerbox' ? (cab.hasBottomPanel ? PANEL_T : 0) : PANEL_T;
+            const minY = cab.position.y + bottomOffset;
             const maxY = cab.position.y + cab.dimensions.height - PANEL_T - el.dimensions.height;
             newY = Math.min(Math.max(minY, newY), Math.max(minY, maxY));
           }
         }
-        return prev.map((e) => (e.id === id ? { ...e, position: { ...e.position, y: newY } } : e));
+        const dy = newY - el.position.y;
+        return prev.map((e) => {
+          if (e.id === id) return { ...e, position: { ...e.position, y: newY } };
+          if (el.type === 'drawerbox' && e.type === 'blenda' && e.cabinetId === el.cabinetId)
+            return { ...e, position: { ...e.position, y: e.position.y + dy } };
+          if (el.type === 'drawerbox' && e.type === 'drawer' && e.cabinetId === id)
+            return { ...e, position: { ...e.position, y: e.position.y + dy } };
+          return e;
+        });
       });
     },
     []
@@ -725,7 +842,8 @@ const App: React.FC = () => {
         if (el.cabinetId) {
           const cab = prev.find((e) => e.id === el.cabinetId);
           if (cab) {
-            const minY = cab.position.y + PANEL_T;
+            const bottomOffset = cab.type === 'drawerbox' ? (cab.hasBottomPanel ? PANEL_T : 0) : PANEL_T;
+            const minY = cab.position.y + bottomOffset;
             const maxY = cab.position.y + cab.dimensions.height - PANEL_T - el.dimensions.height;
             newY = Math.min(Math.max(minY, newY), Math.max(minY, maxY));
           }
@@ -733,16 +851,24 @@ const App: React.FC = () => {
         if (el.type === 'cabinet') {
           const actualDy = newY - el.position.y;
           const movedCab = { ...el, position: { ...el.position, y: newY } };
-          return prev.map((e) => {
+          return recomputeGroups(prev.map((e) => {
             if (e.id === id) return movedCab;
             if (e.cabinetId !== id) return e;
             if (e.type === 'front') return computeFrontForCabinet(e, movedCab);
             if (e.type === 'hdf') return computeHdfForCabinet(e, movedCab);
             if (e.type === 'leg') return computeLegForCabinet(e, movedCab);
             return { ...e, position: { ...e.position, y: e.position.y + actualDy } };
-          });
+          }));
         }
-        return prev.map((e) => (e.id === id ? { ...e, position: { ...e.position, y: newY } } : e));
+        const moveDy = newY - el.position.y;
+        return prev.map((e) => {
+          if (e.id === id) return { ...e, position: { ...e.position, y: newY } };
+          if (el.type === 'drawerbox' && e.type === 'blenda' && e.cabinetId === el.cabinetId)
+            return { ...e, position: { ...e.position, y: e.position.y + moveDy } };
+          if (el.type === 'drawerbox' && e.type === 'drawer' && e.cabinetId === id)
+            return { ...e, position: { ...e.position, y: e.position.y + moveDy } };
+          return e;
+        });
       });
     },
     []
@@ -768,6 +894,103 @@ const App: React.FC = () => {
       };
       setSelectedId(cabinetId);
       return [...prev, shelf];
+    });
+  }, []);
+
+  const handleAddDrawerToCabinet = useCallback((cabinetId: string) => {
+    setElements((prev) => {
+      const cab = prev.find((e) => e.id === cabinetId);
+      if (!cab) return prev;
+      const innerWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T - 0.004);
+      const drawer: BoxElement = {
+        id: crypto.randomUUID(),
+        name: `Szuflada ${drawerCounter++}`,
+        type: 'drawer',
+        cabinetId,
+        dimensions: { width: innerWidth, height: 0.145, depth: cab.dimensions.depth },
+        position: {
+          x: cab.position.x,
+          z: cab.position.z,
+          y: cab.position.y + cab.dimensions.height / 2,
+        },
+        color: cab.color,
+      };
+      setSelectedId(cabinetId);
+      return [...prev, drawer];
+    });
+  }, []);
+
+  const handleAddDrawerboxToCabinet = useCallback((cabinetId: string) => {
+    setElements((prev) => {
+      const cab = prev.find((e) => e.id === cabinetId);
+      if (!cab) return prev;
+      const canonicalWidth = cab.dimensions.width - 2 * PANEL_T;
+      const depth = Math.max(0.01, cab.dimensions.depth - 0.04);
+      const existingFronts = prev.filter((e) => e.type === 'front' && e.cabinetId === cabinetId);
+      const isDouble = existingFronts.length >= 2;
+      const isSingle = existingFronts.length === 1;
+
+      let boxWidth = Math.max(0.01, canonicalWidth);
+      let boxX = cab.position.x;
+      if (isSingle) {
+        boxWidth = Math.max(0.01, canonicalWidth - 0.04);
+        boxX = cab.position.x + 0.02;
+      } else if (isDouble) {
+        boxWidth = Math.max(0.01, canonicalWidth - 0.08);
+        boxX = cab.position.x;
+      }
+
+      const drawerbox: BoxElement = {
+        id: crypto.randomUUID(),
+        name: `Box szuflady ${drawerboxCounter++}`,
+        type: 'drawerbox',
+        cabinetId,
+        dimensions: { width: boxWidth, height: 0.4, depth },
+        position: {
+          x: boxX,
+          y: cab.position.y + PANEL_T,
+          z: cab.position.z - 0.02, // back-aligned: 40mm shallower than cabinet
+        },
+        color: cab.color,
+      };
+
+      const blendas: BoxElement[] = [];
+      const blendaZ = cab.position.z - 0.02 + depth / 2 - 0.10;
+      if (isSingle || isDouble) {
+        blendas.push({
+          id: crypto.randomUUID(),
+          name: `Blenda ${blendaCounter++}`,
+          type: 'blenda' as const,
+          cabinetId,
+          blendaSide: 'left' as const,
+          dimensions: { width: 0.04, height: 0.4, depth: PANEL_T },
+          position: {
+            x: cab.position.x - cab.dimensions.width / 2 + PANEL_T + 0.02,
+            y: drawerbox.position.y,
+            z: blendaZ,
+          },
+          color: cab.color,
+        });
+      }
+      if (isDouble) {
+        blendas.push({
+          id: crypto.randomUUID(),
+          name: `Blenda ${blendaCounter++}`,
+          type: 'blenda' as const,
+          cabinetId,
+          blendaSide: 'right' as const,
+          dimensions: { width: 0.04, height: 0.4, depth: PANEL_T },
+          position: {
+            x: cab.position.x + cab.dimensions.width / 2 - PANEL_T - 0.02,
+            y: drawerbox.position.y,
+            z: blendaZ,
+          },
+          color: cab.color,
+        });
+      }
+
+      setSelectedId(cabinetId);
+      return [...prev, drawerbox, ...blendas];
     });
   }, []);
 
@@ -807,7 +1030,42 @@ const App: React.FC = () => {
         color: cab.color,
       }, cab);
       setSelectedId(cabinetId);
-      return [...prev, front];
+      // Reset drawerbox to canonical size then shrink by 40mm on the left; add left blenda in the gap
+      const drawerbox = prev.find((e) => e.type === 'drawerbox' && e.cabinetId === cabinetId);
+      const blendas: BoxElement[] = [];
+      let updatedPrev = prev;
+      if (drawerbox) {
+        const canonicalWidth = cab.dimensions.width - 2 * PANEL_T;
+        const newWidth = Math.max(0.01, canonicalWidth - 0.04);
+        const newX = cab.position.x + 0.02;
+        const updatedDbox = {
+          ...drawerbox,
+          dimensions: { ...drawerbox.dimensions, width: newWidth },
+          position: { ...drawerbox.position, x: newX },
+        };
+        const drawerWidth = Math.max(0.01, newWidth - 2 * PANEL_T - 0.004);
+        updatedPrev = prev.map((e) => {
+          if (e.id === drawerbox.id) return updatedDbox;
+          if (e.type === 'drawer' && e.cabinetId === drawerbox.id)
+            return { ...e, dimensions: { ...e.dimensions, width: drawerWidth }, position: { ...e.position, x: newX } };
+          return e;
+        });
+        blendas.push({
+          id: crypto.randomUUID(),
+          name: `Blenda ${blendaCounter++}`,
+          type: 'blenda' as const,
+          cabinetId,
+          blendaSide: 'left' as const,
+          dimensions: { width: 0.04, height: drawerbox.dimensions.height, depth: PANEL_T },
+          position: {
+            x: cab.position.x - cab.dimensions.width / 2 + PANEL_T + 0.02,
+            y: drawerbox.position.y,
+            z: drawerbox.position.z + drawerbox.dimensions.depth / 2 - 0.10,
+          },
+          color: cab.color,
+        });
+      }
+      return [...updatedPrev, front, ...blendas];
     });
   }, []);
 
@@ -838,7 +1096,58 @@ const App: React.FC = () => {
         color: cab.color,
       }, cab);
       setSelectedId(cabinetId);
-      return [...prev, leftLeaf, rightLeaf];
+      // Reset drawerbox to canonical size then shrink 80mm (40mm each side); add blendas on both sides
+      const drawerbox = prev.find((e) => e.type === 'drawerbox' && e.cabinetId === cabinetId);
+      const blendas: BoxElement[] = [];
+      let updatedPrev = prev;
+      if (drawerbox) {
+        const canonicalWidth = cab.dimensions.width - 2 * PANEL_T;
+        const newWidth = Math.max(0.01, canonicalWidth - 0.08);
+        const newX = cab.position.x;
+        const updatedDbox = {
+          ...drawerbox,
+          dimensions: { ...drawerbox.dimensions, width: newWidth },
+          position: { ...drawerbox.position, x: newX },
+        };
+        const drawerWidth = Math.max(0.01, newWidth - 2 * PANEL_T - 0.004);
+        updatedPrev = prev.map((e) => {
+          if (e.id === drawerbox.id) return updatedDbox;
+          if (e.type === 'drawer' && e.cabinetId === drawerbox.id)
+            return { ...e, dimensions: { ...e.dimensions, width: drawerWidth }, position: { ...e.position, x: newX } };
+          return e;
+        });
+        blendas.push(
+          {
+            id: crypto.randomUUID(),
+            name: `Blenda ${blendaCounter++}`,
+            type: 'blenda' as const,
+            cabinetId,
+            blendaSide: 'left' as const,
+            dimensions: { width: 0.04, height: drawerbox.dimensions.height, depth: PANEL_T },
+            position: {
+              x: cab.position.x - cab.dimensions.width / 2 + PANEL_T + 0.02,
+              y: drawerbox.position.y,
+              z: drawerbox.position.z + drawerbox.dimensions.depth / 2 - 0.10,
+            },
+            color: cab.color,
+          },
+          {
+            id: crypto.randomUUID(),
+            name: `Blenda ${blendaCounter++}`,
+            type: 'blenda' as const,
+            cabinetId,
+            blendaSide: 'right' as const,
+            dimensions: { width: 0.04, height: drawerbox.dimensions.height, depth: PANEL_T },
+            position: {
+              x: cab.position.x + cab.dimensions.width / 2 - PANEL_T - 0.02,
+              y: drawerbox.position.y,
+              z: drawerbox.position.z + drawerbox.dimensions.depth / 2 - 0.10,
+            },
+            color: cab.color,
+          },
+        );
+      }
+      return [...updatedPrev, leftLeaf, rightLeaf, ...blendas];
     });
   }, []);
 
@@ -943,34 +1252,196 @@ const App: React.FC = () => {
       dragDeltaRef.current.delete(id);
       detachedFromRef.current.delete(id);
       setElements((prev) => {
-        // Also remove all children (shelves / dividers / fronts) bound to this element
+        const el = prev.find((e) => e.id === id);
         const toRemove = new Set<string>([id]);
-        for (const el of prev) {
-          if (el.cabinetId === id) toRemove.add(el.id);
+        if (el?.type === 'group') {
+          // Remove group fronts
+          for (const e of prev) {
+            if (e.type === 'front' && e.cabinetId === id) toRemove.add(e.id);
+          }
+          // Remove member cabinets and all their children
+          for (const e of prev) {
+            if (e.groupId === id) {
+              toRemove.add(e.id);
+              for (const child of prev) {
+                if (child.cabinetId === e.id) toRemove.add(child.id);
+              }
+            }
+          }
+        } else {
+          // Recursively collect all descendants (handles drawerbox→drawer nesting)
+          const collectDescendants = (parentId: string) => {
+            for (const e of prev) {
+              if (e.cabinetId === parentId && !toRemove.has(e.id)) {
+                toRemove.add(e.id);
+                collectDescendants(e.id);
+              }
+            }
+          };
+          collectDescendants(id);
+          // If deleting a front: remove blendas of same cabinet AND restore drawerbox to canonical width
+          if (el?.type === 'front' && el.cabinetId) {
+            for (const e of prev) {
+              if (e.type === 'blenda' && e.cabinetId === el.cabinetId) toRemove.add(e.id);
+            }
+          }
+          // If deleting a drawerbox: remove blendas of parent cabinet
+          if (el?.type === 'drawerbox' && el.cabinetId) {
+            for (const e of prev) {
+              if (e.type === 'blenda' && e.cabinetId === el.cabinetId) toRemove.add(e.id);
+            }
+          }
         }
         toRemove.forEach((rid) => {
           dividerYHintRef.current.delete(rid);
           dragDeltaRef.current.delete(rid);
           detachedFromRef.current.delete(rid);
         });
-        return prev.filter((el) => !toRemove.has(el.id));
+        const filtered = prev.filter((e) => !toRemove.has(e.id));
+        // After removing a front, restore the cabinet's drawerbox to canonical size/position
+        if (el?.type === 'front' && el.cabinetId) {
+          const cab = filtered.find((e) => e.id === el.cabinetId);
+          const dbox = filtered.find((e) => e.type === 'drawerbox' && e.cabinetId === el.cabinetId);
+          if (cab && dbox) {
+            const canonicalWidth = cab.dimensions.width - 2 * PANEL_T;
+            const canonicalDrawerWidth = Math.max(0.01, canonicalWidth - 2 * PANEL_T - 0.004);
+            return filtered.map((e) => {
+              if (e.id === dbox.id)
+                return { ...e, dimensions: { ...e.dimensions, width: canonicalWidth }, position: { ...e.position, x: cab.position.x } };
+              if (e.type === 'drawer' && e.cabinetId === dbox.id)
+                return { ...e, dimensions: { ...e.dimensions, width: canonicalDrawerWidth }, position: { ...e.position, x: cab.position.x } };
+              return e;
+            });
+          }
+        }
+        return filtered;
       });
       setSelectedId((prev) => (prev === id ? null : prev));
     },
     []
   );
 
+  const handleUngroup = useCallback((groupId: string) => {
+    setElements((prev) => {
+      // Remove the group element and its fronts; free the member cabinets
+      const toRemove = new Set<string>([groupId]);
+      for (const e of prev) {
+        if (e.type === 'front' && e.cabinetId === groupId) toRemove.add(e.id);
+      }
+      return prev
+        .filter((e) => !toRemove.has(e.id))
+        .map((e) => e.groupId === groupId ? { ...e, groupId: undefined } : e);
+    });
+    setSelectedId((prev) => (prev === groupId ? null : prev));
+  }, []);
+
   const handleDragStart = useCallback((id: string) => {
     dragDeltaRef.current.set(id, { dx: 0, dz: 0 });
+  }, []);
+
+  const handleMultiSelectToggle = useCallback((id: string) => {
+    setMultiSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }, []);
+
+  const handleGroup = useCallback((ids: string[]) => {
+    setElements((prev) => {
+      // Only group cabinets that aren't already in a group
+      const validIds = ids.filter((id) => {
+        const el = prev.find((e) => e.id === id);
+        return el?.type === 'cabinet' && !el.groupId;
+      });
+      if (validIds.length < 2) return prev;
+      const groupId = crypto.randomUUID();
+      const groupEl: BoxElement = {
+        id: groupId,
+        name: `Grupa ${groupCounter++}`,
+        type: 'group',
+        dimensions: { width: 0, height: 0, depth: 0 },
+        position: { x: 0, y: 0, z: 0 },
+        color: '#888888',
+      };
+      const withGroupIds = prev.map((e) =>
+        validIds.includes(e.id) ? { ...e, groupId } : e
+      );
+      const withGroup = [...withGroupIds, groupEl];
+      return recomputeGroups(withGroup);
+    });
+    setMultiSelectedIds([]);
+  }, []);
+
+  const handleAddFrontToGroup = useCallback((groupId: string) => {
+    setElements((prev) => {
+      const group = prev.find((e) => e.id === groupId && e.type === 'group');
+      if (!group) return prev;
+      if (prev.some((e) => e.type === 'front' && e.cabinetId === groupId)) return prev;
+      const front: BoxElement = computeFrontForGroup({
+        id: crypto.randomUUID(),
+        name: `Front gr. ${frontCounter++}`,
+        type: 'front',
+        cabinetId: groupId,
+        dimensions: { width: 0, height: 0, depth: 0 },
+        position: { x: 0, y: 0, z: 0 },
+        color: group.color,
+      }, prev);
+      return [...prev, front];
+    });
+  }, []);
+
+  const handleOpenFrontsChange = useCallback((cabinetId: string, open: boolean) => {
+    setElements((prev) => prev.map((e) => e.id === cabinetId ? { ...e, openFronts: open } : e));
+  }, []);
+
+  const handleHasBottomPanelChange = useCallback((drawerboxId: string, has: boolean) => {
+    setElements((prev) => prev.map((e) => e.id === drawerboxId ? { ...e, hasBottomPanel: has } : e));
   }, []);
 
   // Delete selected element with keyboard Delete key (skip when an input is focused)
   React.useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Delete') return;
       const tag = (e.target as HTMLElement).tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if (selectedId) handleDelete(selectedId);
+
+      if (e.key === 'Delete') {
+        if (selectedId) handleDelete(selectedId);
+        return;
+      }
+
+      if (e.key === 'c' && (e.ctrlKey || e.metaKey)) {
+        if (!selectedId) return;
+        setElements((prev) => {
+          const src = prev.find((el) => el.id === selectedId);
+          if (!src || src.type !== 'cabinet') return prev;
+          const newCabId = crypto.randomUUID();
+          const newCab: BoxElement = {
+            ...src,
+            id: newCabId,
+            name: `${src.name} (kopia)`,
+            groupId: undefined,
+            position: { ...src.position, x: src.position.x + src.dimensions.width + 0.02 },
+          };
+          // Clone all children bound to the source cabinet
+          const children = prev.filter((el) => el.cabinetId === src.id);
+          const newChildren: BoxElement[] = children.map((child) => {
+            const newChild: BoxElement = {
+              ...child,
+              id: crypto.randomUUID(),
+              cabinetId: newCabId,
+              position: {
+                ...child.position,
+                x: child.position.x + src.dimensions.width + 0.02,
+              },
+            };
+            if (child.type === 'front') return computeFrontForCabinet(newChild, newCab);
+            if (child.type === 'hdf') return computeHdfForCabinet(newChild, newCab);
+            if (child.type === 'leg') return computeLegForCabinet(newChild, newCab);
+            return newChild;
+          });
+          return [...prev, newCab, ...newChildren];
+        });
+        return;
+      }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -987,6 +1458,8 @@ const App: React.FC = () => {
   });
 
   const selectedElement = elements.find((e) => e.id === selectedId) ?? null;
+  const selectedCabHasFront = selectedElement?.type === 'cabinet' &&
+    elements.some((e) => e.type === 'front' && e.cabinetId === selectedElement.id);
 
   return (
     <div className="app">
@@ -994,15 +1467,22 @@ const App: React.FC = () => {
         <ElementLibrary
           elements={elements}
           selectedId={selectedId}
+          multiSelectedIds={multiSelectedIds}
           onSelect={handleSelect}
+          onMultiSelectToggle={handleMultiSelectToggle}
+          onGroup={handleGroup}
           onAdd={handleAdd}
           onAddShelfToCabinet={handleAddShelfToCabinet}
+          onAddDrawerToCabinet={handleAddDrawerToCabinet}
+          onAddDrawerboxToCabinet={handleAddDrawerboxToCabinet}
           onAddDividerToCabinet={handleAddDividerToCabinet}
           onAddFrontToCabinet={handleAddFrontToCabinet}
           onAddDoubleFrontToCabinet={handleAddDoubleFrontToCabinet}
           onAddRodToCabinet={handleAddRodToCabinet}
           onAddLegsToCabinet={handleAddLegsToCabinet}
           onAddHdfToCabinet={handleAddHdfToCabinet}
+          onAddFrontToGroup={handleAddFrontToGroup}
+          onUngroup={handleUngroup}
           onDelete={handleDelete}
         />
       </aside>
@@ -1010,7 +1490,14 @@ const App: React.FC = () => {
       <main className="viewport" ref={containerRef} />
 
       <aside className="sidebar right">
-        <PropertiesPanel element={selectedElement} onChange={handleDimensionInput} onYChange={handleYChange} />
+        <PropertiesPanel
+          element={selectedElement}
+          onChange={handleDimensionInput}
+          onYChange={handleYChange}
+          hasFront={selectedCabHasFront}
+          onOpenFrontsChange={(open) => selectedElement && handleOpenFrontsChange(selectedElement.id, open)}
+          onHasBottomPanelChange={(has) => selectedElement && handleHasBottomPanelChange(selectedElement.id, has)}
+        />
       </aside>
     </div>
   );

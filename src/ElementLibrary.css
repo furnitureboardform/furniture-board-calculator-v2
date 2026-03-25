@@ -190,3 +190,77 @@
   text-align: center;
   padding: 24px 16px;
 }
+
+/* Multi-select highlight */
+.element-item.multi-selected {
+  background: #1a2a1a;
+  border-color: #3aaa3a;
+}
+
+.multi-check {
+  color: #3aaa3a;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+
+/* Połącz button bar */
+.group-bar {
+  padding: 6px 12px;
+  flex-shrink: 0;
+}
+
+.btn-group {
+  width: 100%;
+  padding: 7px 12px;
+  background: #1a3a2a;
+  border: 1px solid #3aaa3a;
+  border-radius: 7px;
+  color: #66ee66;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-group:hover {
+  background: #234a30;
+  border-color: #55dd55;
+}
+
+/* Group item row */
+.group-item {
+  border-color: #2a406a;
+  background: #111128;
+}
+
+.group-item.selected {
+  background: #1a2a4a;
+  border-color: #4a7fe0;
+}
+
+.group-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  color: #5588cc;
+  margin-right: 2px;
+}
+
+.btn-ungroup {
+  background: none;
+  border: none;
+  color: #80a0e0;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-ungroup:hover {
+  color: #aad0ff;
+  background: #1a2a3a;
+}
+

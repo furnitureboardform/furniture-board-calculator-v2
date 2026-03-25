@@ -6,6 +6,9 @@ interface Props {
   element: BoxElement | null;
   onChange: (id: string, dims: BoxDimensions) => void;
   onYChange?: (id: string, y: number) => void;
+  hasFront?: boolean;
+  onOpenFrontsChange?: (open: boolean) => void;
+  onHasBottomPanelChange?: (has: boolean) => void;
 }
 
 type DimKey = keyof BoxDimensions;
@@ -14,7 +17,7 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, onChange, onYChange }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, onChange, onYChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange }) => {
   // Local draft strings so the user can type freely
   const [drafts, setDrafts] = useState<Record<DimKey, string>>({ width: '', height: '', depth: '' });
   const [yDraft, setYDraft] = useState('');
@@ -38,6 +41,33 @@ const PropertiesPanel: React.FC<Props> = ({ element, onChange, onYChange }) => {
     );
   }
 
+  if (element.type === 'group') {
+    const w = Math.round(element.dimensions.width * 1000);
+    const h = Math.round(element.dimensions.height * 1000);
+    const d = Math.round(element.dimensions.depth * 1000);
+    return (
+      <div className="properties">
+        <h2 className="properties-title">{element.name}</h2>
+        <div className="properties-hint">Wymiary łączne pogrupowanych boksów</div>
+        <div className="prop-row">
+          <label className="prop-label" style={{ color: '#ff4444' }}>Szerokość</label>
+          <span className="prop-input" style={{ display: 'flex', alignItems: 'center', color: '#d0d0f0' }}>{w}</span>
+          <span className="prop-unit">mm</span>
+        </div>
+        <div className="prop-row">
+          <label className="prop-label" style={{ color: '#44ff44' }}>Wysokość</label>
+          <span className="prop-input" style={{ display: 'flex', alignItems: 'center', color: '#d0d0f0' }}>{h}</span>
+          <span className="prop-unit">mm</span>
+        </div>
+        <div className="prop-row">
+          <label className="prop-label" style={{ color: '#4488ff' }}>Głębokość</label>
+          <span className="prop-input" style={{ display: 'flex', alignItems: 'center', color: '#d0d0f0' }}>{d}</span>
+          <span className="prop-unit">mm</span>
+        </div>
+      </div>
+    );
+  }
+
   const commitDim = (axis: DimKey) => {
     const m = fromMm(drafts[axis]);
     if (isNaN(m) || m <= 0) {
@@ -56,7 +86,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, onChange, onYChange }) => {
 
   const labels: Record<DimKey, string> = (element.type === 'shelf' || element.type === 'rod')
     ? { width: 'Szerokość', height: 'Grubość', depth: 'Głębokość' }
-    : element.type === 'leg'
+    : (element.type === 'leg' || element.type === 'drawer' || element.type === 'drawerbox')
     ? { width: 'Szerokość', height: 'Wysokość', depth: 'Głębokość' }
     : { width: 'Szerokość (X)', height: 'Wysokość (Y)', depth: 'Głębokość (Z)' };
   const colors: Record<DimKey, string> = { width: '#ff4444', height: '#44ff44', depth: '#4488ff' };
@@ -66,10 +96,52 @@ const PropertiesPanel: React.FC<Props> = ({ element, onChange, onYChange }) => {
       <h2 className="properties-title">{element.name}</h2>
       {(element.type === 'shelf' || element.type === 'rod') ? (
         <div className="properties-hint">Ustaw wymiary i pozycję pionową półki</div>
+      ) : element.type === 'drawer' ? (
+        <div className="properties-hint">Ustaw wymiary i pozycję pionową szuflady</div>
+      ) : element.type === 'drawerbox' ? (
+        <div className="properties-hint">Ustaw wymiary i pozycję pionową boxa szuflady</div>
       ) : element.type === 'leg' ? (
         <div className="properties-hint">Zmiana wysokości zsynchronizuje wszystkie nóżki</div>
       ) : (
         <div className="properties-hint">Przeciągnij uchwyty na modelu lub wpisz wartości</div>
+      )}
+
+      {element.type === 'drawerbox' && onHasBottomPanelChange && (
+        <>
+          <div className="prop-divider" />
+          <div className="prop-front-state">
+            <span className="prop-label" style={{ color: '#c0c0e0' }}>Dolna płyta</span>
+            <label className="prop-toggle">
+              <input
+                type="checkbox"
+                checked={!!element.hasBottomPanel}
+                onChange={(e) => onHasBottomPanelChange(e.target.checked)}
+              />
+              <span className="prop-toggle-track" />
+              <span className="prop-toggle-text">{element.hasBottomPanel ? 'tak' : 'nie'}</span>
+            </label>
+          </div>
+          <div className="prop-divider" />
+        </>
+      )}
+
+      {element.type === 'cabinet' && hasFront && onOpenFrontsChange && (
+        <>
+          <div className="prop-divider" />
+          <div className="prop-front-state">
+            <span className="prop-label" style={{ color: '#c0c0e0' }}>Fronty</span>
+            <label className="prop-toggle">
+              <input
+                type="checkbox"
+                checked={!!element.openFronts}
+                onChange={(e) => onOpenFrontsChange(e.target.checked)}
+              />
+              <span className="prop-toggle-track" />
+              <span className="prop-toggle-text">{element.openFronts ? 'otwarte' : 'zamknięte'}</span>
+            </label>
+          </div>
+          <div className="prop-divider" />
+        </>
       )}
 
       {(['width', 'height', 'depth'] as const).filter((axis) => element.type !== 'leg' || axis === 'height').map((axis) => (
@@ -89,7 +161,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, onChange, onYChange }) => {
         </div>
       ))}
 
-      {(element.type === 'shelf' || element.type === 'rod') && onYChange && (
+      {(element.type === 'shelf' || element.type === 'rod' || element.type === 'drawer' || element.type === 'drawerbox') && onYChange && (
         <>
           <div className="prop-divider" />
           <div className="prop-row">
