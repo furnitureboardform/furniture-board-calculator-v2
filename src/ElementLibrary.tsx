@@ -43,6 +43,8 @@ interface Props {
   elements: BoxElement[];
   selectedId: string | null;
   multiSelectedIds: string[];
+  boardSize: { width: number; depth: number };
+  onBoardSizeChange: (size: { width: number; depth: number }) => void;
   onSelect: (id: string) => void;
   onMultiSelectToggle: (id: string) => void;
   onGroup: (ids: string[]) => void;
@@ -63,6 +65,7 @@ interface Props {
 
 const ElementLibrary: React.FC<Props> = ({
   elements, selectedId, multiSelectedIds,
+  boardSize, onBoardSizeChange,
   onSelect, onMultiSelectToggle, onGroup, onAdd,
   onAddShelfToCabinet, onAddDrawerToCabinet, onAddDrawerboxToCabinet, onAddDividerToCabinet,
   onAddFrontToCabinet, onAddDoubleFrontToCabinet,
@@ -246,6 +249,42 @@ const ElementLibrary: React.FC<Props> = ({
 
   return (
     <div className="library">
+      {/* Board size */}
+      <div className="lib-section-title">Plansza</div>
+      <div className="board-size-inputs">
+        <label className="board-size-field">
+          <span>Szer.</span>
+          <input
+            type="number"
+            min={10}
+            max={9999}
+            step={1}
+            value={boardSize.width}
+            onChange={(e) => {
+              const v = parseFloat(e.target.value);
+              if (!isNaN(v) && v >= 10) onBoardSizeChange({ ...boardSize, width: v });
+            }}
+          />
+          <span>cm</span>
+        </label>
+        <label className="board-size-field">
+          <span>Gł.</span>
+          <input
+            type="number"
+            min={10}
+            max={9999}
+            step={1}
+            value={boardSize.depth}
+            onChange={(e) => {
+              const v = parseFloat(e.target.value);
+              if (!isNaN(v) && v >= 10) onBoardSizeChange({ ...boardSize, depth: v });
+            }}
+          />
+          <span>cm</span>
+        </label>
+      </div>
+      <div className="lib-divider" />
+
       {/* Catalog */}
       <div className="lib-section-title">Elementy</div>
       <div className="catalog-grid">

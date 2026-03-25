@@ -184,6 +184,11 @@ function computeYForBox(box: BoxElement, allElements: BoxElement[]): number {
       maxTop = Math.max(maxTop, other.position.y + other.dimensions.height);
     }
   }
+  // If the cabinet has legs, its bottom must sit at least legHeight above the surface below
+  const legs = allElements.filter((e) => e.type === 'leg' && e.cabinetId === box.id);
+  if (legs.length > 0) {
+    maxTop = Math.max(maxTop, maxTop + legs[0].dimensions.height);
+  }
   return maxTop;
 }
 
@@ -211,6 +216,11 @@ function recomputeAllY(elements: BoxElement[]): BoxElement[] {
           maxTop = Math.max(maxTop, other.position.y + other.dimensions.height);
         }
       }
+    }
+    // If the cabinet has legs, it must be lifted by their height above whatever surface it sits on
+    const legChildren = [...resultMap.values()].filter((e) => e.type === 'leg' && e.cabinetId === box.id);
+    if (legChildren.length > 0) {
+      maxTop = maxTop + legChildren[0].dimensions.height;
     }
     const withY = { ...box, position: { ...box.position, y: maxTop } };
     // If stacked on another cabinet, match its width/depth
@@ -577,6 +587,8 @@ const App: React.FC = () => {
   const [elements, setElements] = useState<BoxElement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [multiSelectedIds, setMultiSelectedIds] = useState<string[]>([]);
+  // Board dimensions in cm (converted to metres when passed to scene)
+  const [boardSize, setBoardSize] = useState<{ width: number; depth: number }>({ width: 300, depth: 300 });
   // Tracks accumulated drag Y for dividers so tiny increments build up across frames
   const dividerYHintRef = useRef<Map<string, number>>(new Map());
   // Cumulative XZ pointer delta from drag start (per element) — used for detach displacement check
@@ -1450,6 +1462,7 @@ const App: React.FC = () => {
   useThreeScene(containerRef, {
     elements,
     selectedId,
+    boardSize: { width: boardSize.width / 100, depth: boardSize.depth / 100 },
     onSelect: handleSelect,
     onDimensionChange: handleDimensionDrag,
     onPositionChange: handlePositionChange,
@@ -1468,6 +1481,8 @@ const App: React.FC = () => {
           elements={elements}
           selectedId={selectedId}
           multiSelectedIds={multiSelectedIds}
+          boardSize={boardSize}
+          onBoardSizeChange={setBoardSize}
           onSelect={handleSelect}
           onMultiSelectToggle={handleMultiSelectToggle}
           onGroup={handleGroup}

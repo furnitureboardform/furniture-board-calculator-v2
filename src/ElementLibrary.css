@@ -16,6 +16,45 @@
   flex-shrink: 0;
 }
 
+/* Board size inputs */
+.board-size-inputs {
+  display: flex;
+  gap: 8px;
+  padding: 4px 12px 10px;
+  flex-shrink: 0;
+}
+
+.board-size-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  font-size: 12px;
+  color: #a0a0c0;
+}
+
+.board-size-field span {
+  white-space: nowrap;
+}
+
+.board-size-field input {
+  width: 0;
+  flex: 1;
+  background: #141428;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+  color: #e0e0f0;
+  font-size: 12px;
+  padding: 4px 6px;
+  text-align: right;
+  outline: none;
+  min-width: 0;
+}
+
+.board-size-field input:focus {
+  border-color: #3b6fd4;
+}
+
 /* Catalog grid */
 .catalog-grid {
   display: grid;

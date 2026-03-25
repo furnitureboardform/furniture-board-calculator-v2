@@ -6,6 +6,7 @@ import type { BoxElement } from './types';
 interface UseThreeSceneOptions {
   elements: BoxElement[];
   selectedId: string | null;
+  boardSize: { width: number; depth: number };
   onSelect: (id: string | null) => void;
   onDimensionChange: (id: string, axis: 'width' | 'height' | 'depth', delta: number, dir: number) => void;
   onPositionChange: (id: string, dx: number, dz: number) => void;
@@ -27,6 +28,9 @@ export function useThreeScene(
   const meshMapRef = useRef<Map<string, THREE.Mesh>>(new Map());
   const handleMapRef = useRef<Map<string, { mesh: THREE.Mesh; axis: 'width' | 'height' | 'depth'; dir: number; elementId: string }>>(new Map());
   const animFrameRef = useRef<number>(0);
+  const boardMeshRef = useRef<THREE.Mesh | null>(null);
+  const gridRef = useRef<THREE.GridHelper | null>(null);
+  const lastBoardSizeRef = useRef<{ width: number; depth: number } | null>(null);
   const isDraggingHandleRef = useRef(false);
   const dragStateRef = useRef<{
     handleKey: string;
@@ -437,9 +441,26 @@ export function useThreeScene(
     dirLight.castShadow = true;
     scene.add(dirLight);
 
-    // Grid
+    // Grid (initial size — will be updated by boardSize effect)
     const grid = new THREE.GridHelper(20, 20, 0x444466, 0x333355);
     scene.add(grid);
+    gridRef.current = grid;
+
+    // Board floor plane
+    const boardGeo = new THREE.PlaneGeometry(20, 20);
+    const boardMat = new THREE.MeshStandardMaterial({
+      color: 0x1e1e32,
+      roughness: 0.9,
+      metalness: 0.0,
+      transparent: true,
+      opacity: 0.6,
+    });
+    const board = new THREE.Mesh(boardGeo, boardMat);
+    board.rotation.x = -Math.PI / 2;
+    board.position.y = -0.001;
+    board.receiveShadow = true;
+    scene.add(board);
+    boardMeshRef.current = board;
 
     // Animate
     const animate = () => {
@@ -466,6 +487,33 @@ export function useThreeScene(
       container.removeChild(renderer.domElement);
     };
   }, [containerRef]);
+
+  // Sync board and grid to boardSize
+  useEffect(() => {
+    const { boardSize } = optionsRef.current;
+    const prev = lastBoardSizeRef.current;
+    if (prev && prev.width === boardSize.width && prev.depth === boardSize.depth) return;
+    lastBoardSizeRef.current = { ...boardSize };
+
+    const w = boardSize.width;
+    const d = boardSize.depth;
+    const divisions = Math.max(2, Math.round(Math.max(w, d) * 5)); // ~1 line per 20 cm
+
+    const scene = sceneRef.current;
+    if (scene) {
+      const oldGrid = gridRef.current;
+      if (oldGrid) { scene.remove(oldGrid); oldGrid.dispose(); }
+      const newGrid = new THREE.GridHelper(Math.max(w, d) * 1.5, divisions, 0x444466, 0x333355);
+      scene.add(newGrid);
+      gridRef.current = newGrid;
+    }
+
+    const board = boardMeshRef.current;
+    if (board) {
+      board.geometry.dispose();
+      board.geometry = new THREE.PlaneGeometry(w, d);
+    }
+  });
 
   // Sync elements to scene
   useEffect(() => {
