@@ -43,8 +43,8 @@ interface Props {
   elements: BoxElement[];
   selectedId: string | null;
   multiSelectedIds: string[];
-  boardSize: { width: number; depth: number };
-  onBoardSizeChange: (size: { width: number; depth: number }) => void;
+  boardSize: { width: number; depth: number; height: number };
+  onBoardSizeChange: (size: { width: number; depth: number; height: number }) => void;
   onSelect: (id: string) => void;
   onMultiSelectToggle: (id: string) => void;
   onGroup: (ids: string[]) => void;
@@ -74,15 +74,17 @@ const ElementLibrary: React.FC<Props> = ({
 }) => {
   const [draftWidth, setDraftWidth] = useState(String(boardSize.width));
   const [draftDepth, setDraftDepth] = useState(String(boardSize.depth));
+  const [draftHeight, setDraftHeight] = useState(String(boardSize.height));
 
   // Keep drafts in sync if boardSize changes from outside
   useEffect(() => { setDraftWidth(String(boardSize.width)); }, [boardSize.width]);
   useEffect(() => { setDraftDepth(String(boardSize.depth)); }, [boardSize.depth]);
+  useEffect(() => { setDraftHeight(String(boardSize.height)); }, [boardSize.height]);
 
   const applyWidth = (raw: string) => {
     const v = parseFloat(raw);
-    if (!isNaN(v) && v >= 10) {
-      const clamped = Math.min(v, 1000);
+    if (!isNaN(v) && v >= 100) {
+      const clamped = Math.min(v, 10000);
       onBoardSizeChange({ ...boardSize, width: clamped });
       setDraftWidth(String(clamped));
     } else {
@@ -92,12 +94,23 @@ const ElementLibrary: React.FC<Props> = ({
 
   const applyDepth = (raw: string) => {
     const v = parseFloat(raw);
-    if (!isNaN(v) && v >= 10) {
-      const clamped = Math.min(v, 1000);
+    if (!isNaN(v) && v >= 100) {
+      const clamped = Math.min(v, 10000);
       onBoardSizeChange({ ...boardSize, depth: clamped });
       setDraftDepth(String(clamped));
     } else {
       setDraftDepth(String(boardSize.depth));
+    }
+  };
+
+  const applyHeight = (raw: string) => {
+    const v = parseFloat(raw);
+    if (!isNaN(v) && v >= 100) {
+      const clamped = Math.min(v, 10000);
+      onBoardSizeChange({ ...boardSize, height: clamped });
+      setDraftHeight(String(clamped));
+    } else {
+      setDraftHeight(String(boardSize.height));
     }
   };
   // Cabinets that don't belong to any group
@@ -291,7 +304,7 @@ const ElementLibrary: React.FC<Props> = ({
             onBlur={(e) => applyWidth(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
           />
-          <span>cm</span>
+          <span>mm</span>
         </label>
         <label className="board-size-field">
           <span>Gł.</span>
@@ -304,7 +317,20 @@ const ElementLibrary: React.FC<Props> = ({
             onBlur={(e) => applyDepth(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
           />
-          <span>cm</span>
+          <span>mm</span>
+        </label>
+        <label className="board-size-field">
+          <span>Wys.</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={draftHeight}
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => setDraftHeight(e.target.value)}
+            onBlur={(e) => applyHeight(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+          />
+          <span>mm</span>
         </label>
       </div>
       <div className="lib-divider" />

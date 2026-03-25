@@ -19,7 +19,8 @@
 /* Board size inputs */
 .board-size-inputs {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 4px;
   padding: 4px 12px 10px;
   flex-shrink: 0;
 }
@@ -27,19 +28,25 @@
 .board-size-field {
   display: flex;
   align-items: center;
-  gap: 4px;
-  flex: 1;
+  gap: 6px;
   font-size: 12px;
   color: #a0a0c0;
 }
 
-.board-size-field span {
+.board-size-field span:first-child {
+  width: 30px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.board-size-field span:last-child {
+  flex-shrink: 0;
   white-space: nowrap;
 }
 
 .board-size-field input {
-  width: 0;
   flex: 1;
+  min-width: 0;
   background: #141428;
   border: 1px solid #2a2a4a;
   border-radius: 6px;
@@ -48,7 +55,6 @@
   padding: 4px 6px;
   text-align: right;
   outline: none;
-  min-width: 0;
 }
 
 .board-size-field input:focus {

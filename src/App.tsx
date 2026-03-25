@@ -175,7 +175,7 @@ function getBoxStackOverlap(a: BoxElement, b: BoxElement): boolean {
 }
 
 // Returns the Y level (bottom) where box should sit, based on overlapping boxes
-function computeYForBox(box: BoxElement, allElements: BoxElement[]): number {
+function computeYForBox(box: BoxElement, allElements: BoxElement[], roomH = Infinity): number {
   let maxTop = 0;
   for (const other of allElements) {
     if (other.id === box.id) continue;
@@ -189,11 +189,12 @@ function computeYForBox(box: BoxElement, allElements: BoxElement[]): number {
   if (legs.length > 0) {
     maxTop = Math.max(maxTop, maxTop + legs[0].dimensions.height);
   }
-  return maxTop;
+  // Clamp so the top of the box doesn't exceed the room height
+  return Math.min(maxTop, Math.max(0, roomH - box.dimensions.height));
 }
 
 // Recomputes Y for all boxes bottom-up (used after dimension changes)
-function recomputeAllY(elements: BoxElement[]): BoxElement[] {
+function recomputeAllY(elements: BoxElement[], roomH = Infinity): BoxElement[] {
   const originalY = new Map(elements.map((el) => [el.id, el.position.y]));
   // Process from lowest to highest so lower boxes are settled first
   const ordered = [...elements].sort(
@@ -222,7 +223,7 @@ function recomputeAllY(elements: BoxElement[]): BoxElement[] {
     if (legChildren.length > 0) {
       maxTop = maxTop + legChildren[0].dimensions.height;
     }
-    const withY = { ...box, position: { ...box.position, y: maxTop } };
+    const withY = { ...box, position: { ...box.position, y: Math.min(maxTop, Math.max(0, roomH - box.dimensions.height)) } };
     // If stacked on another cabinet, match its width/depth
     const fitted = maxTop > 0 ? fitCabinetToBelow(withY, [...resultMap.values()]) : withY;
     resultMap.set(el.id, fitted);
@@ -588,7 +589,7 @@ const App: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [multiSelectedIds, setMultiSelectedIds] = useState<string[]>([]);
   // Board dimensions in cm (converted to metres when passed to scene)
-  const [boardSize, setBoardSize] = useState<{ width: number; depth: number }>({ width: 600, depth: 600 });
+  const [boardSize, setBoardSize] = useState<{ width: number; depth: number; height: number }>({ width: 6000, depth: 6000, height: 2600 });
   const boardSizeRef = useRef(boardSize);
   useEffect(() => { boardSizeRef.current = boardSize; }, [boardSize]);
   // Tracks accumulated drag Y for dividers so tiny increments build up across frames
@@ -637,7 +638,7 @@ const App: React.FC = () => {
           }
           return withDelta;
         });
-        return recomputeAllY(updated);
+        return recomputeAllY(updated, boardSizeRef.current.height / 1000);
       });
     },
     []
@@ -654,7 +655,7 @@ const App: React.FC = () => {
             return { ...e, dimensions: { ...e.dimensions, height: dims.height } };
           return e;
         });
-        return recomputeAllY(updated);
+        return recomputeAllY(updated, boardSizeRef.current.height / 1000);
       });
     },
     []
@@ -664,8 +665,8 @@ const App: React.FC = () => {
     (id: string, dx: number, dz: number) => {
       // Board clamping: keep element centre + half its size inside the board (in metres)
       const clampToBoard = (el: BoxElement): { x: number; z: number } => {
-        const bw = boardSizeRef.current.width / 100;
-        const bd = boardSizeRef.current.depth / 100;
+        const bw = boardSizeRef.current.width / 1000;
+        const bd = boardSizeRef.current.depth / 1000;
         // Half of the available movement range (0 when element >= board size → locked to centre)
         const rx = Math.max(0, (bw - el.dimensions.width) / 2);
         const rz = Math.max(0, (bd - el.dimensions.depth) / 2);
@@ -760,7 +761,8 @@ const App: React.FC = () => {
         }
         // 2. Compute preliminary Y so snap can check Y overlap correctly
         const prelim = afterMove.find((e) => e.id === id)!;
-        const prelimY = computeYForBox(prelim, afterMove);
+        const roomH = boardSizeRef.current.height / 1000;
+        const prelimY = computeYForBox(prelim, afterMove, roomH);
         const prelimWithY = { ...prelim, position: { ...prelim.position, y: prelimY } };
         const withPrelimY = afterMove.map((el) => (el.id === id ? prelimWithY : el));
         // 3. Snap XZ to neighboring walls
@@ -770,7 +772,7 @@ const App: React.FC = () => {
           el.id === id ? { ...el, position: { x: snapped.x, y: 0, z: snapped.z } } : el
         );
         const finalBox = afterSnap.find((e) => e.id === id)!;
-        const finalY = computeYForBox(finalBox, afterSnap);
+        const finalY = computeYForBox(finalBox, afterSnap, roomH);
         const withFinalY = afterSnap.map((el) =>
           el.id === id ? { ...el, position: { ...el.position, y: finalY } } : el
         );
@@ -824,6 +826,7 @@ const App: React.FC = () => {
     (id: string, y: number) => {
       setElements((prev) => {
         const el = prev.find((e) => e.id === id)!;
+        const roomH = boardSizeRef.current.height / 1000;
         let newY = Math.max(0, y);
         if (el.cabinetId) {
           const cab = prev.find((e) => e.id === el.cabinetId);
@@ -833,6 +836,9 @@ const App: React.FC = () => {
             const maxY = cab.position.y + cab.dimensions.height - PANEL_T - el.dimensions.height;
             newY = Math.min(Math.max(minY, newY), Math.max(minY, maxY));
           }
+        } else {
+          // Clamp top of element to room height
+          newY = Math.min(newY, Math.max(0, roomH - el.dimensions.height));
         }
         const dy = newY - el.position.y;
         return prev.map((e) => {
@@ -877,6 +883,10 @@ const App: React.FC = () => {
             const maxY = cab.position.y + cab.dimensions.height - PANEL_T - el.dimensions.height;
             newY = Math.min(Math.max(minY, newY), Math.max(minY, maxY));
           }
+        } else {
+          // Clamp top of element to room height
+          const roomH = boardSizeRef.current.height / 1000;
+          newY = Math.min(newY, Math.max(0, roomH - el.dimensions.height));
         }
         if (el.type === 'cabinet') {
           const actualDy = newY - el.position.y;
@@ -1269,8 +1279,8 @@ const App: React.FC = () => {
   const handleAdd = useCallback((type: 'cabinet' | 'shelf') => {
     const raw = type === 'shelf' ? createShelf() : createBox();
     // Spawn at a random position within the moveable board area
-    const bw = boardSizeRef.current.width / 100;
-    const bd = boardSizeRef.current.depth / 100;
+    const bw = boardSizeRef.current.width / 1000;
+    const bd = boardSizeRef.current.depth / 1000;
     const rx = Math.max(0, (bw - raw.dimensions.width) / 2);
     const rz = Math.max(0, (bd - raw.dimensions.depth) / 2);
     const el = {
@@ -1283,7 +1293,7 @@ const App: React.FC = () => {
     };
     setElements((prev) => {
       if (type === 'shelf') return [...prev, el];
-      const newY = computeYForBox(el, prev);
+      const newY = computeYForBox(el, prev, boardSizeRef.current.height / 1000);
       return [...prev, { ...el, position: { ...el.position, y: newY } }];
     });
     setSelectedId(el.id);
@@ -1493,7 +1503,7 @@ const App: React.FC = () => {
   useThreeScene(containerRef, {
     elements,
     selectedId,
-    boardSize: { width: boardSize.width / 100, depth: boardSize.depth / 100 },
+    boardSize: { width: boardSize.width / 1000, depth: boardSize.depth / 1000 },
     onSelect: handleSelect,
     onDimensionChange: handleDimensionDrag,
     onPositionChange: handlePositionChange,

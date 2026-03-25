@@ -17,6 +17,25 @@ interface UseThreeSceneOptions {
 const PANEL_T = 0.018; // panel thickness in metres (~18 mm)
 const PANEL_COLOR = new THREE.Color(0xc8a97a); // light wood brown
 
+/** Builds a rectangular grid as LineSegments (one line per cellSize metres). */
+function makeRectGrid(w: number, d: number, cellSize: number, color: number): THREE.LineSegments {
+  const pts: number[] = [];
+  const stepsX = Math.max(1, Math.round(w / cellSize));
+  const stepsZ = Math.max(1, Math.round(d / cellSize));
+  for (let i = 0; i <= stepsZ; i++) {
+    const z = -d / 2 + (i / stepsZ) * d;
+    pts.push(-w / 2, 0, z, w / 2, 0, z);
+  }
+  for (let i = 0; i <= stepsX; i++) {
+    const x = -w / 2 + (i / stepsX) * w;
+    pts.push(x, 0, -d / 2, x, 0, d / 2);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.6 });
+  return new THREE.LineSegments(geo, mat);
+}
+
 export function useThreeScene(
   containerRef: React.RefObject<HTMLDivElement | null>,
   options: UseThreeSceneOptions
@@ -29,8 +48,7 @@ export function useThreeScene(
   const handleMapRef = useRef<Map<string, { mesh: THREE.Mesh; axis: 'width' | 'height' | 'depth'; dir: number; elementId: string }>>(new Map());
   const animFrameRef = useRef<number>(0);
   const boardMeshRef = useRef<THREE.Mesh | null>(null);
-  const boardBorderRef = useRef<THREE.LineSegments | null>(null);
-  const gridRef = useRef<THREE.GridHelper | null>(null);
+  const gridRef = useRef<THREE.LineSegments | null>(null);
   const lastBoardSizeRef = useRef<{ width: number; depth: number } | null>(null);
   const isDraggingHandleRef = useRef(false);
   const dragStateRef = useRef<{
@@ -443,7 +461,7 @@ export function useThreeScene(
     scene.add(dirLight);
 
     // Grid (initial — replaced by boardSize effect)
-    const grid = new THREE.GridHelper(20, 20, 0x444466, 0x333355);
+    const grid = makeRectGrid(20, 20, 0.5, 0x444466);
     scene.add(grid);
     gridRef.current = grid;
 
@@ -462,15 +480,6 @@ export function useThreeScene(
     board.receiveShadow = true;
     scene.add(board);
     boardMeshRef.current = board;
-
-    // Board border frame
-    const borderGeo = new THREE.EdgesGeometry(new THREE.PlaneGeometry(20, 20));
-    const borderMat = new THREE.LineBasicMaterial({ color: 0x5555bb, linewidth: 2 });
-    const border = new THREE.LineSegments(borderGeo, borderMat);
-    border.rotation.x = -Math.PI / 2;
-    border.position.y = 0.002;
-    scene.add(border);
-    boardBorderRef.current = border;
 
     // Animate
     const animate = () => {
@@ -509,14 +518,12 @@ export function useThreeScene(
 
     const w = boardSize.width;
     const d = boardSize.depth;
-    // 1 grid line per 0.5 m (~50 cm), min 2
-    const divisions = Math.max(2, Math.round(Math.max(w, d) / 0.5));
 
     const scene = sceneRef.current;
     if (scene) {
       const oldGrid = gridRef.current;
-      if (oldGrid) { scene.remove(oldGrid); oldGrid.dispose(); }
-      const newGrid = new THREE.GridHelper(Math.max(w, d), divisions, 0x444466, 0x333355);
+      if (oldGrid) { scene.remove(oldGrid); oldGrid.geometry.dispose(); (oldGrid.material as THREE.Material).dispose(); }
+      const newGrid = makeRectGrid(w, d, 0.5, 0x444466);
       scene.add(newGrid);
       gridRef.current = newGrid;
     }
@@ -525,12 +532,6 @@ export function useThreeScene(
     if (board) {
       board.geometry.dispose();
       board.geometry = new THREE.PlaneGeometry(w, d);
-    }
-
-    const border = boardBorderRef.current;
-    if (border) {
-      border.geometry.dispose();
-      border.geometry = new THREE.EdgesGeometry(new THREE.PlaneGeometry(w, d));
     }
   });
 
