@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import type { BoxElement, BoxDimensions } from './types';
 import { useThreeScene } from './useThreeScene';
 import ElementLibrary from './ElementLibrary';
@@ -565,7 +565,7 @@ function createBox(): BoxElement {
     name: `Box ${boxCounter++}`,
     type: 'cabinet',
     dimensions: { width: 1, height: 1, depth: 1 },
-    position: { x: (Math.random() - 0.5) * 4, y: 0, z: (Math.random() - 0.5) * 4 },
+    position: { x: 0, y: 0, z: 0 },
     color,
   };
 }
@@ -588,7 +588,9 @@ const App: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [multiSelectedIds, setMultiSelectedIds] = useState<string[]>([]);
   // Board dimensions in cm (converted to metres when passed to scene)
-  const [boardSize, setBoardSize] = useState<{ width: number; depth: number }>({ width: 300, depth: 300 });
+  const [boardSize, setBoardSize] = useState<{ width: number; depth: number }>({ width: 600, depth: 600 });
+  const boardSizeRef = useRef(boardSize);
+  useEffect(() => { boardSizeRef.current = boardSize; }, [boardSize]);
   // Tracks accumulated drag Y for dividers so tiny increments build up across frames
   const dividerYHintRef = useRef<Map<string, number>>(new Map());
   // Cumulative XZ pointer delta from drag start (per element) — used for detach displacement check
@@ -660,6 +662,18 @@ const App: React.FC = () => {
 
   const handlePositionChange = useCallback(
     (id: string, dx: number, dz: number) => {
+      // Board clamping: keep element centre + half its size inside the board (in metres)
+      const clampToBoard = (el: BoxElement): { x: number; z: number } => {
+        const bw = boardSizeRef.current.width / 100;
+        const bd = boardSizeRef.current.depth / 100;
+        // Half of the available movement range (0 when element >= board size → locked to centre)
+        const rx = Math.max(0, (bw - el.dimensions.width) / 2);
+        const rz = Math.max(0, (bd - el.dimensions.depth) / 2);
+        return {
+          x: Math.max(-rx, Math.min(rx, el.position.x)),
+          z: Math.max(-rz, Math.min(rz, el.position.z)),
+        };
+      };
       setElements((prev) => {
         const movedEl = prev.find((e) => e.id === id)!;
         // 1. Apply movement delta
@@ -738,7 +752,8 @@ const App: React.FC = () => {
             const snapped = snapToNeighbors(movedAfter, afterMove);
             const shelfWithXZ = { ...movedAfter, position: { ...movedAfter.position, x: snapped.x, z: snapped.z } };
             const fittedShelf = fitShelfDepthToCabinet(shelfWithXZ, afterMove);
-            return afterMove.map((el) => el.id === id ? fittedShelf : el);
+            const clampedPos = clampToBoard(fittedShelf);
+            return afterMove.map((el) => el.id === id ? { ...fittedShelf, position: { ...fittedShelf.position, x: clampedPos.x, z: clampedPos.z } } : el);
           }
           // Free rod / divider: move freely
           return afterMove;
@@ -782,8 +797,11 @@ const App: React.FC = () => {
         // Move bound elements and recompute fronts/hdf/legs for the moved cabinet
         // 5. Collision push-out (same-level only, stacking-level overlaps are excluded)
         const pushedPos = pushOutCollisions(withFinalY.find((e) => e.id === id)!, withFinalY);
+        // 6. Clamp to board boundaries
+        const clampedEl = { ...withFinalY.find((e) => e.id === id)!, position: { ...withFinalY.find((e) => e.id === id)!.position, x: pushedPos.x, z: pushedPos.z } };
+        const clampedPos = clampToBoard(clampedEl);
         const withCollision = withFinalY.map((el) =>
-          el.id === id ? { ...el, position: { ...el.position, x: pushedPos.x, z: pushedPos.z } } : el
+          el.id === id ? { ...el, position: { ...el.position, x: clampedPos.x, z: clampedPos.z } } : el
         );
         const movedFinal2 = withCollision.find((e) => e.id === id)!;
         const adx = movedFinal2.position.x - movedEl.position.x;
@@ -1249,7 +1267,20 @@ const App: React.FC = () => {
   }, []);
 
   const handleAdd = useCallback((type: 'cabinet' | 'shelf') => {
-    const el = type === 'shelf' ? createShelf() : createBox();
+    const raw = type === 'shelf' ? createShelf() : createBox();
+    // Spawn at a random position within the moveable board area
+    const bw = boardSizeRef.current.width / 100;
+    const bd = boardSizeRef.current.depth / 100;
+    const rx = Math.max(0, (bw - raw.dimensions.width) / 2);
+    const rz = Math.max(0, (bd - raw.dimensions.depth) / 2);
+    const el = {
+      ...raw,
+      position: {
+        ...raw.position,
+        x: (Math.random() * 2 - 1) * rx,
+        z: (Math.random() * 2 - 1) * rz,
+      },
+    };
     setElements((prev) => {
       if (type === 'shelf') return [...prev, el];
       const newY = computeYForBox(el, prev);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { BoxElement } from './types';
 import './ElementLibrary.css';
 
@@ -72,6 +72,34 @@ const ElementLibrary: React.FC<Props> = ({
   onAddRodToCabinet, onAddLegsToCabinet, onAddHdfToCabinet,
   onAddFrontToGroup, onUngroup, onDelete,
 }) => {
+  const [draftWidth, setDraftWidth] = useState(String(boardSize.width));
+  const [draftDepth, setDraftDepth] = useState(String(boardSize.depth));
+
+  // Keep drafts in sync if boardSize changes from outside
+  useEffect(() => { setDraftWidth(String(boardSize.width)); }, [boardSize.width]);
+  useEffect(() => { setDraftDepth(String(boardSize.depth)); }, [boardSize.depth]);
+
+  const applyWidth = (raw: string) => {
+    const v = parseFloat(raw);
+    if (!isNaN(v) && v >= 10) {
+      const clamped = Math.min(v, 1000);
+      onBoardSizeChange({ ...boardSize, width: clamped });
+      setDraftWidth(String(clamped));
+    } else {
+      setDraftWidth(String(boardSize.width));
+    }
+  };
+
+  const applyDepth = (raw: string) => {
+    const v = parseFloat(raw);
+    if (!isNaN(v) && v >= 10) {
+      const clamped = Math.min(v, 1000);
+      onBoardSizeChange({ ...boardSize, depth: clamped });
+      setDraftDepth(String(clamped));
+    } else {
+      setDraftDepth(String(boardSize.depth));
+    }
+  };
   // Cabinets that don't belong to any group
   const standaloneCabinets = elements.filter((e) => e.type === 'cabinet' && !e.groupId);
   const groups = elements.filter((e) => e.type === 'group');
@@ -255,30 +283,26 @@ const ElementLibrary: React.FC<Props> = ({
         <label className="board-size-field">
           <span>Szer.</span>
           <input
-            type="number"
-            min={10}
-            max={9999}
-            step={1}
-            value={boardSize.width}
-            onChange={(e) => {
-              const v = parseFloat(e.target.value);
-              if (!isNaN(v) && v >= 10) onBoardSizeChange({ ...boardSize, width: v });
-            }}
+            type="text"
+            inputMode="numeric"
+            value={draftWidth}
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => setDraftWidth(e.target.value)}
+            onBlur={(e) => applyWidth(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
           />
           <span>cm</span>
         </label>
         <label className="board-size-field">
           <span>Gł.</span>
           <input
-            type="number"
-            min={10}
-            max={9999}
-            step={1}
-            value={boardSize.depth}
-            onChange={(e) => {
-              const v = parseFloat(e.target.value);
-              if (!isNaN(v) && v >= 10) onBoardSizeChange({ ...boardSize, depth: v });
-            }}
+            type="text"
+            inputMode="numeric"
+            value={draftDepth}
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => setDraftDepth(e.target.value)}
+            onBlur={(e) => applyDepth(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
           />
           <span>cm</span>
         </label>

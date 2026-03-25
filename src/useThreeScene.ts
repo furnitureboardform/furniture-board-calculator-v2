@@ -29,6 +29,7 @@ export function useThreeScene(
   const handleMapRef = useRef<Map<string, { mesh: THREE.Mesh; axis: 'width' | 'height' | 'depth'; dir: number; elementId: string }>>(new Map());
   const animFrameRef = useRef<number>(0);
   const boardMeshRef = useRef<THREE.Mesh | null>(null);
+  const boardBorderRef = useRef<THREE.LineSegments | null>(null);
   const gridRef = useRef<THREE.GridHelper | null>(null);
   const lastBoardSizeRef = useRef<{ width: number; depth: number } | null>(null);
   const isDraggingHandleRef = useRef(false);
@@ -441,7 +442,7 @@ export function useThreeScene(
     dirLight.castShadow = true;
     scene.add(dirLight);
 
-    // Grid (initial size — will be updated by boardSize effect)
+    // Grid (initial — replaced by boardSize effect)
     const grid = new THREE.GridHelper(20, 20, 0x444466, 0x333355);
     scene.add(grid);
     gridRef.current = grid;
@@ -449,11 +450,11 @@ export function useThreeScene(
     // Board floor plane
     const boardGeo = new THREE.PlaneGeometry(20, 20);
     const boardMat = new THREE.MeshStandardMaterial({
-      color: 0x1e1e32,
+      color: 0x252540,
       roughness: 0.9,
       metalness: 0.0,
       transparent: true,
-      opacity: 0.6,
+      opacity: 0.5,
     });
     const board = new THREE.Mesh(boardGeo, boardMat);
     board.rotation.x = -Math.PI / 2;
@@ -461,6 +462,15 @@ export function useThreeScene(
     board.receiveShadow = true;
     scene.add(board);
     boardMeshRef.current = board;
+
+    // Board border frame
+    const borderGeo = new THREE.EdgesGeometry(new THREE.PlaneGeometry(20, 20));
+    const borderMat = new THREE.LineBasicMaterial({ color: 0x5555bb, linewidth: 2 });
+    const border = new THREE.LineSegments(borderGeo, borderMat);
+    border.rotation.x = -Math.PI / 2;
+    border.position.y = 0.002;
+    scene.add(border);
+    boardBorderRef.current = border;
 
     // Animate
     const animate = () => {
@@ -485,6 +495,8 @@ export function useThreeScene(
       cancelAnimationFrame(animFrameRef.current);
       renderer.dispose();
       container.removeChild(renderer.domElement);
+      // Reset so the board-sync effect re-runs after StrictMode double-mount
+      lastBoardSizeRef.current = null;
     };
   }, [containerRef]);
 
@@ -497,13 +509,14 @@ export function useThreeScene(
 
     const w = boardSize.width;
     const d = boardSize.depth;
-    const divisions = Math.max(2, Math.round(Math.max(w, d) * 5)); // ~1 line per 20 cm
+    // 1 grid line per 0.5 m (~50 cm), min 2
+    const divisions = Math.max(2, Math.round(Math.max(w, d) / 0.5));
 
     const scene = sceneRef.current;
     if (scene) {
       const oldGrid = gridRef.current;
       if (oldGrid) { scene.remove(oldGrid); oldGrid.dispose(); }
-      const newGrid = new THREE.GridHelper(Math.max(w, d) * 1.5, divisions, 0x444466, 0x333355);
+      const newGrid = new THREE.GridHelper(Math.max(w, d), divisions, 0x444466, 0x333355);
       scene.add(newGrid);
       gridRef.current = newGrid;
     }
@@ -512,6 +525,12 @@ export function useThreeScene(
     if (board) {
       board.geometry.dispose();
       board.geometry = new THREE.PlaneGeometry(w, d);
+    }
+
+    const border = boardBorderRef.current;
+    if (border) {
+      border.geometry.dispose();
+      border.geometry = new THREE.EdgesGeometry(new THREE.PlaneGeometry(w, d));
     }
   });
 
