@@ -616,9 +616,31 @@ const App: React.FC = () => {
         const updated = prev.map((el) => {
           if (el.id !== id) return el;
           const oldVal = el.dimensions[axis];
-          const newVal = Math.max(0.1, oldVal + delta);
-          const actualDelta = newVal - oldVal;
           const pa = posAxis[axis];
+
+          // Compute max allowed size from board boundaries BEFORE applying delta,
+          // so the resulting position is also correct (no out-of-board centre shift).
+          let maxAllowed = Infinity;
+          if (!el.cabinetId) {
+            const { width: bwMm, depth: bdMm, height: bhMm } = boardSizeRef.current;
+            const bw = bwMm / 1000; const bd = bdMm / 1000; const roomH = bhMm / 1000;
+            if (axis === 'width') {
+              // Fixed edge is the side OPPOSITE to the dragged handle
+              const fixedEdge = el.position.x - dir * oldVal / 2;
+              maxAllowed = dir > 0 ? (bw / 2 - fixedEdge) : (fixedEdge + bw / 2);
+            } else if (axis === 'depth') {
+              const fixedEdge = el.position.z - dir * oldVal / 2;
+              maxAllowed = dir > 0 ? (bd / 2 - fixedEdge) : (fixedEdge + bd / 2);
+            } else if (axis === 'height') {
+              // position.y is the bottom of the element
+              maxAllowed = dir > 0
+                ? roomH - el.position.y        // top handle: can't go above ceiling
+                : el.position.y + oldVal;      // bottom handle: can't go below floor
+            }
+          }
+
+          const newVal = Math.max(0.1, Math.min(maxAllowed, oldVal + delta));
+          const actualDelta = newVal - oldVal;
           const newPosVal = el.position[pa] + actualDelta / 2 * dir;
           const withDelta = {
             ...el,
@@ -648,11 +670,24 @@ const App: React.FC = () => {
     (id: string, dims: BoxDimensions) => {
       setElements((prev) => {
         const el = prev.find((e) => e.id === id);
+        let clampedDims = dims;
+        if (el && !el.cabinetId) {
+          const { width: bwMm, depth: bdMm, height: bhMm } = boardSizeRef.current;
+          const bw = bwMm / 1000; const bd = bdMm / 1000; const roomH = bhMm / 1000;
+          const maxW = bw - Math.abs(el.position.x) * 2;
+          const maxD = bd - Math.abs(el.position.z) * 2;
+          const maxH = roomH - el.position.y;
+          clampedDims = {
+            width:  Math.min(dims.width,  Math.max(0.1, maxW)),
+            depth:  Math.min(dims.depth,  Math.max(0.1, maxD)),
+            height: Math.min(dims.height, Math.max(0.1, maxH)),
+          };
+        }
         // For legs: sync height across all sibling legs of the same cabinet
         const updated = prev.map((e) => {
-          if (e.id === id) return { ...e, dimensions: dims };
+          if (e.id === id) return { ...e, dimensions: clampedDims };
           if (el?.type === 'leg' && e.type === 'leg' && e.cabinetId === el.cabinetId)
-            return { ...e, dimensions: { ...e.dimensions, height: dims.height } };
+            return { ...e, dimensions: { ...e.dimensions, height: clampedDims.height } };
           return e;
         });
         return recomputeAllY(updated, boardSizeRef.current.height / 1000);
