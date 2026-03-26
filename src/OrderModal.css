@@ -1,0 +1,307 @@
+/* ── FAB button (bottom-right of viewport) ──────────────────────────────────── */
+
+.om-fab {
+  position: absolute;
+  bottom: 18px;
+  right: 18px;
+  z-index: 20;
+  pointer-events: all;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px 9px 12px;
+  background: #1a2d5a;
+  border: 1px solid #2e5090;
+  border-radius: 10px;
+  color: #c0d0f0;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.om-fab:hover {
+  background: #223870;
+  border-color: #4a80d4;
+  color: #e8f0ff;
+  box-shadow: 0 4px 16px rgba(59, 111, 212, 0.35);
+}
+
+.om-fab-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.om-fab-label {
+  line-height: 1;
+}
+
+/* ── Overlay ─────────────────────────────────────────────────────────────────── */
+
+.om-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(5, 5, 18, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  backdrop-filter: blur(2px);
+}
+
+/* ── Modal ───────────────────────────────────────────────────────────────────── */
+
+.om-modal {
+  width: min(920px, 100%);
+  max-height: 90vh;
+  background: #12122a;
+  border: 1px solid #252550;
+  border-radius: 14px;
+  box-shadow: 0 12px 50px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.om-modal-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid #1e1e40;
+  flex-shrink: 0;
+}
+
+.om-modal-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+  color: #d0d8f8;
+  letter-spacing: 0.03em;
+}
+
+.om-modal-close {
+  background: none;
+  border: none;
+  color: #6060a0;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 5px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.om-modal-close:hover {
+  color: #c0c0e8;
+  background: #202040;
+}
+
+/* ── Tab bar ─────────────────────────────────────────────────────────────────── */
+
+.om-tab-bar {
+  display: flex;
+  border-bottom: 1px solid #1e1e40;
+  padding: 0 12px;
+  flex-shrink: 0;
+  background: #0e0e22;
+}
+
+.om-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #50508a;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 10px 14px 8px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.om-tab:hover {
+  color: #9090c0;
+}
+
+.om-tab--active {
+  color: #c0cef0;
+  border-bottom-color: #3b6fd4;
+}
+
+/* ── Body ────────────────────────────────────────────────────────────────────── */
+
+.om-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.om-modal-body::-webkit-scrollbar { width: 5px; }
+.om-modal-body::-webkit-scrollbar-track { background: transparent; }
+.om-modal-body::-webkit-scrollbar-thumb { background: #252550; border-radius: 3px; }
+
+.om-tab-content {
+  padding: 14px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.om-no-data {
+  color: #404070;
+  font-size: 13px;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+/* ── Section ─────────────────────────────────────────────────────────────────── */
+
+.om-section {
+  background: #0e0e24;
+  border: 1px solid #1e1e40;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.om-section-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #4a4a80;
+  padding: 7px 12px 6px;
+  background: #111128;
+  border-bottom: 1px solid #1e1e40;
+}
+
+.om-empty-row {
+  font-size: 11px;
+  color: #333360;
+  padding: 8px 12px;
+  font-style: italic;
+}
+
+/* ── Summary panel rows ──────────────────────────────────────────────────────── */
+
+.om-panel-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 12px;
+  border-bottom: 1px solid #161630;
+}
+
+.om-panel-row:last-child {
+  border-bottom: none;
+}
+
+.om-panel-name {
+  flex: 1;
+  font-size: 12px;
+  color: #8090c0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.om-panel-dims {
+  font-size: 11px;
+  color: #485080;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  min-width: 120px;
+  text-align: right;
+}
+
+.om-panel-area {
+  font-size: 11px;
+  color: #404075;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  min-width: 72px;
+  text-align: right;
+}
+
+/* ── Cost rows ───────────────────────────────────────────────────────────────── */
+
+.om-cost-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 12px;
+  border-bottom: 1px solid #161630;
+}
+
+.om-cost-row:last-child {
+  border-bottom: none;
+}
+
+.om-cost-label {
+  font-size: 12px;
+  color: #8090c0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.om-cost-qty {
+  font-size: 11px;
+  color: #5060a0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  min-width: 70px;
+}
+
+.om-cost-price {
+  font-size: 11px;
+  color: #485080;
+  white-space: nowrap;
+  text-align: right;
+  min-width: 90px;
+}
+
+.om-cost-total {
+  font-size: 12px;
+  color: #a0b8e0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+  min-width: 80px;
+}
+
+.om-cost-subtotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: #111130;
+  border-top: 1px solid #1e1e40;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6070a8;
+  letter-spacing: 0.04em;
+}
+
+/* ── Grand total ─────────────────────────────────────────────────────────────── */
+
+.om-grand-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #162048;
+  border: 1px solid #2a4080;
+  border-radius: 9px;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #c8d8f8;
+  letter-spacing: 0.03em;
+}

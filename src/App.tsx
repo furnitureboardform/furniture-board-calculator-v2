@@ -42,6 +42,7 @@ import { useThreeScene } from './useThreeScene';
 import ElementLibrary from './ElementLibrary';
 import PropertiesPanel from './PropertiesPanel';
 import ModelOverlay from './ModelOverlay';
+import OrderModal from './OrderModal';
 import './App.css';
 
 // Mutable counters — imported as values, so we use local copies that track increments
@@ -1023,6 +1024,7 @@ const App: React.FC = () => {
 
       <main className="viewport" ref={containerRef}>
         <ModelOverlay elements={elements} />
+        <OrderModal elements={elements} />
       </main>
 
       <aside className="sidebar right">

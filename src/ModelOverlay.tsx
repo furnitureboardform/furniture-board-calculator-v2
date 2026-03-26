@@ -39,10 +39,10 @@ function getCabinetPanels(cab: BoxElement): Panel[] {
   const T = PANEL_T_MM;
   const inner = W - 2 * T;
   return [
-    { label: 'Box Bok lewy',  w: T,     h: H, d: D },
-    { label: 'Box Bok prawy', w: T,     h: H, d: D },
-    { label: 'Box Góra',      w: inner, h: T, d: D },
-    { label: 'Box Dół',       w: inner, h: T, d: D },
+    { label: 'Box bok lewy',  w: T,     h: H, d: D },
+    { label: 'Box bok prawy', w: T,     h: H, d: D },
+    { label: 'Box góra',      w: inner, h: T, d: D },
+    { label: 'Box dół',       w: inner, h: T, d: D },
   ];
 }
 
