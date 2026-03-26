@@ -305,3 +305,159 @@
   color: #c8d8f8;
   letter-spacing: 0.03em;
 }
+
+/* ── Grouped panel rows (summary tab) ────────────────────────────────────────── */
+
+.om-grouped-header {
+  display: grid;
+  grid-template-columns: 130px 70px 1fr;
+  gap: 10px;
+  padding: 4px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #383870;
+  border-bottom: 1px solid #161630;
+}
+
+.om-grouped-row {
+  display: grid;
+  grid-template-columns: 130px 70px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 12px;
+  border-bottom: 1px solid #161630;
+}
+
+.om-grouped-row:last-child {
+  border-bottom: none;
+}
+
+.om-grouped-dims {
+  font-size: 12px;
+  color: #c0a060;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.om-grouped-qty {
+  font-size: 12px;
+  color: #8090c0;
+  white-space: nowrap;
+}
+
+.om-grouped-edge {
+  font-size: 11px;
+  color: #6070a0;
+  line-height: 1.4;
+}
+
+/* ── Addon rows ───────────────────────────────────────────────────────────────── */
+
+.om-addon-row {
+  display: grid;
+  grid-template-columns: 1fr 70px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 12px;
+  border-bottom: 1px solid #161630;
+}
+
+.om-addon-row:last-child {
+  border-bottom: none;
+}
+
+.om-addon-name {
+  font-size: 12px;
+  color: #8090c0;
+}
+
+.om-addon-qty {
+  font-size: 12px;
+  color: #8090c0;
+  white-space: nowrap;
+}
+
+.om-addon-note {
+  font-size: 11px;
+  color: #6070a0;
+}
+
+/* ── Financial summary grid ───────────────────────────────────────────────────── */
+
+.om-fin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  padding: 12px;
+}
+
+.om-fin-card {
+  background: #0a0a20;
+  border: 1px solid #1a1a3a;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.om-fin-card--result {
+  background: #0d1228;
+  border-color: #1e2a50;
+}
+
+.om-fin-card--highlight {
+  background: #1a0d0d;
+  border-color: #5a1a1a;
+}
+
+.om-fin-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #404070;
+}
+
+.om-fin-value {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.om-fin-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #252550;
+  color: #c0d0f0;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  width: 80px;
+  padding: 0;
+  outline: none;
+}
+
+.om-fin-input::-webkit-inner-spin-button,
+.om-fin-input::-webkit-outer-spin-button {
+  opacity: 0.4;
+}
+
+.om-fin-input--price {
+  color: #e06060;
+  width: 90px;
+}
+
+.om-fin-unit {
+  font-size: 11px;
+  color: #404070;
+}
+
+.om-fin-result {
+  font-size: 18px;
+  font-weight: 700;
+  color: #c0d0f0;
+  font-variant-numeric: tabular-nums;
+}
