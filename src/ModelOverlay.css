@@ -209,8 +209,8 @@
   white-space: nowrap;
 }
 
-/* Children list */
-.mo-children {
+/* Section (Płyty / Elementy) */
+.mo-section {
   border-top: 1px solid #1e1e38;
   padding: 4px 8px 6px 14px;
   display: flex;
@@ -218,6 +218,49 @@
   gap: 3px;
 }
 
+.mo-section-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #404068;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 2px;
+}
+
+/* Panel rows */
+.mo-panel-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mo-panel-line {
+  display: inline-block;
+  width: 2px;
+  height: 14px;
+  background: #2a3a50;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.mo-panel-name {
+  flex: 1;
+  font-size: 11px;
+  color: #8090b0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mo-panel-dims {
+  font-size: 10px;
+  color: #5060a0;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Children list */
 .mo-child {
   display: flex;
   align-items: center;
