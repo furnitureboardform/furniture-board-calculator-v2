@@ -2,6 +2,19 @@ import { useEffect, useRef, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { BoxElement } from './types';
+import {
+  rebuildPanels,
+  rebuildShelf,
+  rebuildDrawer,
+  rebuildDrawerbox,
+  rebuildBlenda,
+  rebuildPlinth,
+  rebuildDivider,
+  rebuildFront,
+  rebuildHdf,
+  rebuildRod,
+  rebuildLeg,
+} from './builders';
 
 interface UseThreeSceneOptions {
   elements: BoxElement[];
@@ -14,8 +27,7 @@ interface UseThreeSceneOptions {
   onDragStart?: (id: string) => void;
 }
 
-const PANEL_T = 0.018; // panel thickness in metres (~18 mm)
-const PANEL_COLOR = new THREE.Color(0xc8a97a); // light wood brown
+const PANEL_COLOR = new THREE.Color(0xc8a97a);
 
 /** Builds a rectangular grid as LineSegments (one line per cellSize metres). */
 function makeRectGrid(w: number, d: number, cellSize: number, color: number): THREE.LineSegments {
@@ -101,7 +113,6 @@ export function useThreeScene(
         { axis: 'depth', dir: -1, offset: new THREE.Vector3(0, 0, -depth / 2), color: 0x4488ff },
       ];
 
-      // Remove old handles only (keep panel children)
       parent.children.slice().filter((c) => c.userData.isHandle).forEach((c) => parent.remove(c));
       axes.forEach((a) => {
         const key = buildHandleKey(element.id, a.axis, a.dir);
@@ -117,340 +128,20 @@ export function useThreeScene(
     [createHandleMesh]
   );
 
-  const rebuildPanels = useCallback(
-    (parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) => {
-      const { width, height, depth } = element.dimensions;
-      const t = PANEL_T;
-      // Remove previous panels (keep handle children)
-      parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
-        if (c instanceof THREE.Mesh) {
-          c.geometry.dispose();
-          (c.material as THREE.MeshStandardMaterial).dispose();
-        }
-        parent.remove(c);
-      });
-
-      // Sides span full height; top/bottom fit between sides (classic joinery)
-      const innerW = width - 2 * t;
-      const panels = [
-        // Left side — full height
-        { w: t,      h: height,  d: depth, px: -width / 2 + t / 2, py: 0,                    pz: 0 },
-        // Right side — full height
-        { w: t,      h: height,  d: depth, px:  width / 2 - t / 2, py: 0,                    pz: 0 },
-        // Top — fits between sides
-        { w: innerW, h: t,       d: depth, px: 0,                   py:  height / 2 - t / 2,  pz: 0 },
-        // Bottom — fits between sides
-        { w: innerW, h: t,       d: depth, px: 0,                   py: -height / 2 + t / 2,  pz: 0 },
-      ];
-
-      for (const p of panels) {
-        const geo = new THREE.BoxGeometry(p.w, p.h, p.d);
-        const mat = new THREE.MeshStandardMaterial({
-          color,
-          emissive,
-          roughness: 0.5,
-          metalness: 0.1,
-          side: THREE.DoubleSide,
-        });
-        const panel = new THREE.Mesh(geo, mat);
-        panel.position.set(p.px, p.py, p.pz);
-        panel.castShadow = true;
-        panel.receiveShadow = true;
-        panel.userData = { elementId: element.id };
-        parent.add(panel);
-      }
-    },
-    []
-  );
-
-  const rebuildShelf = useCallback(
-    (parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) => {
-      parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
-        if (c instanceof THREE.Mesh) {
-          c.geometry.dispose();
-          (c.material as THREE.MeshStandardMaterial).dispose();
-        }
-        parent.remove(c);
-      });
-      const { width, height, depth } = element.dimensions;
-      const geo = new THREE.BoxGeometry(width, height, depth);
-      const mat = new THREE.MeshStandardMaterial({
-        color,
-        emissive,
-        roughness: 0.4,
-        metalness: 0.05,
-        side: THREE.DoubleSide,
-      });
-      const panel = new THREE.Mesh(geo, mat);
-      panel.castShadow = true;
-      panel.receiveShadow = true;
-      panel.userData = { elementId: element.id };
-      parent.add(panel);
-    },
-    []
-  );
-
-  const rebuildDrawer = useCallback(
-    (parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) => {
-      parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
-        if (c instanceof THREE.Mesh) {
-          c.geometry.dispose();
-          (c.material as THREE.MeshStandardMaterial).dispose();
-        }
-        parent.remove(c);
-      });
-      const { width, depth } = element.dimensions;
-      const t = PANEL_T;
-      const H_SIDE        = 0.145;
-      const H_BACK        = 0.100;
-      const H_FRONT_INNER = 0.130;
-      const H_FRONT_FACE  = 0.170;
-      const makeMat = () => new THREE.MeshStandardMaterial({ color, emissive, roughness: 0.4, metalness: 0.05, side: THREE.DoubleSide });
-      const addPanel = (w: number, h: number, d: number, px: number, py: number, pz: number) => {
-        const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), makeMat());
-        mesh.position.set(px, py, pz);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        mesh.userData = { elementId: element.id };
-        parent.add(mesh);
-      };
-      // Left side (145mm)
-      addPanel(t, H_SIDE, depth - t, -(width / 2 - t / 2), 0, -t / 2);
-      // Right side (145mm)
-      addPanel(t, H_SIDE, depth - t,  (width / 2 - t / 2), 0, -t / 2);
-      // Bottom (between sides)
-      addPanel(width - 2 * t, t, depth - t, 0, -(H_SIDE / 2 - t / 2), -t / 2);
-      // Back (100mm, bottom-aligned)
-      addPanel(width - 2 * t, H_BACK, t, 0, (H_BACK - H_SIDE) / 2, -(depth / 2 - t / 2));
-      // Front inner (130mm, bottom-aligned)
-      addPanel(width - 2 * t, H_FRONT_INNER, t, 0, (H_FRONT_INNER - H_SIDE) / 2, depth / 2 - t / 2);
-      // Decorative front face (170mm tall, full drawerbox width -2mm each side, bottom-aligned)
-      // Sits in front of the drawer box — back face flush with box front face
-      addPanel(width + 2 * t - 0.004, H_FRONT_FACE, t, 0, (H_FRONT_FACE - H_SIDE) / 2, depth / 2 + t / 2);
-    },
-    []
-  );
-
-  const rebuildDrawerbox = useCallback(
-    (parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) => {
-      parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
-        if (c instanceof THREE.Mesh) {
-          c.geometry.dispose();
-          (c.material as THREE.MeshStandardMaterial).dispose();
-        }
-        parent.remove(c);
-      });
-      const { width, height, depth } = element.dimensions;
-      const t = PANEL_T;
-      const makeMat = () => new THREE.MeshStandardMaterial({ color, emissive, roughness: 0.4, metalness: 0.05, side: THREE.DoubleSide });
-      const addP = (w: number, h: number, d: number, px: number, py: number, pz: number) => {
-        const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), makeMat());
-        m.position.set(px, py, pz);
-        m.castShadow = true;
-        m.receiveShadow = true;
-        m.userData = { elementId: element.id };
-        parent.add(m);
-      };
-      // Left side
-      addP(t, height, depth, -(width / 2 - t / 2), 0, 0);
-      // Right side
-      addP(t, height, depth, (width / 2 - t / 2), 0, 0);
-      // Top (between sides)
-      addP(width - 2 * t, t, depth, 0, height / 2 - t / 2, 0);
-      // Bottom (optional)
-      if (element.hasBottomPanel) {
-        addP(width - 2 * t, t, depth, 0, -(height / 2 - t / 2), 0);
-      }
-      // No front, no back
-    },
-    []
-  );
-
-  const rebuildBlenda = useCallback(
-    (parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) => {
-      parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
-        if (c instanceof THREE.Mesh) {
-          c.geometry.dispose();
-          (c.material as THREE.MeshStandardMaterial).dispose();
-        }
-        parent.remove(c);
-      });
-      const { width, height, depth } = element.dimensions;
-      const geo = new THREE.BoxGeometry(width, height, depth);
-      const mat = new THREE.MeshStandardMaterial({ color, emissive, roughness: 0.4, metalness: 0.05, side: THREE.DoubleSide });
-      const panel = new THREE.Mesh(geo, mat);
-      panel.castShadow = true;
-      panel.receiveShadow = true;
-      panel.userData = { elementId: element.id };
-      parent.add(panel);
-    },
-    []
-  );
-
-  const rebuildPlinth = useCallback(
-    (parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) => {
-      parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
-        if (c instanceof THREE.Mesh) {
-          c.geometry.dispose();
-          (c.material as THREE.MeshStandardMaterial).dispose();
-        }
-        parent.remove(c);
-      });
-      const { width, height, depth } = element.dimensions;
-      const geo = new THREE.BoxGeometry(width, height, depth);
-      const mat = new THREE.MeshStandardMaterial({ color, emissive, roughness: 0.4, metalness: 0.05, side: THREE.DoubleSide });
-      const panel = new THREE.Mesh(geo, mat);
-      panel.castShadow = true;
-      panel.receiveShadow = true;
-      panel.userData = { elementId: element.id };
-      parent.add(panel);
-    },
-    []
-  );
-
-  const rebuildDivider = useCallback(
-    (parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) => {
-      parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
-        if (c instanceof THREE.Mesh) {
-          c.geometry.dispose();
-          (c.material as THREE.MeshStandardMaterial).dispose();
-        }
-        parent.remove(c);
-      });
-      const { width, height, depth } = element.dimensions;
-      const geo = new THREE.BoxGeometry(width, height, depth);
-      const mat = new THREE.MeshStandardMaterial({
-        color,
-        emissive,
-        roughness: 0.5,
-        metalness: 0.1,
-        side: THREE.DoubleSide,
-      });
-      const panel = new THREE.Mesh(geo, mat);
-      panel.castShadow = true;
-      panel.receiveShadow = true;
-      panel.userData = { elementId: element.id };
-      parent.add(panel);
-    },
-    []
-  );
-
-  const rebuildFront = useCallback(
-    (parent: THREE.Mesh, element: BoxElement, emissive: THREE.Color) => {
-      parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
-        if (c instanceof THREE.Mesh) {
-          c.geometry.dispose();
-          (c.material as THREE.MeshStandardMaterial).dispose();
-        }
-        parent.remove(c);
-      });
-      const { width, height, depth } = element.dimensions;
-      const geo = new THREE.BoxGeometry(width, height, depth);
-      const mat = new THREE.MeshStandardMaterial({
-        color: PANEL_COLOR,
-        emissive,
-        roughness: 0.3,
-        metalness: 0.15,
-        transparent: true,
-        opacity: 0.55,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-      });
-      const panel = new THREE.Mesh(geo, mat);
-      panel.userData = { elementId: element.id };
-      parent.add(panel);
-    },
-    []
-  );
-
-  const HDF_COLOR = new THREE.Color(0x5c4033); // dark brown for HDF hardboard
-
-  const rebuildHdf = useCallback(
-    (parent: THREE.Mesh, element: BoxElement, emissive: THREE.Color) => {
-      parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
-        if (c instanceof THREE.Mesh) {
-          c.geometry.dispose();
-          (c.material as THREE.MeshStandardMaterial).dispose();
-        }
-        parent.remove(c);
-      });
-      const { width, height, depth } = element.dimensions;
-      const geo = new THREE.BoxGeometry(width, height, depth);
-      const mat = new THREE.MeshStandardMaterial({
-        color: HDF_COLOR,
-        emissive,
-        roughness: 0.6,
-        metalness: 0.05,
-        side: THREE.DoubleSide,
-      });
-      const panel = new THREE.Mesh(geo, mat);
-      panel.castShadow = true;
-      panel.receiveShadow = true;
-      panel.userData = { elementId: element.id };
-      parent.add(panel);
-    },
-    []
-  );
-
-  const ROD_RADIUS = 0.0125; // 25 mm diameter wardrobe rail
-
-  const rebuildRod = useCallback(
-    (parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) => {
-      parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
-        if (c instanceof THREE.Mesh) {
-          c.geometry.dispose();
-          (c.material as THREE.MeshStandardMaterial).dispose();
-        }
-        parent.remove(c);
-      });
-      const geo = new THREE.CylinderGeometry(ROD_RADIUS, ROD_RADIUS, element.dimensions.width, 24);
-      const mat = new THREE.MeshStandardMaterial({
-        color,
-        emissive,
-        roughness: 0.25,
-        metalness: 0.7,
-      });
-      const rod = new THREE.Mesh(geo, mat);
-      rod.rotation.z = Math.PI / 2; // lay along X axis
-      rod.castShadow = true;
-      rod.receiveShadow = true;
-      rod.userData = { elementId: element.id };
-      parent.add(rod);
-    },
-    []
-  );
-
-  const LEG_RADIUS = 0.02;        // 20 mm radius (40 mm diameter leg)
-  const LEG_CORNER_OFFSET = 0.03; // 30 mm inset from each cabinet edge to leg centre
-
-  const rebuildLeg = useCallback(
-    (parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) => {
-      parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
-        if (c instanceof THREE.Mesh) {
-          c.geometry.dispose();
-          (c.material as THREE.MeshStandardMaterial).dispose();
-        }
-        parent.remove(c);
-      });
-      const { width, height, depth } = element.dimensions;
-      const geo = new THREE.CylinderGeometry(LEG_RADIUS, LEG_RADIUS, height, 16);
-      const mat = new THREE.MeshStandardMaterial({
-        color,
-        emissive,
-        roughness: 0.4,
-        metalness: 0.3,
-      });
-      const ox = width  / 2 - LEG_CORNER_OFFSET;
-      const oz = depth  / 2 - LEG_CORNER_OFFSET;
-      const corners: [number, number][] = [[-ox, -oz], [ox, -oz], [-ox, oz], [ox, oz]];
-      for (const [cx, cz] of corners) {
-        const leg = new THREE.Mesh(geo, mat);
-        leg.position.set(cx, 0, cz);
-        leg.castShadow = true;
-        leg.receiveShadow = true;
-        leg.userData = { elementId: element.id };
-        parent.add(leg);
-      }
+  // Helper to dispatch to correct rebuild function
+  const rebuildElement = useCallback(
+    (mesh: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) => {
+      if (element.type === 'shelf') rebuildShelf(mesh, element, color, emissive);
+      else if (element.type === 'drawer') rebuildDrawer(mesh, element, color, emissive);
+      else if (element.type === 'drawerbox') rebuildDrawerbox(mesh, element, color, emissive);
+      else if (element.type === 'blenda') rebuildBlenda(mesh, element, color, emissive);
+      else if (element.type === 'plinth') rebuildPlinth(mesh, element, color, emissive);
+      else if (element.type === 'divider') rebuildDivider(mesh, element, color, emissive);
+      else if (element.type === 'front') rebuildFront(mesh, element, emissive);
+      else if (element.type === 'hdf') rebuildHdf(mesh, element, emissive);
+      else if (element.type === 'rod') rebuildRod(mesh, element, color, emissive);
+      else if (element.type === 'leg') rebuildLeg(mesh, element, color, emissive);
+      else rebuildPanels(mesh, element, color, emissive);
     },
     []
   );
@@ -481,7 +172,6 @@ export function useThreeScene(
     controls.enableDamping = true;
     controlsRef.current = controls;
 
-    // Lights
     const ambient = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambient);
     const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -489,12 +179,10 @@ export function useThreeScene(
     dirLight.castShadow = true;
     scene.add(dirLight);
 
-    // Grid (initial — replaced by boardSize effect)
     const grid = makeRectGrid(20, 20, 0.5, 0x444466);
     scene.add(grid);
     gridRef.current = grid;
 
-    // Board floor plane
     const boardGeo = new THREE.PlaneGeometry(20, 20);
     const boardMat = new THREE.MeshStandardMaterial({
       color: 0x252540,
@@ -510,7 +198,6 @@ export function useThreeScene(
     scene.add(board);
     boardMeshRef.current = board;
 
-    // Animate
     const animate = () => {
       animFrameRef.current = requestAnimationFrame(animate);
       controls.update();
@@ -518,7 +205,6 @@ export function useThreeScene(
     };
     animate();
 
-    // Resize handler
     const onResize = () => {
       const w = container.clientWidth;
       const h = container.clientHeight;
@@ -533,7 +219,6 @@ export function useThreeScene(
       cancelAnimationFrame(animFrameRef.current);
       renderer.dispose();
       container.removeChild(renderer.domElement);
-      // Reset so the board-sync effect re-runs after StrictMode double-mount
       lastBoardSizeRef.current = null;
     };
   }, [containerRef]);
@@ -571,7 +256,6 @@ export function useThreeScene(
 
     const { elements, selectedId } = optionsRef.current;
 
-    // Remove meshes for deleted elements
     meshMapRef.current.forEach((mesh, id) => {
       if (!elements.find((e) => e.id === id)) {
         scene.remove(mesh);
@@ -580,7 +264,6 @@ export function useThreeScene(
     });
 
     elements.forEach((element) => {
-      // Groups are logical only — no 3D mesh
       if (element.type === 'group') return;
 
       const { width, height, depth } = element.dimensions;
@@ -591,50 +274,26 @@ export function useThreeScene(
 
       if (meshMapRef.current.has(element.id)) {
         const mesh = meshMapRef.current.get(element.id)!;
-        // Update invisible bbox
         mesh.geometry.dispose();
         mesh.geometry = new THREE.BoxGeometry(width, height, depth);
         if (element.type === 'cabinet' || element.type === 'drawerbox') mesh.raycast = () => {};
         else mesh.raycast = THREE.Mesh.prototype.raycast.bind(mesh);
         mesh.position.set(element.position.x, element.position.y + height / 2, element.position.z);
-        // Rebuild visible panels
-        if (element.type === 'shelf') rebuildShelf(mesh, element, color, emissive);
-        else if (element.type === 'drawer') rebuildDrawer(mesh, element, color, emissive);
-        else if (element.type === 'drawerbox') rebuildDrawerbox(mesh, element, color, emissive);
-        else if (element.type === 'blenda') rebuildBlenda(mesh, element, color, emissive);
-        else if (element.type === 'plinth') rebuildPlinth(mesh, element, color, emissive);
-        else if (element.type === 'divider') rebuildDivider(mesh, element, color, emissive);
-        else if (element.type === 'front') rebuildFront(mesh, element, emissive);
-        else if (element.type === 'hdf') rebuildHdf(mesh, element, emissive);
-        else if (element.type === 'rod') rebuildRod(mesh, element, color, emissive);
-        else if (element.type === 'leg') rebuildLeg(mesh, element, color, emissive);
-        else rebuildPanels(mesh, element, color, emissive);
+        rebuildElement(mesh, element, color, emissive);
         if (isSelected) placeHandles(mesh, element);
         else mesh.children.slice().filter((c) => c.userData.isHandle).forEach((c) => mesh.remove(c));
       } else {
-        // Invisible bounding box — cabinet: disabled for raycasting (panels handle it)
-        // Shelf: bbox used for raycasting
         const geo = new THREE.BoxGeometry(width, height, depth);
         const mat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0, depthWrite: false });
         const mesh = new THREE.Mesh(geo, mat);
         if (element.type === 'cabinet' || element.type === 'drawerbox') {
-          mesh.raycast = () => {}; // panels will be hit instead
+          mesh.raycast = () => {};
         }
         mesh.position.set(element.position.x, element.position.y + height / 2, element.position.z);
         mesh.userData = { elementId: element.id };
         scene.add(mesh);
         meshMapRef.current.set(element.id, mesh);
-        if (element.type === 'shelf') rebuildShelf(mesh, element, color, emissive);
-        else if (element.type === 'drawer') rebuildDrawer(mesh, element, color, emissive);
-        else if (element.type === 'drawerbox') rebuildDrawerbox(mesh, element, color, emissive);
-        else if (element.type === 'blenda') rebuildBlenda(mesh, element, color, emissive);
-        else if (element.type === 'plinth') rebuildPlinth(mesh, element, color, emissive);
-        else if (element.type === 'divider') rebuildDivider(mesh, element, color, emissive);
-        else if (element.type === 'front') rebuildFront(mesh, element, emissive);
-        else if (element.type === 'hdf') rebuildHdf(mesh, element, emissive);
-        else if (element.type === 'rod') rebuildRod(mesh, element, color, emissive);
-        else if (element.type === 'leg') rebuildLeg(mesh, element, color, emissive);
-        else rebuildPanels(mesh, element, color, emissive);
+        rebuildElement(mesh, element, color, emissive);
         if (isSelected) placeHandles(mesh, element);
       }
       // Override position/rotation for open front panels
@@ -645,9 +304,6 @@ export function useThreeScene(
           if (cab?.openFronts) {
             const W = element.dimensions.width;
             const isRight = element.frontSide === 'right';
-            // Rotate around the hinge edge so doors open outward (+Z toward viewer)
-            // Left hinge: rotation -π/2, pivot at x - W/2
-            // Right hinge: rotation +π/2, pivot at x + W/2
             fmesh.rotation.y = isRight ? Math.PI / 2 : -Math.PI / 2;
             fmesh.position.x = isRight
               ? element.position.x + W / 2
@@ -655,7 +311,6 @@ export function useThreeScene(
             fmesh.position.z = element.position.z + W / 2;
           } else {
             fmesh.rotation.y = 0;
-            // position already reset by main loop above
           }
         }
       }
@@ -685,7 +340,6 @@ export function useThreeScene(
       getMouseNDC(e);
       raycaster.setFromCamera(mouse, camera);
 
-      // Check handles first
       const handleMeshes = Array.from(handleMapRef.current.values()).map((h) => h.mesh);
       const handleHits = raycaster.intersectObjects(handleMeshes);
       if (handleHits.length > 0) {
@@ -703,12 +357,10 @@ export function useThreeScene(
         return;
       }
 
-      // Check element boxes — ray against panel meshes (children) and shelf bboxes
       const allHittable: THREE.Mesh[] = [];
       meshMapRef.current.forEach((mesh) => {
         const el = optionsRef.current.elements.find((e) => e.id === mesh.userData.elementId);
         if (el?.type === 'cabinet' || el?.type === 'drawerbox') {
-          // Hit against visible panels
           mesh.children.forEach((c) => {
             if (c instanceof THREE.Mesh && !c.userData.isHandle) allHittable.push(c);
           });
@@ -721,12 +373,10 @@ export function useThreeScene(
         const id = hits[0].object.userData.elementId as string;
         if (id === optionsRef.current.selectedId) {
           if (e.ctrlKey) {
-            // Ctrl held: drag Y (vertical)
             isDraggingBoxYRef.current = true;
             moveDragYStateRef.current = { elementId: id, lastClientY: e.clientY };
             controls.enabled = false;
           } else {
-            // Already selected — start moving it on XZ
             const worldPos = new THREE.Vector3();
             raycaster.ray.intersectPlane(groundPlane.current, worldPos);
             isDraggingBoxRef.current = true;
@@ -783,7 +433,7 @@ export function useThreeScene(
         return;
       }
 
-      // Cursor hint: show 'grab' when hovering selected box
+      // Cursor hint
       const allHoverable: THREE.Mesh[] = [];
       meshMapRef.current.forEach((mesh) => {
         const el = optionsRef.current.elements.find((e) => e.id === mesh.userData.elementId);

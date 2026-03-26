@@ -1,614 +1,61 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import type { BoxElement, BoxDimensions } from './types';
+import { PANEL_T, DETACH_DIST, HYSTERESIS_DIST } from './constants';
+import {
+  computeHdfForCabinet,
+  computeLegsForCabinet,
+  computePlinthForCabinet,
+  computeFrontForCabinet,
+  computeFrontForGroup,
+  recomputeGroups,
+} from './computeElements';
+import {
+  computeYForBox,
+  recomputeAllY,
+  fitShelfDepthToCabinet,
+  fitCabinetToBelow,
+  computeDividerBounds,
+} from './geometry';
+import {
+  findNearCabinetHysteresis,
+  attachAndFit,
+  snapShelfEdgeToCabinet,
+  snapToNeighbors,
+  pushOutCollisions,
+} from './snapAttach';
+import {
+  createBox,
+  createShelf,
+  shelfCounter,
+  dividerCounter,
+  frontCounter,
+  rodCounter,
+  legCounter,
+  hdfCounter,
+  drawerCounter,
+  drawerboxCounter,
+  blendaCounter,
+  plinthCounter,
+  groupCounter,
+} from './factories';
 import { useThreeScene } from './useThreeScene';
 import ElementLibrary from './ElementLibrary';
 import PropertiesPanel from './PropertiesPanel';
 import ModelOverlay from './ModelOverlay';
 import './App.css';
 
-const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
-let colorIndex = 0;
-let boxCounter = 1;
-let shelfCounter = 1;
-let dividerCounter = 1;
-let frontCounter = 1;
-let rodCounter = 1;
-let legCounter = 1;
-let hdfCounter = 1;
-let drawerCounter = 1;
-let drawerboxCounter = 1;
-let blendaCounter = 1;
-let plinthCounter = 1;
-let groupCounter = 1;
-
-// Snap / attach constants (must be declared before helpers that use them)
-const PANEL_T = 0.018; // panel thickness in metres (~18 mm); must match useThreeScene.ts
-const SNAP_DIST = 0.05; // side-by-side wall snap tolerance (5 cm)
-const FRONT_INSET = 0.002; // 2 mm gap on each side between front panel and cabinet edge
-const HDF_T = 0.003; // HDF back panel thickness 3 mm
-const HDF_INSET = 0.002; // 2 mm inset on each side of the HDF panel
-
-// Computes position/dimensions of an HDF back panel bound to its cabinet.
-function computeHdfForCabinet(hdf: BoxElement, cab: BoxElement): BoxElement {
-  return {
-    ...hdf,
-    dimensions: {
-      width: Math.max(0.001, cab.dimensions.width - 2 * HDF_INSET),
-      height: Math.max(0.001, cab.dimensions.height - 2 * HDF_INSET),
-      depth: HDF_T,
-    },
-    position: {
-      x: cab.position.x,
-      y: cab.position.y + HDF_INSET,
-      z: cab.position.z - cab.dimensions.depth / 2 - HDF_T / 2,
-    },
-  };
-}
-
-// Computes position/dimensions of the single legs element (all 4 legs combined) for a cabinet.
-// The element stores cabinet-wide dimensions so rebuildLeg can place all 4 cylinders.
-function computeLegsForCabinet(legs: BoxElement, cab: BoxElement): BoxElement {
-  return {
-    ...legs,
-    dimensions: {
-      width: cab.dimensions.width,
-      height: legs.dimensions.height,
-      depth: cab.dimensions.depth,
-    },
-    position: {
-      x: cab.position.x,
-      z: cab.position.z,
-      y: cab.position.y - legs.dimensions.height,
-    },
-  };
-}
-
-// Computes position/dimensions of the plinth (cokoł) at the front of the cabinet, at floor level.
-function computePlinthForCabinet(plinth: BoxElement, cab: BoxElement, allElements: BoxElement[]): BoxElement {
-  const legs = allElements.filter((e) => e.type === 'leg' && e.cabinetId === cab.id);
-  const legHeight = legs.length > 0 ? legs[0].dimensions.height : plinth.dimensions.height || 0.1;
-  return {
-    ...plinth,
-    dimensions: {
-      width: cab.dimensions.width,
-      height: legHeight,
-      depth: PANEL_T,
-    },
-    position: {
-      x: cab.position.x,
-      y: cab.position.y - legHeight,
-      z: cab.position.z + cab.dimensions.depth / 2 + PANEL_T / 2,
-    },
-  };
-}
-
-// Computes the position/dimensions of a front panel bound to its cabinet.
-// For double fronts: each leaf gets 2mm inset on all four of its own edges.
-function computeFrontForCabinet(front: BoxElement, cab: BoxElement): BoxElement {
-  const z = cab.position.z + cab.dimensions.depth / 2 + PANEL_T / 2;
-  const fullH = Math.max(0.001, cab.dimensions.height - 2 * FRONT_INSET);
-  const yPos = cab.position.y + FRONT_INSET;
-  if (front.frontSide === 'left' || front.frontSide === 'right') {
-    // Each leaf: half cabinet width minus 2mm on each of its own sides (outer edge + centre gap)
-    const leafW = Math.max(0.001, cab.dimensions.width / 2 - 2 * FRONT_INSET);
-    // Leaf centres sit at ±W/4 from cabinet centre (the 2mm insets cancel out symmetrically)
-    const leftX  = cab.position.x - cab.dimensions.width / 4;
-    const rightX = cab.position.x + cab.dimensions.width / 4;
-    return {
-      ...front,
-      dimensions: { width: leafW, height: fullH, depth: PANEL_T },
-      position: {
-        x: front.frontSide === 'left' ? leftX : rightX,
-        y: yPos,
-        z,
-      },
-    };
-  }
-  // Single front
-  return {
-    ...front,
-    dimensions: {
-      width: Math.max(0.001, cab.dimensions.width - 2 * FRONT_INSET),
-      height: fullH,
-      depth: PANEL_T,
-    },
-    position: { x: cab.position.x, y: yPos, z },
-  };
-}
-
-// Computes the position/dimensions of a front panel that spans all cabinets in a group.
-function computeFrontForGroup(front: BoxElement, allElements: BoxElement[]): BoxElement {
-  const group = allElements.find((e) => e.id === front.cabinetId);
-  if (!group) return front;
-  const members = allElements.filter((e) => e.groupId === group.id && e.type === 'cabinet');
-  if (members.length === 0) return front;
-  const minX = Math.min(...members.map((c) => c.position.x - c.dimensions.width / 2));
-  const maxX = Math.max(...members.map((c) => c.position.x + c.dimensions.width / 2));
-  const minY = Math.min(...members.map((c) => c.position.y));
-  const maxY = Math.max(...members.map((c) => c.position.y + c.dimensions.height));
-  const maxFaceZ = Math.max(...members.map((c) => c.position.z + c.dimensions.depth / 2));
-  return {
-    ...front,
-    dimensions: {
-      width: Math.max(0.001, (maxX - minX) - 2 * FRONT_INSET),
-      height: Math.max(0.001, (maxY - minY) - 2 * FRONT_INSET),
-      depth: PANEL_T,
-    },
-    position: {
-      x: (minX + maxX) / 2,
-      y: minY + FRONT_INSET,
-      z: maxFaceZ + PANEL_T / 2,
-    },
-  };
-}
-
-// Recompute the bounds of a group element from its member cabinets.
-function computeGroupBounds(group: BoxElement, allElements: BoxElement[]): BoxElement {
-  const members = allElements.filter((e) => e.groupId === group.id && e.type === 'cabinet');
-  if (members.length === 0) return group;
-  const minX = Math.min(...members.map((c) => c.position.x - c.dimensions.width / 2));
-  const maxX = Math.max(...members.map((c) => c.position.x + c.dimensions.width / 2));
-  const minY = Math.min(...members.map((c) => c.position.y));
-  const maxY = Math.max(...members.map((c) => c.position.y + c.dimensions.height));
-  const maxFaceZ = Math.max(...members.map((c) => c.position.z + c.dimensions.depth / 2));
-  const avgDepth = members.reduce((s, c) => s + c.dimensions.depth, 0) / members.length;
-  return {
-    ...group,
-    dimensions: { width: maxX - minX, height: maxY - minY, depth: avgDepth },
-    position: { x: (minX + maxX) / 2, y: minY, z: maxFaceZ - avgDepth / 2 },
-  };
-}
-
-// After any mutation, resync all groups and their fronts.
-function recomputeGroups(elements: BoxElement[]): BoxElement[] {
-  const result = elements.map((e) => {
-    if (e.type === 'group') return computeGroupBounds(e, elements);
-    return e;
-  });
-  // Now recompute group fronts using updated group bounds
-  const result2 = result.map((e) => {
-    if (e.type === 'front' && e.cabinetId) {
-      const linked = result.find((g) => g.id === e.cabinetId);
-      if (linked?.type === 'group') return computeFrontForGroup(e, result);
-    }
-    return e;
-  });
-  return result2;
-}
-
-// Returns true if boxes a and b have any XZ footprint overlap (used by fit/snap helpers)
-function getBoxOverlap(a: BoxElement, b: BoxElement): boolean {
-  return (
-    Math.abs(a.position.x - b.position.x) < (a.dimensions.width + b.dimensions.width) / 2 &&
-    Math.abs(a.position.z - b.position.z) < (a.dimensions.depth + b.dimensions.depth) / 2
-  );
-}
-
-// Minimum overlap in each axis to trigger stacking (10 cm)
-const STACK_OVERLAP = 0.10;
-
-// Returns true when boxes overlap by more than STACK_OVERLAP in BOTH X and Z
-function getBoxStackOverlap(a: BoxElement, b: BoxElement): boolean {
-  const ox = (a.dimensions.width + b.dimensions.width) / 2 - Math.abs(a.position.x - b.position.x);
-  const oz = (a.dimensions.depth + b.dimensions.depth) / 2 - Math.abs(a.position.z - b.position.z);
-  return ox > STACK_OVERLAP && oz > STACK_OVERLAP;
-}
-
-// Returns the Y level (bottom) where box should sit, based on overlapping boxes
-function computeYForBox(box: BoxElement, allElements: BoxElement[], roomH = Infinity): number {
-  let maxTop = 0;
-  for (const other of allElements) {
-    if (other.id === box.id) continue;
-    if (other.type === 'shelf' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'plinth') continue;
-    if (getBoxStackOverlap(box, other)) {
-      maxTop = Math.max(maxTop, other.position.y + other.dimensions.height);
-    }
-  }
-  // If the cabinet has legs, its bottom must sit at least legHeight above the surface below
-  const legs = allElements.filter((e) => e.type === 'leg' && e.cabinetId === box.id);
-  if (legs.length > 0) {
-    maxTop = Math.max(maxTop, maxTop + legs[0].dimensions.height);
-  }
-  // Clamp so the top of the box doesn't exceed the room height
-  return Math.min(maxTop, Math.max(0, roomH - box.dimensions.height));
-}
-
-// Recomputes Y for all boxes bottom-up (used after dimension changes)
-function recomputeAllY(elements: BoxElement[], roomH = Infinity): BoxElement[] {
-  const originalY = new Map(elements.map((el) => [el.id, el.position.y]));
-  // Process from lowest to highest so lower boxes are settled first
-  const ordered = [...elements].sort(
-    (a, b) => (originalY.get(a.id) ?? 0) - (originalY.get(b.id) ?? 0)
-  );
-  const resultMap = new Map(
-    elements.map((el) => [el.id, { ...el, position: { ...el.position } }])
-  );
-  for (const el of ordered) {
-    const box = resultMap.get(el.id)!;
-    if (box.type === 'shelf' || box.type === 'drawer' || box.type === 'drawerbox' || box.type === 'blenda' || box.type === 'divider' || box.type === 'front' || box.type === 'rod' || box.type === 'leg' || box.type === 'hdf') continue; // preserve their Y
-    const elOriginalY = originalY.get(el.id) ?? 0;
-    let maxTop = 0;
-    for (const [id, other] of resultMap) {
-      if (id === box.id) continue;
-      if (other.type === 'shelf' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'plinth') continue;
-      // Only stack on boxes that were originally below (or at same level as) this box
-      if ((originalY.get(id) ?? 0) <= elOriginalY + 0.001) {
-        if (getBoxStackOverlap(box, other)) {
-          maxTop = Math.max(maxTop, other.position.y + other.dimensions.height);
-        }
-      }
-    }
-    // If the cabinet has legs, it must be lifted by their height above whatever surface it sits on
-    const legChildren = [...resultMap.values()].filter((e) => e.type === 'leg' && e.cabinetId === box.id);
-    if (legChildren.length > 0) {
-      maxTop = maxTop + legChildren[0].dimensions.height;
-    }
-    const withY = { ...box, position: { ...box.position, y: Math.min(maxTop, Math.max(0, roomH - box.dimensions.height)) } };
-    // If stacked on another cabinet, match its width/depth
-    const fitted = maxTop > 0 ? fitCabinetToBelow(withY, [...resultMap.values()]) : withY;
-    resultMap.set(el.id, fitted);
-  }
-  // Recompute divider bounds based on final shelf positions
-  const allSettled = [...resultMap.values()];
-  for (const el of allSettled) {
-    if (el.type !== 'divider' || !el.cabinetId) continue;
-    const bounds = computeDividerBounds(el.cabinetId, el.position.y + el.dimensions.height / 2, allSettled);
-    const cab = allSettled.find((e) => e.id === el.cabinetId);
-    resultMap.set(el.id, {
-      ...el,
-      dimensions: { ...el.dimensions, height: bounds.height, depth: cab ? cab.dimensions.depth : el.dimensions.depth },
-      position: { ...el.position, y: bounds.y },
-    });
-  }
-  // Recompute front panel positions/dims based on updated cabinet positions
-  const allSettled2 = [...resultMap.values()];
-  for (const el of allSettled2) {
-    if (el.type !== 'front' || !el.cabinetId) continue;
-    const cab = allSettled2.find((e) => e.id === el.cabinetId);
-    if (cab) resultMap.set(el.id, computeFrontForCabinet(el, cab));
-  }
-  // Recompute leg positions based on updated cabinet positions
-  const allSettled3 = [...resultMap.values()];
-  for (const el of allSettled3) {
-    if (el.type !== 'leg' || !el.cabinetId) continue;
-    const cab = allSettled3.find((e) => e.id === el.cabinetId);
-    if (cab) resultMap.set(el.id, computeLegsForCabinet(el, cab));
-  }
-  // Recompute HDF back panel positions/dims based on updated cabinet positions
-  const allSettled4 = [...resultMap.values()];
-  for (const el of allSettled4) {
-    if (el.type !== 'hdf' || !el.cabinetId) continue;
-    const cab = allSettled4.find((e) => e.id === el.cabinetId);
-    if (cab) resultMap.set(el.id, computeHdfForCabinet(el, cab));
-  }
-  // Recompute plinth positions based on updated cabinet and leg positions
-  const allSettled5 = [...resultMap.values()];
-  for (const el of allSettled5) {
-    if (el.type !== 'plinth' || !el.cabinetId) continue;
-    const cab = allSettled5.find((e) => e.id === el.cabinetId);
-    if (cab) resultMap.set(el.id, computePlinthForCabinet(el, cab, allSettled5));
-  }
-  const settled = elements.map((el) => resultMap.get(el.id)!);
-  return recomputeGroups(settled);
-}
-
-// Auto-fit shelf depth (Z) to the inner depth of the cabinet it's inside
-function fitShelfDepthToCabinet(shelf: BoxElement, allElements: BoxElement[]): BoxElement {
-  for (const other of allElements) {
-    if (other.id === shelf.id || other.type !== 'cabinet') continue;
-    const yOverlap =
-      shelf.position.y < other.position.y + other.dimensions.height &&
-      shelf.position.y + shelf.dimensions.height > other.position.y;
-    if (!yOverlap) continue;
-    const insideX =
-      Math.abs(shelf.position.x - other.position.x) < other.dimensions.width / 2;
-    const insideZ =
-      Math.abs(shelf.position.z - other.position.z) < other.dimensions.depth / 2;
-    if (!insideX || !insideZ) continue;
-    // Width = inner width (between side panels), depth = full cabinet depth (no back panel)
-    const innerWidth = other.dimensions.width - 2 * PANEL_T;
-    const fullDepth = other.dimensions.depth;
-    return {
-      ...shelf,
-      dimensions: { ...shelf.dimensions, width: Math.max(0.01, innerWidth), depth: Math.max(0.01, fullDepth) },
-      position: { ...shelf.position, x: other.position.x, z: other.position.z },
-    };
-  }
-  return shelf;
-}
-
-// When a cabinet is placed on top of another cabinet, match its width/depth to the lower one
-function fitCabinetToBelow(cabinet: BoxElement, allElements: BoxElement[]): BoxElement {
-  for (const other of allElements) {
-    if (other.id === cabinet.id || other.type !== 'cabinet') continue;
-    const otherTop = other.position.y + other.dimensions.height;
-    if (Math.abs(cabinet.position.y - otherTop) > 0.001) continue;
-    if (!getBoxOverlap(cabinet, other)) continue;
-    return {
-      ...cabinet,
-      dimensions: { ...cabinet.dimensions, width: other.dimensions.width, depth: other.dimensions.depth },
-      position: { ...cabinet.position, x: other.position.x, z: other.position.z },
-    };
-  }
-  return cabinet;
-}
-
-// Maximum distance (m) from a cabinet boundary within which a free shelf/divider auto-attaches
-const ATTACH_DIST = SNAP_DIST;
-// Straight-line drag displacement (m) required to detach a bound element from its cabinet
-const DETACH_DIST = 0.08; // 80 mm
-// How far outside the cabinet the element must travel before same-cabinet re-snap is allowed again
-const HYSTERESIS_DIST = 0.15; // 150 mm
-
-// Like findNearCabinet but skips `avoidCabId` until the element has moved past the hysteresis zone.
-function findNearCabinetHysteresis(
-  elem: BoxElement,
-  allElements: BoxElement[],
-  avoidCabId: string | null
-): BoxElement | null {
-  for (const other of allElements) {
-    if (other.id === elem.id || other.type !== 'cabinet') continue;
-    const yOverlap =
-      elem.position.y < other.position.y + other.dimensions.height &&
-      elem.position.y + elem.dimensions.height > other.position.y;
-    if (!yOverlap) continue;
-    const inX = Math.abs(elem.position.x - other.position.x) < other.dimensions.width / 2 + ATTACH_DIST;
-    const inZ = Math.abs(elem.position.z - other.position.z) < other.dimensions.depth / 2 + ATTACH_DIST;
-    if (!inX || !inZ) continue;
-    if (other.id === avoidCabId) continue; // still in hysteresis cooldown for this cabinet
-    return other;
-  }
-  return null;
-}
-
-// Attaches a free shelf/divider to the given cabinet and fits its dimensions/position.
-function attachAndFit(elem: BoxElement, cab: BoxElement, allElements: BoxElement[]): BoxElement {
-  if (elem.type === 'shelf') {
-    const innerWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T);
-    const depth = cab.dimensions.depth;
-    const maxY = cab.position.y + cab.dimensions.height - elem.dimensions.height;
-    const clampedY = Math.min(Math.max(cab.position.y, elem.position.y), maxY);
-    return {
-      ...elem,
-      cabinetId: cab.id,
-      dimensions: { ...elem.dimensions, width: innerWidth, depth },
-      position: { x: cab.position.x, y: clampedY, z: cab.position.z },
-    };
-  }
-  if (elem.type === 'rod') {
-    const ROD_D = 0.025;
-    const innerWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T);
-    const minY = cab.position.y + PANEL_T;
-    const maxY = cab.position.y + cab.dimensions.height - PANEL_T - ROD_D;
-    const clampedY = Math.min(Math.max(minY, elem.position.y), Math.max(minY, maxY));
-    return {
-      ...elem,
-      cabinetId: cab.id,
-      dimensions: { ...elem.dimensions, width: innerWidth, height: ROD_D, depth: ROD_D },
-      position: { x: cab.position.x, y: clampedY, z: cab.position.z },
-    };
-  }
-  if (elem.type === 'divider') {
-    const halfInner = (cab.dimensions.width - 2 * PANEL_T) / 2 - PANEL_T / 2;
-    const clampedX = Math.max(cab.position.x - halfInner, Math.min(cab.position.x + halfInner, elem.position.x));
-    const attached = { ...elem, cabinetId: cab.id, position: { ...elem.position, x: clampedX, z: cab.position.z } };
-    const allWithAttached = allElements.map((e) => e.id === elem.id ? attached : e);
-    const bounds = computeDividerBounds(cab.id, attached.position.y + attached.dimensions.height / 2, allWithAttached);
-    return {
-      ...attached,
-      dimensions: { ...attached.dimensions, height: bounds.height, depth: cab.dimensions.depth },
-      position: { ...attached.position, y: bounds.y },
-    };
-  }
-  return elem;
-}
-
-// Returns the Y bottom and height for a divider based on shelves above/below in the same cabinet
-function computeDividerBounds(
-  cabinetId: string,
-  dividerY: number, // current vertical center hint (used to find nearest shelf)
-  allElements: BoxElement[]
-): { y: number; height: number } {
-  const cab = allElements.find((e) => e.id === cabinetId);
-  if (!cab) return { y: 0, height: PANEL_T };
-
-  const cabBottom = cab.position.y + PANEL_T;          // inner face of bottom panel
-  const cabTop = cab.position.y + cab.dimensions.height - PANEL_T; // inner face of top panel
-
-  // Collect horizontal surfaces (shelves in the same cabinet): their top face Y
-  const surfaces: number[] = [cabBottom, cabTop];
-  for (const el of allElements) {
-    if (el.cabinetId !== cabinetId || el.type !== 'shelf') continue;
-    surfaces.push(el.position.y); // bottom of shelf
-    surfaces.push(el.position.y + el.dimensions.height); // top of shelf
-  }
-  surfaces.sort((a, b) => a - b);
-
-  // Find the gap that contains dividerY
-  let floorY = cabBottom;
-  let ceilY = cabTop;
-  for (let i = 0; i < surfaces.length - 1; i++) {
-    if (surfaces[i] <= dividerY + 0.001 && dividerY < surfaces[i + 1]) {
-      floorY = surfaces[i];
-      ceilY = surfaces[i + 1];
-      break;
-    }
-  }
-
-  return { y: floorY, height: Math.max(PANEL_T, ceilY - floorY) };
-}
-
-// During resize: if the moving edge of a shelf is close to a cabinet inner wall,
-// snap the edge exactly to that wall (fixed edge stays, dimension adjusts)
-function snapShelfEdgeToCabinet(
-  el: BoxElement,
-  axis: 'width' | 'depth',
-  dir: number,
-  allElements: BoxElement[]
-): { dim: number; pos: number } | null {
-  const posAxis = axis === 'width' ? 'x' : 'z';
-  const perpAxis = axis === 'width' ? 'z' : 'x';
-  const perpDim = axis === 'width' ? 'depth' : 'width';
-  const dim = el.dimensions[axis];
-  const pos = el.position[posAxis];
-  const movingEdge = pos + (dim / 2) * dir;
-  const fixedEdge = pos - (dim / 2) * dir;
-
-  let bestSnap: number | null = null;
-  let bestDist = SNAP_DIST;
-
-  for (const other of allElements) {
-    if (other.id === el.id || other.type !== 'cabinet') continue;
-    // Y overlap check (shelf is inside cabinet vertically)
-    const yOverlap =
-      el.position.y < other.position.y + other.dimensions.height &&
-      el.position.y + el.dimensions.height > other.position.y;
-    if (!yOverlap) continue;
-    // Perp axis: shelf should be inside or touching cabinet
-    const shelfPerpCenter = el.position[perpAxis as 'x' | 'z'];
-    const cabPerpCenter = other.position[perpAxis as 'x' | 'z'];
-    const shelfPerpHalf = el.dimensions[perpDim as 'width' | 'depth'] / 2;
-    const cabPerpHalf = other.dimensions[perpDim as 'width' | 'depth'] / 2;
-    if (Math.abs(shelfPerpCenter - cabPerpCenter) > cabPerpHalf + shelfPerpHalf) continue;
-
-    const otherPos = other.position[posAxis as 'x' | 'z'];
-    const otherHalf = other.dimensions[axis] / 2;
-    // Two inner walls of the cabinet along this axis
-    const walls = [
-      otherPos + otherHalf - PANEL_T, // inner right/front
-      otherPos - otherHalf + PANEL_T, // inner left/back
-    ];
-    for (const wall of walls) {
-      const dist = Math.abs(movingEdge - wall);
-      if (dist < bestDist) { bestDist = dist; bestSnap = wall; }
-    }
-  }
-
-  if (bestSnap === null) return null;
-  const newDim = Math.max(0.1, Math.abs(bestSnap - fixedEdge));
-  const newPos = (bestSnap + fixedEdge) / 2;
-  return { dim: newDim, pos: newPos };
-}
-
-// Snaps box XZ position so its walls touch neighbors when close enough,
-// and also aligns faces (front-to-front, back-to-back, left-to-left, right-to-right)
-function snapToNeighbors(box: BoxElement, allElements: BoxElement[]): { x: number; z: number } {
-  let { x, z } = box.position;
-  const hw = box.dimensions.width / 2;
-  const hd = box.dimensions.depth / 2;
-
-  for (const other of allElements) {
-    if (other.id === box.id) continue;
-    // Skip elements bound to a cabinet — they're interior components, not snappable neighbors
-    if (other.cabinetId) continue;
-    const ohw = other.dimensions.width / 2;
-    const ohd = other.dimensions.depth / 2;
-
-    // Only snap to boxes that share some Y range
-    const yOverlap =
-      box.position.y < other.position.y + other.dimensions.height &&
-      box.position.y + box.dimensions.height > other.position.y;
-    if (!yOverlap) continue;
-
-    const zGap = Math.abs(z - other.position.z) - (hd + ohd);
-
-    // --- X axis ---
-    if (zGap < SNAP_DIST) {
-      // Wall-to-wall
-      const gapR = (other.position.x - ohw) - (x + hw);
-      if (gapR >= -0.001 && gapR < SNAP_DIST) { x += gapR; continue; }
-      const gapL = (x - hw) - (other.position.x + ohw);
-      if (gapL >= -0.001 && gapL < SNAP_DIST) { x -= gapL; continue; }
-      // Face alignment (left-to-left, right-to-right, center-to-center)
-      const deltaLL = (other.position.x - ohw) - (x - hw);
-      if (Math.abs(deltaLL) < SNAP_DIST) { x += deltaLL; continue; }
-      const deltaRR = (other.position.x + ohw) - (x + hw);
-      if (Math.abs(deltaRR) < SNAP_DIST) { x += deltaRR; continue; }
-      const deltaCX = other.position.x - x;
-      if (Math.abs(deltaCX) < SNAP_DIST) { x += deltaCX; continue; }
-    }
-
-    // --- Z axis (use updated x for proximity check) ---
-    const xGapUpdated = Math.abs(x - other.position.x) - (hw + ohw);
-    if (xGapUpdated < SNAP_DIST) {
-      // Wall-to-wall
-      const gapF = (other.position.z - ohd) - (z + hd);
-      if (gapF >= -0.001 && gapF < SNAP_DIST) { z += gapF; continue; }
-      const gapB = (z - hd) - (other.position.z + ohd);
-      if (gapB >= -0.001 && gapB < SNAP_DIST) { z -= gapB; continue; }
-      // Face alignment (front-to-front, back-to-back, center-to-center)
-      const deltaFF = (other.position.z + ohd) - (z + hd);
-      if (Math.abs(deltaFF) < SNAP_DIST) { z += deltaFF; continue; }
-      const deltaBB = (other.position.z - ohd) - (z - hd);
-      if (Math.abs(deltaBB) < SNAP_DIST) { z += deltaBB; continue; }
-      const deltaCZ = other.position.z - z;
-      if (Math.abs(deltaCZ) < SNAP_DIST) { z += deltaCZ; continue; }
-    }
-  }
-
-  return { x, z };
-}
-
-// Pushes box out of XZ overlaps with same-level cabinets.
-// Skips pairs that already exceed STACK_OVERLAP threshold (stacking handles those).
-function pushOutCollisions(box: BoxElement, allElements: BoxElement[]): { x: number; z: number } {
-  let x = box.position.x;
-  let z = box.position.z;
-  const hw = box.dimensions.width / 2;
-  const hd = box.dimensions.depth / 2;
-
-  for (const other of allElements) {
-    if (other.id === box.id) continue;
-    if (other.type !== 'cabinet') continue;
-    const ohw = other.dimensions.width / 2;
-    const ohd = other.dimensions.depth / 2;
-
-    const yOverlap =
-      box.position.y < other.position.y + other.dimensions.height &&
-      box.position.y + box.dimensions.height > other.position.y;
-    if (!yOverlap) continue;
-
-    const overlapX = (hw + ohw) - Math.abs(x - other.position.x);
-    const overlapZ = (hd + ohd) - Math.abs(z - other.position.z);
-    if (overlapX <= 0 || overlapZ <= 0) continue;
-
-    // Deep overlap in both axes → let stacking handle it
-    if (overlapX > STACK_OVERLAP && overlapZ > STACK_OVERLAP) continue;
-
-    // Push along the axis with smallest penetration
-    if (overlapX <= overlapZ) {
-      x += overlapX * (x >= other.position.x ? 1 : -1);
-    } else {
-      z += overlapZ * (z >= other.position.z ? 1 : -1);
-    }
-  }
-  return { x, z };
-}
-
-function createBox(): BoxElement {
-  const color = COLORS[colorIndex % COLORS.length];
-  colorIndex++;
-  return {
-    id: crypto.randomUUID(),
-    name: `Box ${boxCounter++}`,
-    type: 'cabinet',
-    dimensions: { width: 1, height: 1, depth: 1 },
-    position: { x: 0, y: 0, z: 0 },
-    color,
-  };
-}
-
-function createShelf(): BoxElement {
-  const color = COLORS[colorIndex % COLORS.length];
-  return {
-    id: crypto.randomUUID(),
-    name: `Półka ${shelfCounter++}`,
-    type: 'shelf',
-    dimensions: { width: 0.8, height: 0.018, depth: 0.38 },
-    position: { x: 0, y: 0.3, z: 0 },
-    color,
-  };
-}
+// Mutable counters — imported as values, so we use local copies that track increments
+let _shelfCounter = shelfCounter;
+let _dividerCounter = dividerCounter;
+let _frontCounter = frontCounter;
+let _rodCounter = rodCounter;
+let _legCounter = legCounter;
+let _hdfCounter = hdfCounter;
+let _drawerCounter = drawerCounter;
+let _drawerboxCounter = drawerboxCounter;
+let _blendaCounter = blendaCounter;
+let _plinthCounter = plinthCounter;
+let _groupCounter = groupCounter;
 
 const App: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -633,7 +80,6 @@ const App: React.FC = () => {
 
   const handleDimensionDrag = useCallback(
     (id: string, axis: 'width' | 'height' | 'depth', delta: number, dir: number) => {
-      // Map dimension axis → position axis
       const posAxis: Record<'width' | 'height' | 'depth', 'x' | 'y' | 'z'> = {
         width: 'x',
         height: 'y',
@@ -645,24 +91,20 @@ const App: React.FC = () => {
           const oldVal = el.dimensions[axis];
           const pa = posAxis[axis];
 
-          // Compute max allowed size from board boundaries BEFORE applying delta,
-          // so the resulting position is also correct (no out-of-board centre shift).
           let maxAllowed = Infinity;
           if (!el.cabinetId) {
             const { width: bwMm, depth: bdMm, height: bhMm } = boardSizeRef.current;
             const bw = bwMm / 1000; const bd = bdMm / 1000; const roomH = bhMm / 1000;
             if (axis === 'width') {
-              // Fixed edge is the side OPPOSITE to the dragged handle
               const fixedEdge = el.position.x - dir * oldVal / 2;
               maxAllowed = dir > 0 ? (bw / 2 - fixedEdge) : (fixedEdge + bw / 2);
             } else if (axis === 'depth') {
               const fixedEdge = el.position.z - dir * oldVal / 2;
               maxAllowed = dir > 0 ? (bd / 2 - fixedEdge) : (fixedEdge + bd / 2);
             } else if (axis === 'height') {
-              // position.y is the bottom of the element
               maxAllowed = dir > 0
-                ? roomH - el.position.y        // top handle: can't go above ceiling
-                : el.position.y + oldVal;      // bottom handle: can't go below floor
+                ? roomH - el.position.y
+                : el.position.y + oldVal;
             }
           }
 
@@ -674,7 +116,6 @@ const App: React.FC = () => {
             dimensions: { ...el.dimensions, [axis]: newVal },
             position: { ...el.position, [pa]: newPosVal },
           };
-          // Snap shelf edges to cabinet inner walls
           if (el.type === 'shelf' && (axis === 'width' || axis === 'depth')) {
             const snap = snapShelfEdgeToCabinet(withDelta, axis, dir, prev);
             if (snap) {
@@ -722,11 +163,9 @@ const App: React.FC = () => {
 
   const handlePositionChange = useCallback(
     (id: string, dx: number, dz: number) => {
-      // Board clamping: keep element centre + half its size inside the board (in metres)
       const clampToBoard = (el: BoxElement): { x: number; z: number } => {
         const bw = boardSizeRef.current.width / 1000;
         const bd = boardSizeRef.current.depth / 1000;
-        // Half of the available movement range (0 when element >= board size → locked to centre)
         const rx = Math.max(0, (bw - el.dimensions.width) / 2);
         const rz = Math.max(0, (bd - el.dimensions.depth) / 2);
         return {
@@ -736,7 +175,6 @@ const App: React.FC = () => {
       };
       setElements((prev) => {
         const movedEl = prev.find((e) => e.id === id)!;
-        // 1. Apply movement delta
         const afterMove = prev.map((el) =>
           el.id === id
             ? { ...el, position: { ...el.position, x: el.position.x + dx, z: el.position.z + dz } }
@@ -744,21 +182,18 @@ const App: React.FC = () => {
         );
         const movedAfter = afterMove.find((e) => e.id === id)!;
 
-        // Fronts, HDF and cabinet-bound rods/legs are always locked in XZ — block manual movement
+        // Fronts, HDF and cabinet-bound rods/legs are always locked in XZ
         if (movedEl.type === 'front' || movedEl.type === 'hdf' || (movedEl.type === 'rod' && movedEl.cabinetId) || (movedEl.type === 'leg' && movedEl.cabinetId) || (movedEl.type === 'plinth' && movedEl.cabinetId)) return prev;
 
         if (movedEl.type === 'shelf' || movedEl.type === 'divider') {
           if (movedEl.cabinetId) {
-            // Accumulate pointer delta for this drag session
             const d = dragDeltaRef.current.get(id) ?? { dx: 0, dz: 0 };
             const nd = { dx: d.dx + dx, dz: d.dz + dz };
             dragDeltaRef.current.set(id, nd);
 
             if (movedEl.type === 'divider') {
-              // Divider: Z-displacement triggers detach; X-only movement is intentional repositioning
               const zDisp = Math.abs(nd.dz);
               if (zDisp < DETACH_DIST) {
-                // Still bound — move only on X, clamped inside cabinet
                 const cab = prev.find((e) => e.id === movedEl.cabinetId)!;
                 const halfInner = (cab.dimensions.width - 2 * PANEL_T) / 2 - PANEL_T / 2;
                 const newX = Math.max(cab.position.x - halfInner, Math.min(cab.position.x + halfInner, movedEl.position.x + dx));
@@ -768,7 +203,6 @@ const App: React.FC = () => {
                 return prev.map((e) => e.id === id ? { ...moved, position: { ...moved.position, y: bounds.y }, dimensions: { ...moved.dimensions, height: bounds.height } } : e);
               }
             } else {
-              // Shelf: fully locked until straight-line displacement exceeds threshold
               const disp = Math.sqrt(nd.dx * nd.dx + nd.dz * nd.dz);
               if (disp < DETACH_DIST) return prev;
             }
@@ -778,7 +212,6 @@ const App: React.FC = () => {
             detachedFromRef.current.set(id, movedEl.cabinetId!);
             const detached = { ...movedAfter, cabinetId: undefined };
             const withDetached = afterMove.map((e) => e.id === id ? detached : e);
-            // Re-attach to a *different* nearby cabinet immediately
             const nearCab = findNearCabinetHysteresis(detached, withDetached, movedEl.cabinetId!);
             if (nearCab) {
               detachedFromRef.current.delete(id);
@@ -788,7 +221,7 @@ const App: React.FC = () => {
             return withDetached;
           }
 
-          // Free element — check hysteresis: reset avoid once far enough away from last cabinet
+          // Free element — check hysteresis
           let avoidCabId = detachedFromRef.current.get(id) ?? null;
           if (avoidCabId) {
             const avoidCab = afterMove.find((e) => e.id === avoidCabId);
@@ -800,7 +233,6 @@ const App: React.FC = () => {
             }
           }
 
-          // Check for nearby cabinet to re-attach (respecting hysteresis)
           const nearCab = findNearCabinetHysteresis(movedAfter, afterMove, avoidCabId);
           if (nearCab) {
             detachedFromRef.current.delete(id);
@@ -808,25 +240,21 @@ const App: React.FC = () => {
             return afterMove.map((e) => e.id === id ? attachAndFit(movedAfter, nearCab, afterMove) : e);
           }
           if (movedEl.type === 'shelf') {
-            // Free shelf: snap XZ, fit dims to any cabinet it overlaps
             const snapped = snapToNeighbors(movedAfter, afterMove);
             const shelfWithXZ = { ...movedAfter, position: { ...movedAfter.position, x: snapped.x, z: snapped.z } };
             const fittedShelf = fitShelfDepthToCabinet(shelfWithXZ, afterMove);
             const clampedPos = clampToBoard(fittedShelf);
             return afterMove.map((el) => el.id === id ? { ...fittedShelf, position: { ...fittedShelf.position, x: clampedPos.x, z: clampedPos.z } } : el);
           }
-          // Free rod / divider: move freely
           return afterMove;
         }
-        // 2. Compute preliminary Y so snap can check Y overlap correctly
+        // Cabinet movement
         const prelim = afterMove.find((e) => e.id === id)!;
         const roomH = boardSizeRef.current.height / 1000;
         const prelimY = computeYForBox(prelim, afterMove, roomH);
         const prelimWithY = { ...prelim, position: { ...prelim.position, y: prelimY } };
         const withPrelimY = afterMove.map((el) => (el.id === id ? prelimWithY : el));
-        // 3. Snap XZ to neighboring walls
         const snapped = snapToNeighbors(prelimWithY, withPrelimY);
-        // 4. Apply snapped XZ and recompute Y
         const afterSnap = withPrelimY.map((el) =>
           el.id === id ? { ...el, position: { x: snapped.x, y: 0, z: snapped.z } } : el
         );
@@ -835,13 +263,11 @@ const App: React.FC = () => {
         const withFinalY = afterSnap.map((el) =>
           el.id === id ? { ...el, position: { ...el.position, y: finalY } } : el
         );
-        // If placed on top of another cabinet, match its width/depth
         if (finalY > 0) {
           const movedFinal = withFinalY.find((e) => e.id === id)!;
           const fitted = fitCabinetToBelow(movedFinal, withFinalY);
           if (fitted !== movedFinal) {
             const withFitted = withFinalY.map((el) => (el.id === id ? fitted : el));
-          // Move bound elements and recompute fronts/hdf/legs for this cabinet
           const adx = fitted.position.x - movedEl.position.x;
           const ady = fitted.position.y - movedEl.position.y;
           const adz = fitted.position.z - movedEl.position.z;
@@ -855,10 +281,8 @@ const App: React.FC = () => {
             }));
           }
         }
-        // Move bound elements and recompute fronts/hdf/legs for the moved cabinet
-        // 5. Collision push-out (same-level only, stacking-level overlaps are excluded)
+        // Collision push-out
         const pushedPos = pushOutCollisions(withFinalY.find((e) => e.id === id)!, withFinalY);
-        // 6. Clamp to board boundaries
         const clampedEl = { ...withFinalY.find((e) => e.id === id)!, position: { ...withFinalY.find((e) => e.id === id)!.position, x: pushedPos.x, z: pushedPos.z } };
         const clampedPos = clampToBoard(clampedEl);
         const withCollision = withFinalY.map((el) =>
@@ -897,7 +321,6 @@ const App: React.FC = () => {
             newY = Math.min(Math.max(minY, newY), Math.max(minY, maxY));
           }
         } else {
-          // Clamp top of element to room height
           newY = Math.min(newY, Math.max(0, roomH - el.dimensions.height));
         }
         const dy = newY - el.position.y;
@@ -922,7 +345,6 @@ const App: React.FC = () => {
         if (el.type === 'divider' && el.cabinetId) {
           const cab = prev.find((e) => e.id === el.cabinetId);
           if (!cab) return prev;
-          // Accumulate drag delta into hint (independent of snapped position)
           const currentHint = dividerYHintRef.current.get(id) ?? (el.position.y + el.dimensions.height / 2);
           const newHint = Math.max(cab.position.y + PANEL_T, Math.min(cab.position.y + cab.dimensions.height - PANEL_T, currentHint + dy));
           dividerYHintRef.current.set(id, newHint);
@@ -944,7 +366,6 @@ const App: React.FC = () => {
             newY = Math.min(Math.max(minY, newY), Math.max(minY, maxY));
           }
         } else {
-          // Clamp top of element to room height
           const roomH = boardSizeRef.current.height / 1000;
           newY = Math.min(newY, Math.max(0, roomH - el.dimensions.height));
         }
@@ -982,7 +403,7 @@ const App: React.FC = () => {
       const innerWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T);
       const shelf: BoxElement = {
         id: crypto.randomUUID(),
-        name: `Półka ${shelfCounter++}`,
+        name: `Półka ${_shelfCounter++}`,
         type: 'shelf',
         cabinetId,
         dimensions: { width: innerWidth, height: PANEL_T, depth: cab.dimensions.depth },
@@ -1005,7 +426,7 @@ const App: React.FC = () => {
       const innerWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T - 0.004);
       const drawer: BoxElement = {
         id: crypto.randomUUID(),
-        name: `Szuflada ${drawerCounter++}`,
+        name: `Szuflada ${_drawerCounter++}`,
         type: 'drawer',
         cabinetId,
         dimensions: { width: innerWidth, height: 0.145, depth: cab.dimensions.depth },
@@ -1043,14 +464,14 @@ const App: React.FC = () => {
 
       const drawerbox: BoxElement = {
         id: crypto.randomUUID(),
-        name: `Box szuflady ${drawerboxCounter++}`,
+        name: `Box szuflady ${_drawerboxCounter++}`,
         type: 'drawerbox',
         cabinetId,
         dimensions: { width: boxWidth, height: 0.4, depth },
         position: {
           x: boxX,
           y: cab.position.y + PANEL_T,
-          z: cab.position.z - 0.02, // back-aligned: 40mm shallower than cabinet
+          z: cab.position.z - 0.02,
         },
         color: cab.color,
       };
@@ -1060,7 +481,7 @@ const App: React.FC = () => {
       if (isSingle || isDouble) {
         blendas.push({
           id: crypto.randomUUID(),
-          name: `Blenda ${blendaCounter++}`,
+          name: `Blenda ${_blendaCounter++}`,
           type: 'blenda' as const,
           cabinetId,
           blendaSide: 'left' as const,
@@ -1076,7 +497,7 @@ const App: React.FC = () => {
       if (isDouble) {
         blendas.push({
           id: crypto.randomUUID(),
-          name: `Blenda ${blendaCounter++}`,
+          name: `Blenda ${_blendaCounter++}`,
           type: 'blenda' as const,
           cabinetId,
           blendaSide: 'right' as const,
@@ -1099,11 +520,11 @@ const App: React.FC = () => {
     setElements((prev) => {
       const cab = prev.find((e) => e.id === cabinetId);
       if (!cab) return prev;
-      const midX = cab.position.x; // start in the center
+      const midX = cab.position.x;
       const bounds = computeDividerBounds(cabinetId, cab.position.y + cab.dimensions.height / 2, prev);
       const divider: BoxElement = {
         id: crypto.randomUUID(),
-        name: `Przegroda ${dividerCounter++}`,
+        name: `Przegroda ${_dividerCounter++}`,
         type: 'divider',
         cabinetId,
         dimensions: { width: PANEL_T, height: bounds.height, depth: cab.dimensions.depth },
@@ -1119,11 +540,10 @@ const App: React.FC = () => {
     setElements((prev) => {
       const cab = prev.find((e) => e.id === cabinetId);
       if (!cab) return prev;
-      // Only one single front per cabinet (and no single front if double already exists)
       if (prev.some((e) => e.type === 'front' && e.cabinetId === cabinetId)) return prev;
       const front: BoxElement = computeFrontForCabinet({
         id: crypto.randomUUID(),
-        name: `Front ${frontCounter++}`,
+        name: `Front ${_frontCounter++}`,
         type: 'front',
         cabinetId,
         dimensions: { width: 0, height: 0, depth: 0 },
@@ -1131,7 +551,6 @@ const App: React.FC = () => {
         color: cab.color,
       }, cab);
       setSelectedId(cabinetId);
-      // Reset drawerbox to canonical size then shrink by 40mm on the left; add left blenda in the gap
       const drawerbox = prev.find((e) => e.type === 'drawerbox' && e.cabinetId === cabinetId);
       const blendas: BoxElement[] = [];
       let updatedPrev = prev;
@@ -1153,7 +572,7 @@ const App: React.FC = () => {
         });
         blendas.push({
           id: crypto.randomUUID(),
-          name: `Blenda ${blendaCounter++}`,
+          name: `Blenda ${_blendaCounter++}`,
           type: 'blenda' as const,
           cabinetId,
           blendaSide: 'left' as const,
@@ -1174,11 +593,10 @@ const App: React.FC = () => {
     setElements((prev) => {
       const cab = prev.find((e) => e.id === cabinetId);
       if (!cab) return prev;
-      // Only if no front exists yet
       if (prev.some((e) => e.type === 'front' && e.cabinetId === cabinetId)) return prev;
       const leftLeaf: BoxElement = computeFrontForCabinet({
         id: crypto.randomUUID(),
-        name: `Front L${frontCounter}`,
+        name: `Front L${_frontCounter}`,
         type: 'front',
         frontSide: 'left',
         cabinetId,
@@ -1188,7 +606,7 @@ const App: React.FC = () => {
       }, cab);
       const rightLeaf: BoxElement = computeFrontForCabinet({
         id: crypto.randomUUID(),
-        name: `Front R${frontCounter++}`,
+        name: `Front R${_frontCounter++}`,
         type: 'front',
         frontSide: 'right',
         cabinetId,
@@ -1197,7 +615,6 @@ const App: React.FC = () => {
         color: cab.color,
       }, cab);
       setSelectedId(cabinetId);
-      // Reset drawerbox to canonical size then shrink 80mm (40mm each side); add blendas on both sides
       const drawerbox = prev.find((e) => e.type === 'drawerbox' && e.cabinetId === cabinetId);
       const blendas: BoxElement[] = [];
       let updatedPrev = prev;
@@ -1220,7 +637,7 @@ const App: React.FC = () => {
         blendas.push(
           {
             id: crypto.randomUUID(),
-            name: `Blenda ${blendaCounter++}`,
+            name: `Blenda ${_blendaCounter++}`,
             type: 'blenda' as const,
             cabinetId,
             blendaSide: 'left' as const,
@@ -1234,7 +651,7 @@ const App: React.FC = () => {
           },
           {
             id: crypto.randomUUID(),
-            name: `Blenda ${blendaCounter++}`,
+            name: `Blenda ${_blendaCounter++}`,
             type: 'blenda' as const,
             cabinetId,
             blendaSide: 'right' as const,
@@ -1257,8 +674,7 @@ const App: React.FC = () => {
       const cab = prev.find((e) => e.id === cabinetId);
       if (!cab) return prev;
       if (prev.some((e) => e.type === 'leg' && e.cabinetId === cabinetId)) return prev;
-      const h = 0.1; // 10 cm default height
-      // Lift the cabinet (and all its bound elements) by leg height
+      const h = 0.1;
       const liftedCab = { ...cab, position: { ...cab.position, y: cab.position.y + h } };
       const updatedPrev = prev.map((e) => {
         if (e.id === cabinetId) return liftedCab;
@@ -1271,7 +687,7 @@ const App: React.FC = () => {
       const legsEl = computeLegsForCabinet(
         {
           id: crypto.randomUUID(),
-          name: `Nóżki ${legCounter++}`,
+          name: `Nóżki ${_legCounter++}`,
           type: 'leg',
           cabinetId,
           dimensions: { width: 0, height: h, depth: 0 },
@@ -1292,7 +708,7 @@ const App: React.FC = () => {
       if (prev.some((e) => e.type === 'hdf' && e.cabinetId === cabinetId)) return prev;
       const hdf: BoxElement = computeHdfForCabinet({
         id: crypto.randomUUID(),
-        name: `HDF ${hdfCounter++}`,
+        name: `HDF ${_hdfCounter++}`,
         type: 'hdf',
         cabinetId,
         dimensions: { width: 0, height: 0, depth: 0 },
@@ -1311,7 +727,7 @@ const App: React.FC = () => {
       if (prev.some((e) => e.type === 'plinth' && e.cabinetId === cabinetId)) return prev;
       const plinth: BoxElement = computePlinthForCabinet({
         id: crypto.randomUUID(),
-        name: `Cokoł ${plinthCounter++}`,
+        name: `Cokoł ${_plinthCounter++}`,
         type: 'plinth',
         cabinetId,
         dimensions: { width: 0, height: 0.1, depth: 0 },
@@ -1331,7 +747,7 @@ const App: React.FC = () => {
       const innerWidth = Math.max(0.001, cab.dimensions.width - 2 * PANEL_T);
       const rod: BoxElement = {
         id: crypto.randomUUID(),
-        name: `Drążek ${rodCounter++}`,
+        name: `Drążek ${_rodCounter++}`,
         type: 'rod',
         cabinetId,
         dimensions: { width: innerWidth, height: ROD_D, depth: ROD_D },
@@ -1349,7 +765,6 @@ const App: React.FC = () => {
 
   const handleAdd = useCallback((type: 'cabinet' | 'shelf') => {
     const raw = type === 'shelf' ? createShelf() : createBox();
-    // Spawn at a random position within the moveable board area
     const bw = boardSizeRef.current.width / 1000;
     const bd = boardSizeRef.current.depth / 1000;
     const rx = Math.max(0, (bw - raw.dimensions.width) / 2);
@@ -1379,11 +794,9 @@ const App: React.FC = () => {
         const el = prev.find((e) => e.id === id);
         const toRemove = new Set<string>([id]);
         if (el?.type === 'group') {
-          // Remove group fronts
           for (const e of prev) {
             if (e.type === 'front' && e.cabinetId === id) toRemove.add(e.id);
           }
-          // Remove member cabinets and all their children
           for (const e of prev) {
             if (e.groupId === id) {
               toRemove.add(e.id);
@@ -1393,7 +806,6 @@ const App: React.FC = () => {
             }
           }
         } else {
-          // Recursively collect all descendants (handles drawerbox→drawer nesting)
           const collectDescendants = (parentId: string) => {
             for (const e of prev) {
               if (e.cabinetId === parentId && !toRemove.has(e.id)) {
@@ -1403,13 +815,11 @@ const App: React.FC = () => {
             }
           };
           collectDescendants(id);
-          // If deleting a front: remove blendas of same cabinet AND restore drawerbox to canonical width
           if (el?.type === 'front' && el.cabinetId) {
             for (const e of prev) {
               if (e.type === 'blenda' && e.cabinetId === el.cabinetId) toRemove.add(e.id);
             }
           }
-          // If deleting a drawerbox: remove blendas of parent cabinet
           if (el?.type === 'drawerbox' && el.cabinetId) {
             for (const e of prev) {
               if (e.type === 'blenda' && e.cabinetId === el.cabinetId) toRemove.add(e.id);
@@ -1422,7 +832,6 @@ const App: React.FC = () => {
           detachedFromRef.current.delete(rid);
         });
         const filtered = prev.filter((e) => !toRemove.has(e.id));
-        // After removing a front, restore the cabinet's drawerbox to canonical size/position
         if (el?.type === 'front' && el.cabinetId) {
           const cab = filtered.find((e) => e.id === el.cabinetId);
           const dbox = filtered.find((e) => e.type === 'drawerbox' && e.cabinetId === el.cabinetId);
@@ -1447,7 +856,6 @@ const App: React.FC = () => {
 
   const handleUngroup = useCallback((groupId: string) => {
     setElements((prev) => {
-      // Remove the group element and its fronts; free the member cabinets
       const toRemove = new Set<string>([groupId]);
       for (const e of prev) {
         if (e.type === 'front' && e.cabinetId === groupId) toRemove.add(e.id);
@@ -1471,7 +879,6 @@ const App: React.FC = () => {
 
   const handleGroup = useCallback((ids: string[]) => {
     setElements((prev) => {
-      // Only group cabinets that aren't already in a group
       const validIds = ids.filter((id) => {
         const el = prev.find((e) => e.id === id);
         return el?.type === 'cabinet' && !el.groupId;
@@ -1480,7 +887,7 @@ const App: React.FC = () => {
       const groupId = crypto.randomUUID();
       const groupEl: BoxElement = {
         id: groupId,
-        name: `Grupa ${groupCounter++}`,
+        name: `Grupa ${_groupCounter++}`,
         type: 'group',
         dimensions: { width: 0, height: 0, depth: 0 },
         position: { x: 0, y: 0, z: 0 },
@@ -1502,7 +909,7 @@ const App: React.FC = () => {
       if (prev.some((e) => e.type === 'front' && e.cabinetId === groupId)) return prev;
       const front: BoxElement = computeFrontForGroup({
         id: crypto.randomUUID(),
-        name: `Front gr. ${frontCounter++}`,
+        name: `Front gr. ${_frontCounter++}`,
         type: 'front',
         cabinetId: groupId,
         dimensions: { width: 0, height: 0, depth: 0 },
@@ -1545,7 +952,6 @@ const App: React.FC = () => {
             groupId: undefined,
             position: { ...src.position, x: src.position.x + src.dimensions.width + 0.02 },
           };
-          // Clone all children bound to the source cabinet
           const children = prev.filter((el) => el.cabinetId === src.id);
           const newChildren: BoxElement[] = children.map((child) => {
             const newChild: BoxElement = {
