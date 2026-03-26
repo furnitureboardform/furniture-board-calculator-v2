@@ -420,7 +420,8 @@ export function useThreeScene(
     []
   );
 
-  const LEG_RADIUS = 0.02; // 20 mm radius (40 mm diameter leg)
+  const LEG_RADIUS = 0.02;        // 20 mm radius (40 mm diameter leg)
+  const LEG_CORNER_OFFSET = 0.03; // 30 mm inset from each cabinet edge to leg centre
 
   const rebuildLeg = useCallback(
     (parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) => {
@@ -431,18 +432,25 @@ export function useThreeScene(
         }
         parent.remove(c);
       });
-      const geo = new THREE.CylinderGeometry(LEG_RADIUS, LEG_RADIUS, element.dimensions.height, 16);
+      const { width, height, depth } = element.dimensions;
+      const geo = new THREE.CylinderGeometry(LEG_RADIUS, LEG_RADIUS, height, 16);
       const mat = new THREE.MeshStandardMaterial({
         color,
         emissive,
         roughness: 0.4,
         metalness: 0.3,
       });
-      const leg = new THREE.Mesh(geo, mat);
-      leg.castShadow = true;
-      leg.receiveShadow = true;
-      leg.userData = { elementId: element.id };
-      parent.add(leg);
+      const ox = width  / 2 - LEG_CORNER_OFFSET;
+      const oz = depth  / 2 - LEG_CORNER_OFFSET;
+      const corners: [number, number][] = [[-ox, -oz], [ox, -oz], [-ox, oz], [ox, oz]];
+      for (const [cx, cz] of corners) {
+        const leg = new THREE.Mesh(geo, mat);
+        leg.position.set(cx, 0, cz);
+        leg.castShadow = true;
+        leg.receiveShadow = true;
+        leg.userData = { elementId: element.id };
+        parent.add(leg);
+      }
     },
     []
   );

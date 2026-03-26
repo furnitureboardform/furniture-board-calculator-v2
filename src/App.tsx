@@ -3,6 +3,7 @@ import type { BoxElement, BoxDimensions } from './types';
 import { useThreeScene } from './useThreeScene';
 import ElementLibrary from './ElementLibrary';
 import PropertiesPanel from './PropertiesPanel';
+import ModelOverlay from './ModelOverlay';
 import './App.css';
 
 const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
@@ -24,8 +25,6 @@ let groupCounter = 1;
 const PANEL_T = 0.018; // panel thickness in metres (~18 mm); must match useThreeScene.ts
 const SNAP_DIST = 0.05; // side-by-side wall snap tolerance (5 cm)
 const FRONT_INSET = 0.002; // 2 mm gap on each side between front panel and cabinet edge
-const LEG_CORNER_OFFSET = 0.03; // 30 mm inset from each cabinet edge to leg center
-const LEG_D = 0.04; // leg bounding-box side (2 × 20 mm radius)
 const HDF_T = 0.003; // HDF back panel thickness 3 mm
 const HDF_INSET = 0.002; // 2 mm inset on each side of the HDF panel
 
@@ -46,19 +45,20 @@ function computeHdfForCabinet(hdf: BoxElement, cab: BoxElement): BoxElement {
   };
 }
 
-// Computes position of one leg at its assigned corner, hanging below the cabinet floor.
-function computeLegForCabinet(leg: BoxElement, cab: BoxElement): BoxElement {
-  const hw = cab.dimensions.width / 2;
-  const hd = cab.dimensions.depth / 2;
-  const isLeft  = leg.legCorner === 'FL' || leg.legCorner === 'BL';
-  const isFront = leg.legCorner === 'FL' || leg.legCorner === 'FR';
+// Computes position/dimensions of the single legs element (all 4 legs combined) for a cabinet.
+// The element stores cabinet-wide dimensions so rebuildLeg can place all 4 cylinders.
+function computeLegsForCabinet(legs: BoxElement, cab: BoxElement): BoxElement {
   return {
-    ...leg,
-    dimensions: { width: LEG_D, height: leg.dimensions.height, depth: LEG_D },
+    ...legs,
+    dimensions: {
+      width: cab.dimensions.width,
+      height: legs.dimensions.height,
+      depth: cab.dimensions.depth,
+    },
     position: {
-      x: cab.position.x + (isLeft ? -(hw - LEG_CORNER_OFFSET) : (hw - LEG_CORNER_OFFSET)),
-      z: cab.position.z + (isFront ? (hd - LEG_CORNER_OFFSET) : -(hd - LEG_CORNER_OFFSET)),
-      y: cab.position.y - leg.dimensions.height,
+      x: cab.position.x,
+      z: cab.position.z,
+      y: cab.position.y - legs.dimensions.height,
     },
   };
 }
@@ -272,7 +272,7 @@ function recomputeAllY(elements: BoxElement[], roomH = Infinity): BoxElement[] {
   for (const el of allSettled3) {
     if (el.type !== 'leg' || !el.cabinetId) continue;
     const cab = allSettled3.find((e) => e.id === el.cabinetId);
-    if (cab) resultMap.set(el.id, computeLegForCabinet(el, cab));
+    if (cab) resultMap.set(el.id, computeLegsForCabinet(el, cab));
   }
   // Recompute HDF back panel positions/dims based on updated cabinet positions
   const allSettled4 = [...resultMap.values()];
@@ -710,11 +710,8 @@ const App: React.FC = () => {
             height: Math.min(dims.height, Math.max(0.1, maxH)),
           };
         }
-        // For legs: sync height across all sibling legs of the same cabinet
         const updated = prev.map((e) => {
           if (e.id === id) return { ...e, dimensions: clampedDims };
-          if (el?.type === 'leg' && e.type === 'leg' && e.cabinetId === el.cabinetId)
-            return { ...e, dimensions: { ...e.dimensions, height: clampedDims.height } };
           return e;
         });
         return recomputeAllY(updated, boardSizeRef.current.height / 1000);
@@ -853,7 +850,7 @@ const App: React.FC = () => {
             if (el.cabinetId !== id) return el;
             if (el.type === 'front') return computeFrontForCabinet(el, fitted);
             if (el.type === 'hdf') return computeHdfForCabinet(el, fitted);
-              if (el.type === 'leg') return computeLegForCabinet(el, fitted);
+              if (el.type === 'leg') return computeLegsForCabinet(el, fitted);
               return { ...el, position: { x: el.position.x + adx, y: el.position.y + ady, z: el.position.z + adz } };
             }));
           }
@@ -876,7 +873,7 @@ const App: React.FC = () => {
           if (el.cabinetId !== id) return el;
           if (el.type === 'front') return computeFrontForCabinet(el, movedFinal2);
           if (el.type === 'hdf') return computeHdfForCabinet(el, movedFinal2);
-          if (el.type === 'leg') return computeLegForCabinet(el, movedFinal2);
+          if (el.type === 'leg') return computeLegsForCabinet(el, movedFinal2);
           if (el.type === 'plinth') return computePlinthForCabinet(el, movedFinal2, withCollision);
           return { ...el, position: { x: el.position.x + adx, y: el.position.y + ady, z: el.position.z + adz } };
         }));
@@ -959,7 +956,7 @@ const App: React.FC = () => {
             if (e.cabinetId !== id) return e;
             if (e.type === 'front') return computeFrontForCabinet(e, movedCab);
             if (e.type === 'hdf') return computeHdfForCabinet(e, movedCab);
-            if (e.type === 'leg') return computeLegForCabinet(e, movedCab);
+            if (e.type === 'leg') return computeLegsForCabinet(e, movedCab);
             if (e.type === 'plinth') return computePlinthForCabinet(e, movedCab, prev);
             return { ...e, position: { ...e.position, y: e.position.y + actualDy } };
           }));
@@ -1261,13 +1258,6 @@ const App: React.FC = () => {
       if (!cab) return prev;
       if (prev.some((e) => e.type === 'leg' && e.cabinetId === cabinetId)) return prev;
       const h = 0.1; // 10 cm default height
-      const baseName = `Nóżka ${legCounter++}`;
-      const corners: Array<{ corner: 'FL' | 'FR' | 'BL' | 'BR'; label: string }> = [
-        { corner: 'FL', label: 'PL' },
-        { corner: 'FR', label: 'PR' },
-        { corner: 'BL', label: 'TL' },
-        { corner: 'BR', label: 'TR' },
-      ];
       // Lift the cabinet (and all its bound elements) by leg height
       const liftedCab = { ...cab, position: { ...cab.position, y: cab.position.y + h } };
       const updatedPrev = prev.map((e) => {
@@ -1278,23 +1268,20 @@ const App: React.FC = () => {
         if (e.type === 'plinth') return computePlinthForCabinet(e, liftedCab, prev);
         return { ...e, position: { ...e.position, y: e.position.y + h } };
       });
-      const legs = corners.map(({ corner, label }) =>
-        computeLegForCabinet(
-          {
-            id: crypto.randomUUID(),
-            name: `${baseName}-${label}`,
-            type: 'leg',
-            cabinetId,
-            legCorner: corner,
-            dimensions: { width: LEG_D, height: h, depth: LEG_D },
-            position: { x: 0, y: 0, z: 0 },
-            color: cab.color,
-          },
-          liftedCab
-        )
+      const legsEl = computeLegsForCabinet(
+        {
+          id: crypto.randomUUID(),
+          name: `Nóżki ${legCounter++}`,
+          type: 'leg',
+          cabinetId,
+          dimensions: { width: 0, height: h, depth: 0 },
+          position: { x: 0, y: 0, z: 0 },
+          color: cab.color,
+        },
+        liftedCab
       );
       setSelectedId(cabinetId);
-      return [...updatedPrev, ...legs];
+      return [...updatedPrev, legsEl];
     });
   }, []);
 
@@ -1572,7 +1559,7 @@ const App: React.FC = () => {
             };
             if (child.type === 'front') return computeFrontForCabinet(newChild, newCab);
             if (child.type === 'hdf') return computeHdfForCabinet(newChild, newCab);
-            if (child.type === 'leg') return computeLegForCabinet(newChild, newCab);
+            if (child.type === 'leg') return computeLegsForCabinet(newChild, newCab);
             return newChild;
           });
           return [...prev, newCab, ...newChildren];
@@ -1628,7 +1615,9 @@ const App: React.FC = () => {
         />
       </aside>
 
-      <main className="viewport" ref={containerRef} />
+      <main className="viewport" ref={containerRef}>
+        <ModelOverlay elements={elements} />
+      </main>
 
       <aside className="sidebar right">
         <PropertiesPanel
