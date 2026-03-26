@@ -17,6 +17,7 @@ let hdfCounter = 1;
 let drawerCounter = 1;
 let drawerboxCounter = 1;
 let blendaCounter = 1;
+let plinthCounter = 1;
 let groupCounter = 1;
 
 // Snap / attach constants (must be declared before helpers that use them)
@@ -58,6 +59,25 @@ function computeLegForCabinet(leg: BoxElement, cab: BoxElement): BoxElement {
       x: cab.position.x + (isLeft ? -(hw - LEG_CORNER_OFFSET) : (hw - LEG_CORNER_OFFSET)),
       z: cab.position.z + (isFront ? (hd - LEG_CORNER_OFFSET) : -(hd - LEG_CORNER_OFFSET)),
       y: cab.position.y - leg.dimensions.height,
+    },
+  };
+}
+
+// Computes position/dimensions of the plinth (cokoł) at the front of the cabinet, at floor level.
+function computePlinthForCabinet(plinth: BoxElement, cab: BoxElement, allElements: BoxElement[]): BoxElement {
+  const legs = allElements.filter((e) => e.type === 'leg' && e.cabinetId === cab.id);
+  const legHeight = legs.length > 0 ? legs[0].dimensions.height : plinth.dimensions.height || 0.1;
+  return {
+    ...plinth,
+    dimensions: {
+      width: cab.dimensions.width,
+      height: legHeight,
+      depth: PANEL_T,
+    },
+    position: {
+      x: cab.position.x,
+      y: cab.position.y - legHeight,
+      z: cab.position.z + cab.dimensions.depth / 2 + PANEL_T / 2,
     },
   };
 }
@@ -179,7 +199,7 @@ function computeYForBox(box: BoxElement, allElements: BoxElement[], roomH = Infi
   let maxTop = 0;
   for (const other of allElements) {
     if (other.id === box.id) continue;
-    if (other.type === 'shelf' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf') continue;
+    if (other.type === 'shelf' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'plinth') continue;
     if (getBoxStackOverlap(box, other)) {
       maxTop = Math.max(maxTop, other.position.y + other.dimensions.height);
     }
@@ -210,7 +230,7 @@ function recomputeAllY(elements: BoxElement[], roomH = Infinity): BoxElement[] {
     let maxTop = 0;
     for (const [id, other] of resultMap) {
       if (id === box.id) continue;
-      if (other.type === 'shelf' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf') continue;
+      if (other.type === 'shelf' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'plinth') continue;
       // Only stack on boxes that were originally below (or at same level as) this box
       if ((originalY.get(id) ?? 0) <= elOriginalY + 0.001) {
         if (getBoxStackOverlap(box, other)) {
@@ -260,6 +280,13 @@ function recomputeAllY(elements: BoxElement[], roomH = Infinity): BoxElement[] {
     if (el.type !== 'hdf' || !el.cabinetId) continue;
     const cab = allSettled4.find((e) => e.id === el.cabinetId);
     if (cab) resultMap.set(el.id, computeHdfForCabinet(el, cab));
+  }
+  // Recompute plinth positions based on updated cabinet and leg positions
+  const allSettled5 = [...resultMap.values()];
+  for (const el of allSettled5) {
+    if (el.type !== 'plinth' || !el.cabinetId) continue;
+    const cab = allSettled5.find((e) => e.id === el.cabinetId);
+    if (cab) resultMap.set(el.id, computePlinthForCabinet(el, cab, allSettled5));
   }
   const settled = elements.map((el) => resultMap.get(el.id)!);
   return recomputeGroups(settled);
@@ -721,7 +748,7 @@ const App: React.FC = () => {
         const movedAfter = afterMove.find((e) => e.id === id)!;
 
         // Fronts, HDF and cabinet-bound rods/legs are always locked in XZ — block manual movement
-        if (movedEl.type === 'front' || movedEl.type === 'hdf' || (movedEl.type === 'rod' && movedEl.cabinetId) || (movedEl.type === 'leg' && movedEl.cabinetId)) return prev;
+        if (movedEl.type === 'front' || movedEl.type === 'hdf' || (movedEl.type === 'rod' && movedEl.cabinetId) || (movedEl.type === 'leg' && movedEl.cabinetId) || (movedEl.type === 'plinth' && movedEl.cabinetId)) return prev;
 
         if (movedEl.type === 'shelf' || movedEl.type === 'divider') {
           if (movedEl.cabinetId) {
@@ -850,6 +877,7 @@ const App: React.FC = () => {
           if (el.type === 'front') return computeFrontForCabinet(el, movedFinal2);
           if (el.type === 'hdf') return computeHdfForCabinet(el, movedFinal2);
           if (el.type === 'leg') return computeLegForCabinet(el, movedFinal2);
+          if (el.type === 'plinth') return computePlinthForCabinet(el, movedFinal2, withCollision);
           return { ...el, position: { x: el.position.x + adx, y: el.position.y + ady, z: el.position.z + adz } };
         }));
       });
@@ -932,6 +960,7 @@ const App: React.FC = () => {
             if (e.type === 'front') return computeFrontForCabinet(e, movedCab);
             if (e.type === 'hdf') return computeHdfForCabinet(e, movedCab);
             if (e.type === 'leg') return computeLegForCabinet(e, movedCab);
+            if (e.type === 'plinth') return computePlinthForCabinet(e, movedCab, prev);
             return { ...e, position: { ...e.position, y: e.position.y + actualDy } };
           }));
         }
@@ -1246,6 +1275,7 @@ const App: React.FC = () => {
         if (e.cabinetId !== cabinetId) return e;
         if (e.type === 'front') return computeFrontForCabinet(e, liftedCab);
         if (e.type === 'hdf') return computeHdfForCabinet(e, liftedCab);
+        if (e.type === 'plinth') return computePlinthForCabinet(e, liftedCab, prev);
         return { ...e, position: { ...e.position, y: e.position.y + h } };
       });
       const legs = corners.map(({ corner, label }) =>
@@ -1284,6 +1314,25 @@ const App: React.FC = () => {
       }, cab);
       setSelectedId(cabinetId);
       return [...prev, hdf];
+    });
+  }, []);
+
+  const handleAddPlinthToCabinet = useCallback((cabinetId: string) => {
+    setElements((prev) => {
+      const cab = prev.find((e) => e.id === cabinetId);
+      if (!cab) return prev;
+      if (prev.some((e) => e.type === 'plinth' && e.cabinetId === cabinetId)) return prev;
+      const plinth: BoxElement = computePlinthForCabinet({
+        id: crypto.randomUUID(),
+        name: `Cokoł ${plinthCounter++}`,
+        type: 'plinth',
+        cabinetId,
+        dimensions: { width: 0, height: 0.1, depth: 0 },
+        position: { x: 0, y: 0, z: 0 },
+        color: cab.color,
+      }, cab, prev);
+      setSelectedId(cabinetId);
+      return [...prev, plinth];
     });
   }, []);
 
@@ -1572,6 +1621,7 @@ const App: React.FC = () => {
           onAddRodToCabinet={handleAddRodToCabinet}
           onAddLegsToCabinet={handleAddLegsToCabinet}
           onAddHdfToCabinet={handleAddHdfToCabinet}
+          onAddPlinthToCabinet={handleAddPlinthToCabinet}
           onAddFrontToGroup={handleAddFrontToGroup}
           onUngroup={handleUngroup}
           onDelete={handleDelete}

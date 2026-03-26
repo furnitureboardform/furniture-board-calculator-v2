@@ -287,6 +287,27 @@ export function useThreeScene(
     []
   );
 
+  const rebuildPlinth = useCallback(
+    (parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) => {
+      parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
+        if (c instanceof THREE.Mesh) {
+          c.geometry.dispose();
+          (c.material as THREE.MeshStandardMaterial).dispose();
+        }
+        parent.remove(c);
+      });
+      const { width, height, depth } = element.dimensions;
+      const geo = new THREE.BoxGeometry(width, height, depth);
+      const mat = new THREE.MeshStandardMaterial({ color, emissive, roughness: 0.4, metalness: 0.05, side: THREE.DoubleSide });
+      const panel = new THREE.Mesh(geo, mat);
+      panel.castShadow = true;
+      panel.receiveShadow = true;
+      panel.userData = { elementId: element.id };
+      parent.add(panel);
+    },
+    []
+  );
+
   const rebuildDivider = useCallback(
     (parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) => {
       parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
@@ -573,6 +594,7 @@ export function useThreeScene(
         else if (element.type === 'drawer') rebuildDrawer(mesh, element, color, emissive);
         else if (element.type === 'drawerbox') rebuildDrawerbox(mesh, element, color, emissive);
         else if (element.type === 'blenda') rebuildBlenda(mesh, element, color, emissive);
+        else if (element.type === 'plinth') rebuildPlinth(mesh, element, color, emissive);
         else if (element.type === 'divider') rebuildDivider(mesh, element, color, emissive);
         else if (element.type === 'front') rebuildFront(mesh, element, emissive);
         else if (element.type === 'hdf') rebuildHdf(mesh, element, emissive);
@@ -598,6 +620,7 @@ export function useThreeScene(
         else if (element.type === 'drawer') rebuildDrawer(mesh, element, color, emissive);
         else if (element.type === 'drawerbox') rebuildDrawerbox(mesh, element, color, emissive);
         else if (element.type === 'blenda') rebuildBlenda(mesh, element, color, emissive);
+        else if (element.type === 'plinth') rebuildPlinth(mesh, element, color, emissive);
         else if (element.type === 'divider') rebuildDivider(mesh, element, color, emissive);
         else if (element.type === 'front') rebuildFront(mesh, element, emissive);
         else if (element.type === 'hdf') rebuildHdf(mesh, element, emissive);

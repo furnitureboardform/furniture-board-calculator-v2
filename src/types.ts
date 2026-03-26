@@ -7,7 +7,7 @@ export interface BoxDimensions {
 export interface BoxElement {
   id: string;
   name: string;
-  type: 'cabinet' | 'shelf' | 'drawer' | 'drawerbox' | 'divider' | 'front' | 'rod' | 'leg' | 'hdf' | 'blenda' | 'group';
+  type: 'cabinet' | 'shelf' | 'drawer' | 'drawerbox' | 'divider' | 'front' | 'rod' | 'leg' | 'hdf' | 'blenda' | 'plinth' | 'group';
   cabinetId?: string; // if set, element is locked inside this cabinet (or group for groupFront)
   groupId?: string;   // for cabinets: which group they belong to
   frontSide?: 'left' | 'right'; // only for double-door fronts

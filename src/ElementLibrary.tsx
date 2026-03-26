@@ -58,6 +58,7 @@ interface Props {
   onAddRodToCabinet: (cabinetId: string) => void;
   onAddLegsToCabinet: (cabinetId: string) => void;
   onAddHdfToCabinet: (cabinetId: string) => void;
+  onAddPlinthToCabinet: (cabinetId: string) => void;
   onAddFrontToGroup: (groupId: string) => void;
   onUngroup: (groupId: string) => void;
   onDelete: (id: string) => void;
@@ -69,7 +70,7 @@ const ElementLibrary: React.FC<Props> = ({
   onSelect, onMultiSelectToggle, onGroup, onAdd,
   onAddShelfToCabinet, onAddDrawerToCabinet, onAddDrawerboxToCabinet, onAddDividerToCabinet,
   onAddFrontToCabinet, onAddDoubleFrontToCabinet,
-  onAddRodToCabinet, onAddLegsToCabinet, onAddHdfToCabinet,
+  onAddRodToCabinet, onAddLegsToCabinet, onAddHdfToCabinet, onAddPlinthToCabinet,
   onAddFrontToGroup, onUngroup, onDelete,
 }) => {
   const [draftWidth, setDraftWidth] = useState(String(boardSize.width));
@@ -259,6 +260,13 @@ const ElementLibrary: React.FC<Props> = ({
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
                 <span className="element-name" style={{ color: '#6060a0' }}>Dodaj nóżki</span>
+              </li>
+            )}
+            {!elements.some((e) => e.type === 'plinth' && e.cabinetId === cab.id) && (
+              <li className="element-item element-item--add" onClick={() => onAddPlinthToCabinet(cab.id)}>
+                <span className="element-indent-line" />
+                <span className="element-add-icon">＋</span>
+                <span className="element-name" style={{ color: '#6060a0' }}>Dodaj cokoł</span>
               </li>
             )}
             {!elements.some((e) => e.type === 'hdf' && e.cabinetId === cab.id) && (
