@@ -343,6 +343,23 @@ const App: React.FC = () => {
     []
   );
 
+  const handleDividerXChange = useCallback(
+    (id: string, x: number) => {
+      setElements((prev) => {
+        const el = prev.find((e) => e.id === id)!;
+        if (!el.cabinetId) return prev;
+        const cab = prev.find((e) => e.id === el.cabinetId)!;
+        const halfInner = (cab.dimensions.width - 2 * PANEL_T) / 2 - PANEL_T / 2;
+        const clampedX = Math.max(cab.position.x - halfInner, Math.min(cab.position.x + halfInner, x));
+        const moved = { ...el, position: { ...el.position, x: clampedX } };
+        const intermediate = prev.map((e) => (e.id === id ? moved : e));
+        const bounds = computeDividerBounds(el.cabinetId, moved.position.y + moved.dimensions.height / 2, intermediate);
+        return prev.map((e) => e.id === id ? { ...moved, position: { ...moved.position, y: bounds.y }, dimensions: { ...moved.dimensions, height: bounds.height } } : e);
+      });
+    },
+    []
+  );
+
   const handleYMove = useCallback(
     (id: string, dy: number) => {
       setElements((prev) => {
@@ -1064,7 +1081,9 @@ const App: React.FC = () => {
       <aside className="sidebar right">
         <PropertiesPanel
           element={selectedElement}
+          elements={elements}
           onChange={handleDimensionInput}
+          onDividerXChange={handleDividerXChange}
           onYChange={handleYChange}
           hasFront={selectedCabHasFront}
           onOpenFrontsChange={(open) => selectedElement && handleOpenFrontsChange(selectedElement.id, open)}

@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import type { BoxElement, BoxDimensions } from './types';
+import { PANEL_T } from './constants';
 import './PropertiesPanel.css';
 
 interface Props {
   element: BoxElement | null;
+  elements?: BoxElement[];
   onChange: (id: string, dims: BoxDimensions) => void;
   onYChange?: (id: string, y: number) => void;
+  onDividerXChange?: (id: string, x: number) => void;
   hasFront?: boolean;
   onOpenFrontsChange?: (open: boolean) => void;
   onHasBottomPanelChange?: (has: boolean) => void;
@@ -17,10 +20,14 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, onChange, onYChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange }) => {
   // Local draft strings so the user can type freely
   const [drafts, setDrafts] = useState<Record<DimKey, string>>({ width: '', height: '', depth: '' });
   const [yDraft, setYDraft] = useState('');
+  const [distLeftDraft, setDistLeftDraft] = useState('');
+  const [distRightDraft, setDistRightDraft] = useState('');
+
+  const getDividerCab = () => element?.type === 'divider' ? elements?.find((e) => e.id === element.cabinetId) : undefined;
 
   // Sync drafts when element changes (different selection or external update)
   useEffect(() => {
@@ -31,7 +38,17 @@ const PropertiesPanel: React.FC<Props> = ({ element, onChange, onYChange, hasFro
       depth: toMm(element.dimensions.depth),
     });
     setYDraft(toMm(element.position.y));
-  }, [element?.id, element?.dimensions.width, element?.dimensions.height, element?.dimensions.depth, element?.position.y]);
+    if (element.type === 'divider') {
+      const cab = getDividerCab();
+      if (cab) {
+        const innerLeft = cab.position.x - cab.dimensions.width / 2 + PANEL_T;
+        const innerRight = cab.position.x + cab.dimensions.width / 2 - PANEL_T;
+        setDistLeftDraft(Math.round((element.position.x - element.dimensions.width / 2 - innerLeft) * 1000).toString());
+        setDistRightDraft(Math.round((innerRight - element.position.x - element.dimensions.width / 2) * 1000).toString());
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [element?.id, element?.dimensions.width, element?.dimensions.height, element?.dimensions.depth, element?.position.y, element?.position.x]);
 
   if (!element) {
     return (
@@ -105,6 +122,59 @@ const PropertiesPanel: React.FC<Props> = ({ element, onChange, onYChange, hasFro
       ) : (
         <div className="properties-hint">Przeciągnij uchwyty na modelu lub wpisz wartości</div>
       )}
+
+      {element.type === 'divider' && (() => {
+        const cab = getDividerCab();
+        if (!cab) return null;
+        const innerLeft = cab.position.x - cab.dimensions.width / 2 + PANEL_T;
+        const innerRight = cab.position.x + cab.dimensions.width / 2 - PANEL_T;
+        const commitDistLeft = () => {
+          const mm = parseFloat(distLeftDraft);
+          if (isNaN(mm)) { setDistLeftDraft(Math.round((element.position.x - element.dimensions.width / 2 - innerLeft) * 1000).toString()); return; }
+          const newX = innerLeft + mm / 1000 + element.dimensions.width / 2;
+          onDividerXChange?.(element.id, newX);
+        };
+        const commitDistRight = () => {
+          const mm = parseFloat(distRightDraft);
+          if (isNaN(mm)) { setDistRightDraft(Math.round((innerRight - element.position.x - element.dimensions.width / 2) * 1000).toString()); return; }
+          const newX = innerRight - mm / 1000 - element.dimensions.width / 2;
+          onDividerXChange?.(element.id, newX);
+        };
+        return (
+          <>
+            <div className="prop-divider" />
+            <div className="prop-row">
+              <label className="prop-label" style={{ color: '#ffaa44' }}>Od lewej</label>
+              <input
+                className="prop-input"
+                type="number"
+                min={0}
+                step={1}
+                value={distLeftDraft}
+                onChange={(e) => setDistLeftDraft(e.target.value)}
+                onBlur={commitDistLeft}
+                onKeyDown={(e) => { if (e.key === 'Enter') { commitDistLeft(); (e.target as HTMLInputElement).blur(); } }}
+              />
+              <span className="prop-unit">mm</span>
+            </div>
+            <div className="prop-row">
+              <label className="prop-label" style={{ color: '#ffaa44' }}>Od prawej</label>
+              <input
+                className="prop-input"
+                type="number"
+                min={0}
+                step={1}
+                value={distRightDraft}
+                onChange={(e) => setDistRightDraft(e.target.value)}
+                onBlur={commitDistRight}
+                onKeyDown={(e) => { if (e.key === 'Enter') { commitDistRight(); (e.target as HTMLInputElement).blur(); } }}
+              />
+              <span className="prop-unit">mm</span>
+            </div>
+            <div className="prop-divider" />
+          </>
+        );
+      })()}
 
       {element.type === 'drawerbox' && onHasBottomPanelChange && (
         <>
