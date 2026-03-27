@@ -948,6 +948,15 @@ const App: React.FC = () => {
     setElements((prev) => prev.map((e) => e.id === drawerboxId ? { ...e, hasBottomPanel: has } : e));
   }, []);
 
+  const handleClearAll = useCallback(() => {
+    dividerYHintRef.current.clear();
+    dragDeltaRef.current.clear();
+    detachedFromRef.current.clear();
+    setElements([]);
+    setSelectedId(null);
+    setMultiSelectedIds([]);
+  }, []);
+
   // Delete selected element with keyboard Delete key (skip when an input is focused)
   React.useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -1038,6 +1047,7 @@ const App: React.FC = () => {
           onAddFrontToGroup={handleAddFrontToGroup}
           onUngroup={handleUngroup}
           onDelete={handleDelete}
+          onClearAll={handleClearAll}
         />
       </aside>
 

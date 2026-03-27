@@ -62,7 +62,20 @@ interface Props {
   onAddFrontToGroup: (groupId: string) => void;
   onUngroup: (groupId: string) => void;
   onDelete: (id: string) => void;
+  onClearAll: () => void;
 }
+
+const ClearAllConfirm: React.FC<{ onConfirm: () => void; onCancel: () => void }> = ({ onConfirm, onCancel }) => (
+  <div className="clear-all-overlay" onClick={onCancel}>
+    <div className="clear-all-dialog" onClick={(e) => e.stopPropagation()}>
+      <p>Usunąć wszystkie elementy z planszy?</p>
+      <div className="clear-all-actions">
+        <button className="clear-all-cancel" onClick={onCancel}>Anuluj</button>
+        <button className="clear-all-confirm" onClick={onConfirm}>Usuń wszystko</button>
+      </div>
+    </div>
+  </div>
+);
 
 const ElementLibrary: React.FC<Props> = ({
   elements, selectedId, multiSelectedIds,
@@ -71,8 +84,9 @@ const ElementLibrary: React.FC<Props> = ({
   onAddShelfToCabinet, onAddDrawerToCabinet, onAddDrawerboxToCabinet, onAddDividerToCabinet,
   onAddFrontToCabinet, onAddDoubleFrontToCabinet,
   onAddRodToCabinet, onAddLegsToCabinet, onAddHdfToCabinet, onAddPlinthToCabinet,
-  onAddFrontToGroup, onUngroup, onDelete,
+  onAddFrontToGroup, onUngroup, onDelete, onClearAll,
 }) => {
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [draftWidth, setDraftWidth] = useState(String(boardSize.width));
   const [draftDepth, setDraftDepth] = useState(String(boardSize.depth));
   const [draftHeight, setDraftHeight] = useState(String(boardSize.height));
@@ -341,6 +355,15 @@ const ElementLibrary: React.FC<Props> = ({
           <span>mm</span>
         </label>
       </div>
+      <button className="clear-all-btn" onClick={() => setShowClearConfirm(true)} title="Usuń wszystkie elementy z planszy">
+        Wyczyść planszę
+      </button>
+      {showClearConfirm && (
+        <ClearAllConfirm
+          onConfirm={() => { onClearAll(); setShowClearConfirm(false); }}
+          onCancel={() => setShowClearConfirm(false)}
+        />
+      )}
       <div className="lib-divider" />
 
       {/* Catalog */}
