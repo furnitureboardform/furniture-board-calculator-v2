@@ -60,6 +60,7 @@ interface Props {
   onAddHdfToCabinet: (cabinetId: string) => void;
   onAddPlinthToCabinet: (cabinetId: string) => void;
   onAddFrontToGroup: (groupId: string) => void;
+  onAddDoubleFrontToGroup: (groupId: string) => void;
   onUngroup: (groupId: string) => void;
   onDelete: (id: string) => void;
   onClearAll: () => void;
@@ -84,7 +85,7 @@ const ElementLibrary: React.FC<Props> = ({
   onAddShelfToCabinet, onAddDrawerToCabinet, onAddDrawerboxToCabinet, onAddDividerToCabinet,
   onAddFrontToCabinet, onAddDoubleFrontToCabinet,
   onAddRodToCabinet, onAddLegsToCabinet, onAddHdfToCabinet, onAddPlinthToCabinet,
-  onAddFrontToGroup, onUngroup, onDelete, onClearAll,
+  onAddFrontToGroup, onAddDoubleFrontToGroup, onUngroup, onDelete, onClearAll,
 }) => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [draftWidth, setDraftWidth] = useState(String(boardSize.width));
@@ -432,11 +433,18 @@ const ElementLibrary: React.FC<Props> = ({
                   {groupFronts.map((f) => renderItem(f, true))}
                   {members.map((cab) => renderCabinet(cab, true))}
                   {!groupFronts.length && (
-                    <li className="element-item element-item--add" onClick={() => onAddFrontToGroup(grp.id)}>
-                      <span className="element-indent-line" />
-                      <span className="element-add-icon">＋</span>
-                      <span className="element-name" style={{ color: '#6060a0' }}>Dodaj front grupy</span>
-                    </li>
+                    <>
+                      <li className="element-item element-item--add" onClick={() => onAddFrontToGroup(grp.id)}>
+                        <span className="element-indent-line" />
+                        <span className="element-add-icon">＋</span>
+                        <span className="element-name" style={{ color: '#6060a0' }}>Dodaj front grupy</span>
+                      </li>
+                      <li className="element-item element-item--add" onClick={() => onAddDoubleFrontToGroup(grp.id)}>
+                        <span className="element-indent-line" />
+                        <span className="element-add-icon">＋</span>
+                        <span className="element-name" style={{ color: '#6060a0' }}>Dodaj podwójny front grupy</span>
+                      </li>
+                    </>
                   )}
                 </>
               )}

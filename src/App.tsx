@@ -962,6 +962,35 @@ const App: React.FC = () => {
     });
   }, []);
 
+  const handleAddDoubleFrontToGroup = useCallback((groupId: string) => {
+    setElements((prev) => {
+      const group = prev.find((e) => e.id === groupId && e.type === 'group');
+      if (!group) return prev;
+      if (prev.some((e) => e.type === 'front' && e.cabinetId === groupId)) return prev;
+      const leftLeaf: BoxElement = computeFrontForGroup({
+        id: crypto.randomUUID(),
+        name: `Front gr. L${_frontCounter}`,
+        type: 'front',
+        frontSide: 'left',
+        cabinetId: groupId,
+        dimensions: { width: 0, height: 0, depth: 0 },
+        position: { x: 0, y: 0, z: 0 },
+        color: group.color,
+      }, prev);
+      const rightLeaf: BoxElement = computeFrontForGroup({
+        id: crypto.randomUUID(),
+        name: `Front gr. R${_frontCounter++}`,
+        type: 'front',
+        frontSide: 'right',
+        cabinetId: groupId,
+        dimensions: { width: 0, height: 0, depth: 0 },
+        position: { x: 0, y: 0, z: 0 },
+        color: group.color,
+      }, prev);
+      return [...prev, leftLeaf, rightLeaf];
+    });
+  }, []);
+
   const handleOpenFrontsChange = useCallback((cabinetId: string, open: boolean) => {
     setElements((prev) => prev.map((e) => e.id === cabinetId ? { ...e, openFronts: open } : e));
   }, []);
@@ -1067,6 +1096,7 @@ const App: React.FC = () => {
           onAddHdfToCabinet={handleAddHdfToCabinet}
           onAddPlinthToCabinet={handleAddPlinthToCabinet}
           onAddFrontToGroup={handleAddFrontToGroup}
+          onAddDoubleFrontToGroup={handleAddDoubleFrontToGroup}
           onUngroup={handleUngroup}
           onDelete={handleDelete}
           onClearAll={handleClearAll}

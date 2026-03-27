@@ -96,18 +96,30 @@ export function computeFrontForGroup(front: BoxElement, allElements: BoxElement[
   const minY = Math.min(...members.map((c) => c.position.y));
   const maxY = Math.max(...members.map((c) => c.position.y + c.dimensions.height));
   const maxFaceZ = Math.max(...members.map((c) => c.position.z + c.dimensions.depth / 2));
+  const totalW = maxX - minX;
+  const fullH = Math.max(0.001, (maxY - minY) - 2 * FRONT_INSET);
+  const centerX = (minX + maxX) / 2;
+  const z = maxFaceZ + PANEL_T / 2;
+  if (front.frontSide === 'left' || front.frontSide === 'right') {
+    const leafW = Math.max(0.001, totalW / 2 - 2 * FRONT_INSET);
+    return {
+      ...front,
+      dimensions: { width: leafW, height: fullH, depth: PANEL_T },
+      position: {
+        x: front.frontSide === 'left' ? centerX - totalW / 4 : centerX + totalW / 4,
+        y: minY + FRONT_INSET,
+        z,
+      },
+    };
+  }
   return {
     ...front,
     dimensions: {
-      width: Math.max(0.001, (maxX - minX) - 2 * FRONT_INSET),
-      height: Math.max(0.001, (maxY - minY) - 2 * FRONT_INSET),
+      width: Math.max(0.001, totalW - 2 * FRONT_INSET),
+      height: fullH,
       depth: PANEL_T,
     },
-    position: {
-      x: (minX + maxX) / 2,
-      y: minY + FRONT_INSET,
-      z: maxFaceZ + PANEL_T / 2,
-    },
+    position: { x: centerX, y: minY + FRONT_INSET, z },
   };
 }
 
