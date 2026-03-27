@@ -5,6 +5,7 @@ import {
   computeLegsForCabinet,
   computePlinthForCabinet,
   computeFrontForCabinet,
+  computeMaskowanicaForCabinet,
   recomputeGroups,
 } from './computeElements';
 
@@ -28,7 +29,7 @@ export function computeYForBox(box: BoxElement, allElements: BoxElement[], roomH
   let maxTop = 0;
   for (const other of allElements) {
     if (other.id === box.id) continue;
-    if (other.type === 'shelf' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'plinth') continue;
+    if (other.type === 'shelf' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'plinth' || other.type === 'maskowanica') continue;
     if (getBoxStackOverlap(box, other)) {
       maxTop = Math.max(maxTop, other.position.y + other.dimensions.height);
     }
@@ -124,12 +125,12 @@ export function recomputeAllY(elements: BoxElement[], roomH = Infinity): BoxElem
   );
   for (const el of ordered) {
     const box = resultMap.get(el.id)!;
-    if (box.type === 'shelf' || box.type === 'drawer' || box.type === 'drawerbox' || box.type === 'blenda' || box.type === 'divider' || box.type === 'front' || box.type === 'rod' || box.type === 'leg' || box.type === 'hdf') continue;
+    if (box.type === 'shelf' || box.type === 'drawer' || box.type === 'drawerbox' || box.type === 'blenda' || box.type === 'divider' || box.type === 'front' || box.type === 'rod' || box.type === 'leg' || box.type === 'hdf' || box.type === 'maskowanica') continue;
     const elOriginalY = originalY.get(el.id) ?? 0;
     let maxTop = 0;
     for (const [id, other] of resultMap) {
       if (id === box.id) continue;
-      if (other.type === 'shelf' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'plinth') continue;
+      if (other.type === 'shelf' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'plinth' || other.type === 'maskowanica') continue;
       if ((originalY.get(id) ?? 0) <= elOriginalY + 0.001) {
         if (getBoxStackOverlap(box, other)) {
           maxTop = Math.max(maxTop, other.position.y + other.dimensions.height);
@@ -183,6 +184,13 @@ export function recomputeAllY(elements: BoxElement[], roomH = Infinity): BoxElem
     if (el.type !== 'plinth' || !el.cabinetId) continue;
     const cab = allSettled5.find((e) => e.id === el.cabinetId);
     if (cab) resultMap.set(el.id, computePlinthForCabinet(el, cab, allSettled5));
+  }
+  // Recompute maskowanica positions
+  const allSettled6 = [...resultMap.values()];
+  for (const el of allSettled6) {
+    if (el.type !== 'maskowanica' || !el.cabinetId) continue;
+    const cab = allSettled6.find((e) => e.id === el.cabinetId && e.type === 'cabinet');
+    if (cab) resultMap.set(el.id, computeMaskowanicaForCabinet(el, cab, allSettled6));
   }
   const settled = elements.map((el) => resultMap.get(el.id)!);
   return recomputeGroups(settled);

@@ -7,6 +7,8 @@ import {
   computePlinthForCabinet,
   computeFrontForCabinet,
   computeFrontForGroup,
+  computeMaskowanicaForCabinet,
+  computeMaskowanicaForGroup,
   recomputeGroups,
 } from './computeElements';
 import {
@@ -36,6 +38,7 @@ import {
   drawerboxCounter,
   blendaCounter,
   plinthCounter,
+  maskownicaCounter,
   groupCounter,
 } from './factories';
 import { useThreeScene } from './useThreeScene';
@@ -56,6 +59,7 @@ let _drawerCounter = drawerCounter;
 let _drawerboxCounter = drawerboxCounter;
 let _blendaCounter = blendaCounter;
 let _plinthCounter = plinthCounter;
+let _maskownicaCounter = maskownicaCounter;
 let _groupCounter = groupCounter;
 
 const App: React.FC = () => {
@@ -184,7 +188,7 @@ const App: React.FC = () => {
         const movedAfter = afterMove.find((e) => e.id === id)!;
 
         // Fronts, HDF and cabinet-bound rods/legs are always locked in XZ
-        if (movedEl.type === 'front' || movedEl.type === 'hdf' || (movedEl.type === 'rod' && movedEl.cabinetId) || (movedEl.type === 'leg' && movedEl.cabinetId) || (movedEl.type === 'plinth' && movedEl.cabinetId)) return prev;
+        if (movedEl.type === 'front' || movedEl.type === 'hdf' || (movedEl.type === 'rod' && movedEl.cabinetId) || (movedEl.type === 'leg' && movedEl.cabinetId) || (movedEl.type === 'plinth' && movedEl.cabinetId) || (movedEl.type === 'maskowanica' && movedEl.cabinetId)) return prev;
 
         if (movedEl.type === 'shelf' || movedEl.type === 'divider') {
           if (movedEl.cabinetId) {
@@ -283,6 +287,7 @@ const App: React.FC = () => {
             if (el.type === 'front') return computeFrontForCabinet(el, fitted);
             if (el.type === 'hdf') return computeHdfForCabinet(el, fitted);
               if (el.type === 'leg') return computeLegsForCabinet(el, fitted);
+              if (el.type === 'maskowanica') return computeMaskowanicaForCabinet(el, fitted, withFitted);
               return { ...el, position: { x: el.position.x + adx, y: el.position.y + ady, z: el.position.z + adz } };
             }));
           }
@@ -305,6 +310,7 @@ const App: React.FC = () => {
           if (el.type === 'hdf') return computeHdfForCabinet(el, movedFinal2);
           if (el.type === 'leg') return computeLegsForCabinet(el, movedFinal2);
           if (el.type === 'plinth') return computePlinthForCabinet(el, movedFinal2, withCollision);
+          if (el.type === 'maskowanica') return computeMaskowanicaForCabinet(el, movedFinal2, withCollision);
           return { ...el, position: { x: el.position.x + adx, y: el.position.y + ady, z: el.position.z + adz } };
         }));
       });
@@ -402,6 +408,7 @@ const App: React.FC = () => {
             if (e.type === 'hdf') return computeHdfForCabinet(e, movedCab);
             if (e.type === 'leg') return computeLegsForCabinet(e, movedCab);
             if (e.type === 'plinth') return computePlinthForCabinet(e, movedCab, prev);
+            if (e.type === 'maskowanica') return computeMaskowanicaForCabinet(e, movedCab, prev);
             return { ...e, position: { ...e.position, y: e.position.y + actualDy } };
           }));
         }
@@ -719,8 +726,13 @@ const App: React.FC = () => {
         },
         liftedCab
       );
+      const withLeg = [...updatedPrev, legsEl];
       setSelectedId(cabinetId);
-      return [...updatedPrev, legsEl];
+      return withLeg.map((e) =>
+        e.type === 'maskowanica' && e.cabinetId === cabinetId
+          ? computeMaskowanicaForCabinet(e, liftedCab, withLeg)
+          : e
+      );
     });
   }, []);
 
@@ -759,6 +771,45 @@ const App: React.FC = () => {
       }, cab, prev);
       setSelectedId(cabinetId);
       return [...prev, plinth];
+    });
+  }, []);
+
+  const handleAddMaskowanicaToCabinet = useCallback((cabinetId: string, side: 'left' | 'right') => {
+    setElements((prev) => {
+      const cab = prev.find((e) => e.id === cabinetId);
+      if (!cab) return prev;
+      if (prev.some((e) => e.type === 'maskowanica' && e.cabinetId === cabinetId && e.maskownicaSide === side)) return prev;
+      const mask: BoxElement = computeMaskowanicaForCabinet({
+        id: crypto.randomUUID(),
+        name: `Maskowanica ${side === 'left' ? 'L' : 'P'}${_maskownicaCounter++}`,
+        type: 'maskowanica',
+        cabinetId,
+        maskownicaSide: side,
+        dimensions: { width: 0, height: 0, depth: 0 },
+        position: { x: 0, y: 0, z: 0 },
+        color: cab.color,
+      }, cab, prev);
+      setSelectedId(cabinetId);
+      return [...prev, mask];
+    });
+  }, []);
+
+  const handleAddMaskowanicaToGroup = useCallback((groupId: string, side: 'left' | 'right') => {
+    setElements((prev) => {
+      const group = prev.find((e) => e.id === groupId && e.type === 'group');
+      if (!group) return prev;
+      if (prev.some((e) => e.type === 'maskowanica' && e.cabinetId === groupId && e.maskownicaSide === side)) return prev;
+      const mask: BoxElement = computeMaskowanicaForGroup({
+        id: crypto.randomUUID(),
+        name: `Maskowanica gr. ${side === 'left' ? 'L' : 'P'}${_maskownicaCounter++}`,
+        type: 'maskowanica',
+        cabinetId: groupId,
+        maskownicaSide: side,
+        dimensions: { width: 0, height: 0, depth: 0 },
+        position: { x: 0, y: 0, z: 0 },
+        color: group.color,
+      }, prev);
+      return [...prev, mask];
     });
   }, []);
 
@@ -819,6 +870,7 @@ const App: React.FC = () => {
         if (el?.type === 'group') {
           for (const e of prev) {
             if (e.type === 'front' && e.cabinetId === id) toRemove.add(e.id);
+            if (e.type === 'maskowanica' && e.cabinetId === id) toRemove.add(e.id);
           }
           for (const e of prev) {
             if (e.groupId === id) {
@@ -883,6 +935,7 @@ const App: React.FC = () => {
                 if (e.type === 'front') return computeFrontForCabinet(lowered, loweredCab);
                 if (e.type === 'hdf') return computeHdfForCabinet(lowered, loweredCab);
                 if (e.type === 'plinth') return computePlinthForCabinet(lowered, loweredCab, filtered);
+                if (e.type === 'maskowanica') return computeMaskowanicaForCabinet(e, loweredCab, filtered);
                 return lowered;
               }
               return e;
@@ -901,6 +954,7 @@ const App: React.FC = () => {
       const toRemove = new Set<string>([groupId]);
       for (const e of prev) {
         if (e.type === 'front' && e.cabinetId === groupId) toRemove.add(e.id);
+        if (e.type === 'maskowanica' && e.cabinetId === groupId) toRemove.add(e.id);
       }
       return prev
         .filter((e) => !toRemove.has(e.id))
@@ -1048,7 +1102,11 @@ const App: React.FC = () => {
             if (child.type === 'leg') return computeLegsForCabinet(newChild, newCab);
             return newChild;
           });
-          return [...prev, newCab, ...newChildren];
+          const allWithNew = [...prev, newCab, ...newChildren];
+          const finalChildren = newChildren.map((c) =>
+            c.type === 'maskowanica' ? computeMaskowanicaForCabinet(c, newCab, allWithNew) : c
+          );
+          return [...prev, newCab, ...finalChildren];
         });
         return;
       }
@@ -1099,6 +1157,8 @@ const App: React.FC = () => {
           onAddPlinthToCabinet={handleAddPlinthToCabinet}
           onAddFrontToGroup={handleAddFrontToGroup}
           onAddDoubleFrontToGroup={handleAddDoubleFrontToGroup}
+          onAddMaskowanicaToCabinet={handleAddMaskowanicaToCabinet}
+          onAddMaskowanicaToGroup={handleAddMaskowanicaToGroup}
           onUngroup={handleUngroup}
           onDelete={handleDelete}
           onClearAll={handleClearAll}

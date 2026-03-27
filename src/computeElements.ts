@@ -123,6 +123,58 @@ export function computeFrontForGroup(front: BoxElement, allElements: BoxElement[
   };
 }
 
+const MASK_FRONT_EXT = PANEL_T + 0.002; // 18 mm drzwi + 2 mm szpara
+const MASK_BACK_EXT  = HDF_T;            // 3 mm płyta HDF
+
+/** Computes position/dimensions of a maskowanica (side cover panel) bound to a cabinet. */
+export function computeMaskowanicaForCabinet(mask: BoxElement, cab: BoxElement, allElements: BoxElement[]): BoxElement {
+  const legs = allElements.find((e) => e.type === 'leg' && e.cabinetId === cab.id);
+  const legH = legs ? legs.dimensions.height : 0;
+  const totalH = cab.dimensions.height + legH;
+  const yPos = cab.position.y - legH;
+  const xPos = mask.maskownicaSide === 'left'
+    ? cab.position.x - cab.dimensions.width / 2 - PANEL_T / 2
+    : cab.position.x + cab.dimensions.width / 2 + PANEL_T / 2;
+  const totalDepth = cab.dimensions.depth + MASK_FRONT_EXT + MASK_BACK_EXT;
+  const zPos = cab.position.z + (MASK_FRONT_EXT - MASK_BACK_EXT) / 2;
+  return {
+    ...mask,
+    dimensions: { width: PANEL_T, height: totalH, depth: totalDepth },
+    position: { x: xPos, y: yPos, z: zPos },
+  };
+}
+
+/** Computes position/dimensions of a maskowanica spanning all cabinets in a group. */
+export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxElement[]): BoxElement {
+  const group = allElements.find((e) => e.id === mask.cabinetId);
+  if (!group) return mask;
+  const members = allElements.filter((e) => e.groupId === group.id && e.type === 'cabinet');
+  if (members.length === 0) return mask;
+  const minX = Math.min(...members.map((c) => c.position.x - c.dimensions.width / 2));
+  const maxX = Math.max(...members.map((c) => c.position.x + c.dimensions.width / 2));
+  const maxFaceZ = Math.max(...members.map((c) => c.position.z + c.dimensions.depth / 2));
+  const minBackZ = Math.min(...members.map((c) => c.position.z - c.dimensions.depth / 2));
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const cab of members) {
+    const legs = allElements.find((e) => e.type === 'leg' && e.cabinetId === cab.id);
+    const legH = legs ? legs.dimensions.height : 0;
+    minY = Math.min(minY, cab.position.y - legH);
+    maxY = Math.max(maxY, cab.position.y + cab.dimensions.height);
+  }
+  const totalH = Math.max(0.001, maxY - minY);
+  const totalDepth = (maxFaceZ - minBackZ) + MASK_FRONT_EXT + MASK_BACK_EXT;
+  const zPos = (maxFaceZ + MASK_FRONT_EXT + minBackZ - MASK_BACK_EXT) / 2;
+  const xPos = mask.maskownicaSide === 'left'
+    ? minX - PANEL_T / 2
+    : maxX + PANEL_T / 2;
+  return {
+    ...mask,
+    dimensions: { width: PANEL_T, height: totalH, depth: totalDepth },
+    position: { x: xPos, y: minY, z: zPos },
+  };
+}
+
 /** Recompute the bounds of a group element from its member cabinets. */
 export function computeGroupBounds(group: BoxElement, allElements: BoxElement[]): BoxElement {
   const members = allElements.filter((e) => e.groupId === group.id && e.type === 'cabinet');
@@ -140,7 +192,7 @@ export function computeGroupBounds(group: BoxElement, allElements: BoxElement[])
   };
 }
 
-/** After any mutation, resync all groups and their fronts. */
+/** After any mutation, resync all groups and their fronts and maskowanice. */
 export function recomputeGroups(elements: BoxElement[]): BoxElement[] {
   const result = elements.map((e) => {
     if (e.type === 'group') return computeGroupBounds(e, elements);
@@ -153,5 +205,12 @@ export function recomputeGroups(elements: BoxElement[]): BoxElement[] {
     }
     return e;
   });
-  return result2;
+  const result3 = result2.map((e) => {
+    if (e.type === 'maskowanica' && e.cabinetId) {
+      const linked = result2.find((g) => g.id === e.cabinetId);
+      if (linked?.type === 'group') return computeMaskowanicaForGroup(e, result2);
+    }
+    return e;
+  });
+  return result3;
 }

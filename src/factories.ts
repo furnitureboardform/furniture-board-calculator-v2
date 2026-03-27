@@ -13,6 +13,7 @@ export let drawerCounter = 1;
 export let drawerboxCounter = 1;
 export let blendaCounter = 1;
 export let plinthCounter = 1;
+export let maskownicaCounter = 1;
 export let groupCounter = 1;
 
 export function nextColor(): string {

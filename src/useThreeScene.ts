@@ -14,6 +14,7 @@ import {
   rebuildHdf,
   rebuildRod,
   rebuildLeg,
+  rebuildMaskowanica,
 } from './builders';
 
 interface UseThreeSceneOptions {
@@ -141,6 +142,7 @@ export function useThreeScene(
       else if (element.type === 'hdf') rebuildHdf(mesh, element, emissive);
       else if (element.type === 'rod') rebuildRod(mesh, element, color, emissive);
       else if (element.type === 'leg') rebuildLeg(mesh, element, color, emissive);
+      else if (element.type === 'maskowanica') rebuildMaskowanica(mesh, element, color, emissive);
       else rebuildPanels(mesh, element, color, emissive);
     },
     []
