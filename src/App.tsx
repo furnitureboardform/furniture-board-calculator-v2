@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import type { BoxElement, BoxDimensions } from './types';
-import { PANEL_T, DETACH_DIST, HYSTERESIS_DIST } from './constants';
+import { PANEL_T, DETACH_DIST, HYSTERESIS_DIST, DIVIDER_EDGE_SNAP, DIVIDER_DETACH_DIST } from './constants';
 import {
   computeHdfForCabinet,
   computeLegsForCabinet,
@@ -194,10 +194,15 @@ const App: React.FC = () => {
 
             if (movedEl.type === 'divider') {
               const zDisp = Math.abs(nd.dz);
-              if (zDisp < DETACH_DIST) {
+              if (zDisp < DIVIDER_DETACH_DIST) {
                 const cab = prev.find((e) => e.id === movedEl.cabinetId)!;
                 const halfInner = (cab.dimensions.width - 2 * PANEL_T) / 2 - PANEL_T / 2;
-                const newX = Math.max(cab.position.x - halfInner, Math.min(cab.position.x + halfInner, movedEl.position.x + dx));
+                const rawX = Math.max(cab.position.x - halfInner, Math.min(cab.position.x + halfInner, movedEl.position.x + dx));
+                const leftEdge = cab.position.x - halfInner;
+                const rightEdge = cab.position.x + halfInner;
+                const newX = Math.abs(rawX - leftEdge) < DIVIDER_EDGE_SNAP ? leftEdge
+                           : Math.abs(rawX - rightEdge) < DIVIDER_EDGE_SNAP ? rightEdge
+                           : rawX;
                 const moved = { ...movedEl, position: { ...movedEl.position, x: newX } };
                 const intermediate = prev.map((e) => (e.id === id ? moved : e));
                 const bounds = computeDividerBounds(movedEl.cabinetId, moved.position.y + moved.dimensions.height / 2, intermediate);
