@@ -81,6 +81,23 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
           <span className="prop-input" style={{ display: 'flex', alignItems: 'center', color: '#d0d0f0' }}>{d}</span>
           <span className="prop-unit">mm</span>
         </div>
+        {hasFront && onOpenFrontsChange && (
+          <>
+            <div className="prop-divider" />
+            <div className="prop-front-state">
+              <span className="prop-label" style={{ color: '#c0c0e0' }}>Fronty</span>
+              <label className="prop-toggle">
+                <input
+                  type="checkbox"
+                  checked={!!element.openFronts}
+                  onChange={(e) => onOpenFrontsChange(e.target.checked)}
+                />
+                <span className="prop-toggle-track" />
+                <span className="prop-toggle-text">{element.openFronts ? 'otwarte' : 'zamknięte'}</span>
+              </label>
+            </div>
+          </>
+        )}
       </div>
     );
   }

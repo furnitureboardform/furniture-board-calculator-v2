@@ -1071,6 +1071,8 @@ const App: React.FC = () => {
   const selectedElement = elements.find((e) => e.id === selectedId) ?? null;
   const selectedCabHasFront = selectedElement?.type === 'cabinet' &&
     elements.some((e) => e.type === 'front' && e.cabinetId === selectedElement.id);
+  const selectedGroupHasFront = selectedElement?.type === 'group' &&
+    elements.some((e) => e.type === 'front' && e.cabinetId === selectedElement.id);
 
   return (
     <div className="app">
@@ -1115,7 +1117,7 @@ const App: React.FC = () => {
           onChange={handleDimensionInput}
           onDividerXChange={handleDividerXChange}
           onYChange={handleYChange}
-          hasFront={selectedCabHasFront}
+          hasFront={selectedCabHasFront || selectedGroupHasFront}
           onOpenFrontsChange={(open) => selectedElement && handleOpenFrontsChange(selectedElement.id, open)}
           onHasBottomPanelChange={(has) => selectedElement && handleHasBottomPanelChange(selectedElement.id, has)}
         />
