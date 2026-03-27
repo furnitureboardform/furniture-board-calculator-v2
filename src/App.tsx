@@ -848,6 +848,25 @@ const App: React.FC = () => {
             });
           }
         }
+        if (el?.type === 'leg' && el.cabinetId) {
+          const h = el.dimensions.height;
+          const cabId = el.cabinetId;
+          const origCab = filtered.find((c) => c.id === cabId);
+          if (origCab) {
+            const loweredCab = { ...origCab, position: { ...origCab.position, y: origCab.position.y - h } };
+            return filtered.map((e) => {
+              if (e.id === cabId) return loweredCab;
+              if (e.cabinetId === cabId) {
+                const lowered = { ...e, position: { ...e.position, y: e.position.y - h } };
+                if (e.type === 'front') return computeFrontForCabinet(lowered, loweredCab);
+                if (e.type === 'hdf') return computeHdfForCabinet(lowered, loweredCab);
+                if (e.type === 'plinth') return computePlinthForCabinet(lowered, loweredCab, filtered);
+                return lowered;
+              }
+              return e;
+            });
+          }
+        }
         return filtered;
       });
       setSelectedId((prev) => (prev === id ? null : prev));
