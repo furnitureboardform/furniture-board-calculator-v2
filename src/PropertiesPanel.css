@@ -87,6 +87,24 @@
   margin: 8px 0 4px;
 }
 
+.prop-switch-bay-btn {
+  flex: 1;
+  background: #1a1a2e;
+  border: 1px solid #4a4a7a;
+  border-radius: 6px;
+  color: #a0a0d0;
+  font-size: 12px;
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  text-align: center;
+}
+
+.prop-switch-bay-btn:hover {
+  background: #2a2a4a;
+  color: #e0e0f0;
+}
+
 .prop-front-state {
   display: flex;
   align-items: center;

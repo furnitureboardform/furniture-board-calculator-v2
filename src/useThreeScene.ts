@@ -354,6 +354,7 @@ export function useThreeScene(
         const key = buildHandleKey(elementId, axis, dir);
         isDraggingHandleRef.current = true;
         dragStateRef.current = { handleKey: key, startMouseX: e.clientX, startMouseY: e.clientY };
+        optionsRef.current.onDragStart?.(elementId);
         controls.enabled = false;
         e.stopPropagation();
         return;
@@ -377,6 +378,7 @@ export function useThreeScene(
           if (e.ctrlKey) {
             isDraggingBoxYRef.current = true;
             moveDragYStateRef.current = { elementId: id, lastClientY: e.clientY };
+            optionsRef.current.onDragStart?.(id);
             controls.enabled = false;
           } else {
             const worldPos = new THREE.Vector3();

@@ -81,6 +81,66 @@ export function fitShelfDepthToCabinet(shelf: BoxElement, allElements: BoxElemen
   return shelf;
 }
 
+function _getBays(cab: BoxElement, dividers: BoxElement[]): { left: number; right: number }[] {
+  const leftWall = cab.position.x - cab.dimensions.width / 2 + PANEL_T;
+  const rightWall = cab.position.x + cab.dimensions.width / 2 - PANEL_T;
+  const sortedX = [...dividers].map((d) => d.position.x).sort((a, b) => a - b);
+  const bays: { left: number; right: number }[] = [];
+  let prev = leftWall;
+  for (const divX of sortedX) {
+    const divLeft = divX - PANEL_T / 2;
+    if (divLeft > prev + 0.001) bays.push({ left: prev, right: divLeft });
+    prev = divX + PANEL_T / 2;
+  }
+  if (rightWall > prev + 0.001) bays.push({ left: prev, right: rightWall });
+  return bays;
+}
+
+/** Fits shelf width/x to the bay (between dividers) whose centre is closest to shelf.position.x. */
+export function fitShelfToBay(shelf: BoxElement, allElements: BoxElement[]): BoxElement {
+  if (!shelf.cabinetId) return shelf;
+  const cab = allElements.find((e) => e.id === shelf.cabinetId && e.type === 'cabinet');
+  if (!cab) return shelf;
+  const dividers = allElements.filter((e) => e.cabinetId === shelf.cabinetId && e.type === 'divider');
+  if (dividers.length === 0) return shelf;
+  const bays = _getBays(cab, dividers);
+  if (bays.length === 0) return shelf;
+  let best = bays[0];
+  let bestDist = Math.abs((best.left + best.right) / 2 - shelf.position.x);
+  for (const bay of bays) {
+    const d = Math.abs((bay.left + bay.right) / 2 - shelf.position.x);
+    if (d < bestDist) { bestDist = d; best = bay; }
+  }
+  return {
+    ...shelf,
+    dimensions: { ...shelf.dimensions, width: Math.max(0.01, best.right - best.left) },
+    position: { ...shelf.position, x: (best.left + best.right) / 2 },
+  };
+}
+
+/** Moves shelf to the next bay (cycles through all bays). */
+export function switchShelfToNextBay(shelf: BoxElement, allElements: BoxElement[]): BoxElement {
+  if (!shelf.cabinetId) return shelf;
+  const cab = allElements.find((e) => e.id === shelf.cabinetId && e.type === 'cabinet');
+  if (!cab) return shelf;
+  const dividers = allElements.filter((e) => e.cabinetId === shelf.cabinetId && e.type === 'divider');
+  if (dividers.length === 0) return shelf;
+  const bays = _getBays(cab, dividers);
+  if (bays.length <= 1) return shelf;
+  let curIdx = 0;
+  let bestDist = Infinity;
+  for (let i = 0; i < bays.length; i++) {
+    const d = Math.abs((bays[i].left + bays[i].right) / 2 - shelf.position.x);
+    if (d < bestDist) { bestDist = d; curIdx = i; }
+  }
+  const next = bays[(curIdx + 1) % bays.length];
+  return {
+    ...shelf,
+    dimensions: { ...shelf.dimensions, width: Math.max(0.01, next.right - next.left) },
+    position: { ...shelf.position, x: (next.left + next.right) / 2 },
+  };
+}
+
 /** Returns the Y bottom and height for a divider based on shelves above/below in the same cabinet. */
 export function computeDividerBounds(
   cabinetId: string,

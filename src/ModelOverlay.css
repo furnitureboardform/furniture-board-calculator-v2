@@ -230,6 +230,21 @@
 /* Panel rows */
 .mo-panel-row {
   display: flex;
+
+.mo-section--nested {
+  border-top: none;
+  padding-left: 20px;
+}
+
+.mo-panel-row--nested {
+  padding-left: 12px;
+}
+
+.mo-panel-row--deep {
+  padding-left: 24px;
+  opacity: 0.8;
+}
+
   align-items: center;
   gap: 6px;
 }
@@ -250,6 +265,14 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.mo-panel-dims--todo {
+  font-size: 10px;
+  color: #806040;
+  font-style: italic;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .mo-panel-dims {

@@ -16,6 +16,10 @@ export interface BoxElement {
   maskownicaSide?: 'left' | 'right'; // only for maskowanica elements
   openFronts?: boolean; // only for cabinets: front panels shown open at 90°
   hasBottomPanel?: boolean; // only for drawerbox: whether bottom panel is rendered
+  hasSidePanels?: boolean;  // only for drawerbox: whether side blenda panels are shown
+  adjustedFrontWidth?: number;  // only for drawer: override outer front face width
+  adjustedFrontHeight?: number; // only for drawer: override outer front face height
+  parentIsDrawerbox?: boolean;  // only for drawer: true when parent is a drawerbox
   dimensions: BoxDimensions;
   position: { x: number; y: number; z: number };
   color: string;

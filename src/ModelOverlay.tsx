@@ -9,6 +9,26 @@ interface Props {
 type Tab = 'elements';
 
 const PANEL_T_MM = 18; // must match PANEL_T in App.tsx / useThreeScene.ts
+const DRW_H_SIDE        = 145;
+const DRW_H_BACK        = 100;
+const DRW_H_FRONT_INNER = 130;
+const DRW_H_FRONT_FACE  = 170;
+
+function getDrawerPanelsDisplay(el: BoxElement): Panel[] {
+  const W  = toMm(el.dimensions.width);
+  const D  = toMm(el.dimensions.depth);
+  const T  = PANEL_T_MM;
+  const fW = el.adjustedFrontWidth  ? toMm(el.adjustedFrontWidth)  : (el.parentIsDrawerbox === false ? W : W + 2 * T);
+  const fH = el.adjustedFrontHeight ? toMm(el.adjustedFrontHeight) : DRW_H_FRONT_FACE;
+  return [
+    { label: 'Bok lewy',        w: T,       h: DRW_H_SIDE,        d: D - T },
+    { label: 'Bok prawy',       w: T,       h: DRW_H_SIDE,        d: D - T },
+    { label: 'Dno',             w: -1,      h: -1,                d: -1    },
+    { label: 'Tył',             w: W - 2*T, h: DRW_H_BACK,        d: T     },
+    { label: 'Przód wewnętrzny', w: W - 2*T, h: DRW_H_FRONT_INNER, d: T    },
+    { label: 'Front',           w: fW,      h: fH,                d: T     },
+  ];
+}
 
 const TYPE_LABELS: Partial<Record<BoxElement['type'], string>> = {
   shelf:      'Półka',
@@ -20,7 +40,7 @@ const TYPE_LABELS: Partial<Record<BoxElement['type'], string>> = {
   leg:        'Nóżki',
   hdf:        'Płyta HDF',
   plinth:     'Cokoł',
-  blenda:     'Blenda',
+  maskowanica: 'Maskowanica',
 };
 
 const toMm = (m: number) => Math.round(m * 1000);
@@ -59,11 +79,13 @@ const ModelOverlay: React.FC<Props> = ({ elements }) => {
     const h = toMm(cab.dimensions.height);
     const d = toMm(cab.dimensions.depth);
 
-    const all         = elements.filter((e) => e.cabinetId === cab.id && e.type !== 'blenda' && e.type !== 'drawer');
+    const all         = elements.filter((e) => e.cabinetId === cab.id && e.type !== 'blenda' && e.type !== 'maskowanica' && e.type !== 'drawer');
     const hdfItems    = all.filter((e) => e.type === 'hdf');
     const boardItems  = all.filter((e) => e.type === 'shelf' || e.type === 'divider');
     const additionals = all.filter((e) => e.type === 'leg' || e.type === 'rod' || e.type === 'plinth');
+    const maskowanice = elements.filter((e) => e.cabinetId === cab.id && e.type === 'maskowanica');
     const interiors   = all.filter((e) => e.type === 'drawerbox' || e.type === 'front');
+    const directDrawers = elements.filter((e) => e.cabinetId === cab.id && e.type === 'drawer');
 
     const dimStr = (el: BoxElement) =>
       `${toMm(el.dimensions.width)} × ${toMm(el.dimensions.height)} × ${toMm(el.dimensions.depth)}`;
@@ -94,6 +116,20 @@ const ModelOverlay: React.FC<Props> = ({ elements }) => {
             </div>
           ))}
         </div>
+
+        {/* Maskowanice */}
+        {maskowanice.length > 0 && (
+          <div className="mo-section">
+            <div className="mo-section-label">Maskowanice</div>
+            {maskowanice.map((el) => (
+              <div key={el.id} className="mo-panel-row">
+                <span className="mo-panel-line" />
+                <span className="mo-panel-name">{el.name}</span>
+                <span className="mo-panel-dims">{dimStr(el)}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* HDF */}
         {hdfItems.length > 0 && (
@@ -127,11 +163,66 @@ const ModelOverlay: React.FC<Props> = ({ elements }) => {
         {interiors.length > 0 && (
           <div className="mo-section">
             <div className="mo-section-label">Elementy</div>
-            {interiors.map((el) => (
-              <div key={el.id} className="mo-child">
-                <span className="mo-child-line" />
-                <span className="mo-child-name">{el.name}</span>
-                <span className="mo-child-tag">{TYPE_LABELS[el.type] ?? el.type}</span>
+            {interiors.map((el) => {
+              const dboxDrawers = el.type === 'drawerbox'
+                ? elements.filter((e) => e.cabinetId === el.id && e.type === 'drawer')
+                : [];
+              return (
+                <div key={el.id}>
+                  <div className="mo-child">
+                    <span className="mo-child-line" />
+                    <span className="mo-child-name">{el.name}</span>
+                    <span className="mo-child-tag">{TYPE_LABELS[el.type] ?? el.type}</span>
+                  </div>
+                  {dboxDrawers.length > 0 && (
+                    <div className="mo-section mo-section--nested">
+                      <div className="mo-section-label">Szuflady</div>
+                      {dboxDrawers.map((drw) => (
+                        <div key={drw.id}>
+                          <div className="mo-panel-row mo-panel-row--nested">
+                            <span className="mo-panel-line" />
+                            <span className="mo-panel-name">{drw.name}</span>
+                            <span className="mo-panel-dims">{dimStr(drw)}</span>
+                          </div>
+                          {getDrawerPanelsDisplay(drw).map((p) => (
+                            <div key={p.label} className="mo-panel-row mo-panel-row--deep">
+                              <span className="mo-panel-line" />
+                              <span className="mo-panel-name">{p.label}</span>
+                              {p.w === -1
+                                ? <span className="mo-panel-dims mo-panel-dims--todo">Do zrobienia</span>
+                                : <span className="mo-panel-dims">{p.w} × {p.h} × {p.d}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Szuflady bezpośrednio w gabinecie */}
+        {directDrawers.length > 0 && (
+          <div className="mo-section">
+            <div className="mo-section-label">Szuflady</div>
+            {directDrawers.map((drw) => (
+              <div key={drw.id}>
+                <div className="mo-panel-row">
+                  <span className="mo-panel-line" />
+                  <span className="mo-panel-name">{drw.name}</span>
+                  <span className="mo-panel-dims">{dimStr(drw)}</span>
+                </div>
+                {getDrawerPanelsDisplay(drw).map((p) => (
+                  <div key={p.label} className="mo-panel-row mo-panel-row--nested">
+                    <span className="mo-panel-line" />
+                    <span className="mo-panel-name">{p.label}</span>
+                    {p.w === -1
+                      ? <span className="mo-panel-dims mo-panel-dims--todo">Do zrobienia</span>
+                      : <span className="mo-panel-dims">{p.w} × {p.h} × {p.d}</span>}
+                  </div>
+                ))}
               </div>
             ))}
           </div>

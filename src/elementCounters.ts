@@ -1,0 +1,29 @@
+import {
+  shelfCounter,
+  dividerCounter,
+  frontCounter,
+  rodCounter,
+  legCounter,
+  hdfCounter,
+  drawerCounter,
+  drawerboxCounter,
+  blendaCounter,
+  plinthCounter,
+  maskownicaCounter,
+  groupCounter,
+} from './factories';
+
+export const counters = {
+  shelf: shelfCounter,
+  divider: dividerCounter,
+  front: frontCounter,
+  rod: rodCounter,
+  leg: legCounter,
+  hdf: hdfCounter,
+  drawer: drawerCounter,
+  drawerbox: drawerboxCounter,
+  blenda: blendaCounter,
+  plinth: plinthCounter,
+  maskowanica: maskownicaCounter,
+  group: groupCounter,
+};

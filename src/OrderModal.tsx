@@ -33,7 +33,12 @@ type PanelElemType =
   | 'drawerbox'
   | 'blenda'
   | 'plinth'
-  | 'hdf';
+  | 'hdf'
+  | 'drawer_side'
+  | 'drawer_bottom'
+  | 'drawer_back'
+  | 'drawer_face'
+  | 'maskowanica';
 
 interface PanelEntry {
   id: string;
@@ -77,10 +82,15 @@ function bandedEdgeMeters(p: PanelEntry): number {
   const [fa, fb] = faceDims(p.w, p.h, p.d);
   switch (p.elemType) {
     case 'front':
-    case 'drawerbox':   return 2 * (fa + fb);
+    case 'drawerbox':
+    case 'drawer_face':  return 2 * (fa + fb);
+    case 'drawer_side':  return fa + fb;  // top + front
+    case 'drawer_bottom': return fb;      // front edge only
+    case 'drawer_back':  return 0;
     case 'cabinet_side':
     case 'divider':
-    case 'blenda':      return fa;          // 1 edge (height / largest dim)
+    case 'blenda':
+    case 'maskowanica': return fa;          // 1 edge (height / largest dim)
     case 'cabinet_top':
     case 'shelf':       return fa;          // 1 edge (width / largest dim)
     case 'plinth':      return fa + 2 * fb; // 3 edges: front + 2 sides
@@ -94,9 +104,14 @@ function getEdgeBanding(p: PanelEntry): string {
   const mmA = mmV(fa), mmB = mmV(fb);
   switch (p.elemType) {
     case 'front':
-    case 'drawerbox':   return 'Wszystkie obrzeża (4 strony)';
+    case 'drawerbox':
+    case 'drawer_face':   return 'Wszystkie obrzeża (4 strony)';
+    case 'drawer_side':   return `Obrzeże na głębokości ${mmA} mm i na wysokości ${mmB} mm (2 boki)`;
+    case 'drawer_bottom': return `Obrzeże na szerokości ${mmB} mm (1 bok)`;
+    case 'drawer_back':   return 'Bez obrzeży';
     case 'cabinet_side':
-    case 'blenda':      return `Obrzeże na wysokości ${mmA} mm (1 bok)`;
+    case 'blenda':
+    case 'maskowanica': return `Obrzeże na wysokości ${mmA} mm (1 bok)`;
     case 'divider':     return `Obrzeże na wysokości ${mmA} mm (1 bok)`;
     case 'cabinet_top':
     case 'shelf':       return `Obrzeże na szerokości ${mmA} mm (1 bok)`;
@@ -107,6 +122,27 @@ function getEdgeBanding(p: PanelEntry): string {
 }
 
 // ── Cabinet structural panels ──────────────────────────────────────────────────
+const DRAWER_H_SIDE        = 0.145;
+const DRAWER_H_BACK        = 0.100;
+const DRAWER_H_FRONT_INNER = 0.130;
+const DRAWER_H_FRONT_FACE  = 0.170;
+
+function getDrawerPanels(drawer: BoxElement): { korpus: PanelEntry[]; face: PanelEntry } {
+  const W = drawer.dimensions.width;
+  const D = drawer.dimensions.depth;
+  const faceW = drawer.adjustedFrontWidth  ?? (drawer.parentIsDrawerbox === false ? W : W + 2 * T);
+  const faceH = drawer.adjustedFrontHeight ?? DRAWER_H_FRONT_FACE;
+  return {
+    korpus: [
+      { id: drawer.id + '_sl', w: T,       h: DRAWER_H_SIDE,        d: D - T, elemType: 'drawer_side'   },
+      { id: drawer.id + '_sr', w: T,       h: DRAWER_H_SIDE,        d: D - T, elemType: 'drawer_side'   },
+      { id: drawer.id + '_b',  w: W - 2*T, h: T,                    d: D - T, elemType: 'drawer_bottom' },
+      { id: drawer.id + '_bk', w: W - 2*T, h: DRAWER_H_BACK,        d: T,     elemType: 'drawer_back'   },
+      { id: drawer.id + '_fi', w: W - 2*T, h: DRAWER_H_FRONT_INNER, d: T,     elemType: 'drawer_back'   },
+    ],
+    face: { id: drawer.id + '_ff', w: faceW, h: faceH, d: T, elemType: 'drawer_face' },
+  };
+}
 function getCabinetStructPanels(cab: BoxElement): PanelEntry[] {
   const W = cab.dimensions.width;
   const H = cab.dimensions.height;
@@ -156,12 +192,18 @@ function useOrderData(elements: BoxElement[]) {
         korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'divider' });
       } else if (el.type === 'drawerbox') {
         korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'drawerbox' });
+      } else if (el.type === 'drawer') {
+        const { korpus, face } = getDrawerPanels(el);
+        korpusPanels.push(...korpus);
+        obiciePanels.push(face);
       } else if (el.type === 'front') {
         obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'front' });
       } else if (el.type === 'plinth') {
         obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'plinth' });
       } else if (el.type === 'blenda') {
         obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'blenda' });
+      } else if (el.type === 'maskowanica') {
+        obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'maskowanica' });
       } else if (el.type === 'hdf') {
         hdfPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'hdf' });
       }
@@ -182,7 +224,7 @@ function useOrderData(elements: BoxElement[]) {
     // Hardware counts
     const rodCount      = elements.filter(e => e.type === 'rod').length;
     const hingeCount    = elements.filter(e => e.type === 'front').reduce((s, e) => s + hingesForFront(e), 0);
-    const slideCount    = elements.filter(e => e.type === 'drawerbox').length;
+    const slideCount    = elements.filter(e => e.type === 'drawer').length;
     const couplingCount = slideCount;
     const handleCount   = elements.filter(e => e.type === 'front').length;
     const legCount      = elements.filter(e => e.type === 'leg').length * 4;

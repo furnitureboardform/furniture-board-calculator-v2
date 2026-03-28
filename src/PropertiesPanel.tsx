@@ -12,6 +12,9 @@ interface Props {
   hasFront?: boolean;
   onOpenFrontsChange?: (open: boolean) => void;
   onHasBottomPanelChange?: (has: boolean) => void;
+  onHasSidePanelsChange?: (has: boolean) => void;
+  onDrawerAdjustFrontChange?: (adj: boolean) => void;
+  onShelfSwitchBay?: (id: string) => void;
 }
 
 type DimKey = keyof BoxDimensions;
@@ -20,7 +23,7 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onShelfSwitchBay }) => {
   // Local draft strings so the user can type freely
   const [drafts, setDrafts] = useState<Record<DimKey, string>>({ width: '', height: '', depth: '' });
   const [yDraft, setYDraft] = useState('');
@@ -208,9 +211,29 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
               <span className="prop-toggle-text">{element.hasBottomPanel ? 'tak' : 'nie'}</span>
             </label>
           </div>
-          <div className="prop-divider" />
         </>
       )}
+      {element.type === 'drawerbox' && element.cabinetId && onHasSidePanelsChange && (() => {
+        const hasFronts = elements?.some((e) => e.type === 'front' && e.cabinetId === element.cabinetId);
+        if (!hasFronts) return null;
+        return (
+          <>
+            <div className="prop-front-state">
+              <span className="prop-label" style={{ color: '#c0c0e0' }}>Blendy boczne</span>
+              <label className="prop-toggle">
+                <input
+                  type="checkbox"
+                  checked={element.hasSidePanels !== false}
+                  onChange={(e) => onHasSidePanelsChange(e.target.checked)}
+                />
+                <span className="prop-toggle-track" />
+                <span className="prop-toggle-text">{element.hasSidePanels !== false ? 'tak' : 'nie'}</span>
+              </label>
+            </div>
+            <div className="prop-divider" />
+          </>
+        );
+      })()}
 
       {element.type === 'cabinet' && hasFront && onOpenFrontsChange && (
         <>
@@ -267,6 +290,45 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
           </div>
         </>
       )}
+      {element.type === 'drawer' && element.cabinetId && onDrawerAdjustFrontChange && (() => {
+        const par = elements?.find((e) => e.id === element.cabinetId);
+        if (!par) return null;
+        return (
+          <>
+            <div className="prop-divider" />
+            <div className="prop-front-state">
+              <span className="prop-label" style={{ color: '#c0c0e0' }}>Dostosuj front</span>
+              <label className="prop-toggle">
+                <input
+                  type="checkbox"
+                  checked={!!element.adjustedFrontWidth}
+                  onChange={(e) => onDrawerAdjustFrontChange(e.target.checked)}
+                />
+                <span className="prop-toggle-track" />
+                <span className="prop-toggle-text">{element.adjustedFrontWidth ? 'tak' : 'nie'}</span>
+              </label>
+            </div>
+          </>
+        );
+      })()}
+      {(element.type === 'shelf' || element.type === 'rod') && element.cabinetId && onShelfSwitchBay && (() => {
+        const hasOverlappingDivider = elements?.some(
+          (e) => e.cabinetId === element.cabinetId && e.type === 'divider' &&
+            element.position.y < e.position.y + e.dimensions.height &&
+            element.position.y + element.dimensions.height > e.position.y
+        );
+        if (!hasOverlappingDivider) return null;
+        return (
+          <>
+            <div className="prop-divider" />
+            <div className="prop-row">
+              <button className="prop-switch-bay-btn" onClick={() => onShelfSwitchBay(element.id)}>
+                ⇄ Przesuń na drugą stronę
+              </button>
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 };

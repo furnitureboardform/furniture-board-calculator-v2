@@ -259,6 +259,11 @@ const ElementLibrary: React.FC<Props> = ({
               <span className="element-add-icon">＋</span>
               <span className="element-name" style={{ color: '#6060a0' }}>Dodaj półkę</span>
             </li>
+            <li className="element-item element-item--add" onClick={() => onAddDrawerToCabinet(cab.id)}>
+              <span className="element-indent-line" />
+              <span className="element-add-icon">＋</span>
+              <span className="element-name" style={{ color: '#6060a0' }}>Dodaj szufladę</span>
+            </li>
             <li className="element-item element-item--add" onClick={() => onAddDrawerboxToCabinet(cab.id)}>
               <span className="element-indent-line" />
               <span className="element-add-icon">＋</span>

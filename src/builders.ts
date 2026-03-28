@@ -68,6 +68,8 @@ export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: TH
   const H_BACK        = 0.100;
   const H_FRONT_INNER = 0.130;
   const H_FRONT_FACE  = 0.170;
+  const faceW = element.adjustedFrontWidth  ?? (element.parentIsDrawerbox === false ? width : width + 2 * t);
+  const faceH = element.adjustedFrontHeight ?? H_FRONT_FACE;
   const makeMat = () => new THREE.MeshStandardMaterial({ color, emissive, roughness: 0.4, metalness: 0.05, side: THREE.DoubleSide });
   const addPanel = (w: number, h: number, d: number, px: number, py: number, pz: number) => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), makeMat());
@@ -82,7 +84,7 @@ export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: TH
   addPanel(width - 2 * t, t, depth - t, 0, -(H_SIDE / 2 - t / 2), -t / 2);
   addPanel(width - 2 * t, H_BACK, t, 0, (H_BACK - H_SIDE) / 2, -(depth / 2 - t / 2));
   addPanel(width - 2 * t, H_FRONT_INNER, t, 0, (H_FRONT_INNER - H_SIDE) / 2, depth / 2 - t / 2);
-  addPanel(width + 2 * t - 0.004, H_FRONT_FACE, t, 0, (H_FRONT_FACE - H_SIDE) / 2, depth / 2 + t / 2);
+  addPanel(faceW, faceH, t, 0, (faceH - H_SIDE) / 2, depth / 2 + t / 2);
 }
 
 export function rebuildDrawerbox(parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) {
