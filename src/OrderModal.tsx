@@ -424,11 +424,13 @@ interface FinancialSummaryProps {
 }
 
 const FinancialSummary: React.FC<FinancialSummaryProps> = ({ grandTotal, fin, setFin }) => {
-  const discountAmt = grandTotal * fin.discountPct / 100 + fin.discountFixed;
-  const ownCost     = Math.max(0, grandTotal - discountAmt + fin.transport + fin.nonStandard);
-  const autoPrice   = Math.ceil(ownCost * 1.3 / 50) * 50;
+  const ownCost      = grandTotal + fin.transport + fin.nonStandard;
+  const basePrice    = Math.ceil(ownCost * 2 / 100) * 100;
+  const margin       = basePrice - ownCost;
+  const discountAmt  = margin * fin.discountPct / 100;
+  const autoPrice    = Math.ceil(Math.max(ownCost, basePrice - discountAmt) / 100) * 100;
   const displayPrice = fin.customerPriceManual ? fin.customerPrice : autoPrice;
-  const deposit      = Math.round(displayPrice * 2 / 3 / 50) * 50;
+  const deposit      = Math.ceil(ownCost / 100) * 100;
 
   const set = (key: keyof FinancialState, val: number | boolean) =>
     setFin(prev => ({ ...prev, [key]: val }));
@@ -461,13 +463,9 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ grandTotal, fin, se
             <span className="om-fin-unit">%</span>
           </div>
         </div>
-        <div className="om-fin-card">
+        <div className="om-fin-card om-fin-card--result">
           <div className="om-fin-label">Rabat</div>
-          <div className="om-fin-value">
-            <input type="number" className="om-fin-input" value={fin.discountFixed} min={0}
-              onChange={e => set('discountFixed', Number(e.target.value))} />
-            <span className="om-fin-unit">zł</span>
-          </div>
+          <div className="om-fin-result">{fmtPLN(discountAmt)}</div>
         </div>
         <div className="om-fin-card om-fin-card--result">
           <div className="om-fin-label">Suma całkowita (koszt własny)</div>
@@ -556,7 +554,7 @@ const OrderModal: React.FC<Props> = ({ elements }) => {
   const data            = useOrderData(elements);
 
   const [fin, setFin] = useState<FinancialState>({
-    transport: 300,
+    transport: 0,
     nonStandard: 0,
     discountPct: 0,
     discountFixed: 0,
