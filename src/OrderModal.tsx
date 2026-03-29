@@ -32,6 +32,7 @@ type PanelElemType =
   | 'cabinet_side'
   | 'cabinet_top'
   | 'shelf'
+  | 'board'
   | 'divider'
   | 'front'
   | 'drawerbox'
@@ -96,6 +97,7 @@ function bandedEdgeMeters(p: PanelEntry): number {
     case 'divider':
     case 'blenda':
     case 'maskowanica': return fa;          // 1 edge (height / largest dim)
+    case 'board':       return 2 * (fa + fb); // 4 edges (all around)
     case 'cabinet_top':
     case 'shelf':       return fa;          // 1 edge (width / largest dim)
     case 'drawerbox_rail': return fa;       // 1 edge (front edge = width)
@@ -119,6 +121,7 @@ function getEdgeBanding(p: PanelEntry): string {
     case 'blenda':
     case 'maskowanica': return `Obrzeże na wysokości ${mmA} mm (1 bok)`;
     case 'divider':     return `Obrzeże na wysokości ${mmA} mm (1 bok)`;
+    case 'board':       return 'Wszystkie obrzeża (4 strony)';
     case 'cabinet_top':
     case 'shelf':       return `Obrzeże na szerokości ${mmA} mm (1 bok)`;
     case 'drawerbox_rail': return `Obrzeże na przodzie ${mmA} mm (1 bok)`;
@@ -198,6 +201,8 @@ function useOrderData(elements: BoxElement[]) {
     for (const el of elements) {
       if (el.type === 'cabinet') {
         korpusPanels.push(...getCabinetStructPanels(el));
+      } else if (el.type === 'board') {
+        korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'board' });
       } else if (el.type === 'shelf') {
         korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'shelf' });
       } else if (el.type === 'divider') {

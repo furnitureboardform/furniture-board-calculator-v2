@@ -132,6 +132,8 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
 
   const labels: Record<DimKey, string> = (element.type === 'shelf' || element.type === 'rod')
     ? { width: 'Szerokość', height: 'Grubość', depth: 'Głębokość' }
+    : element.type === 'board'
+    ? { width: 'Szerokość', height: 'Wysokość', depth: 'Grubość' }
     : (element.type === 'leg' || element.type === 'drawer' || element.type === 'drawerbox')
     ? { width: 'Szerokość', height: 'Wysokość', depth: 'Głębokość' }
     : { width: 'Szerokość (X)', height: 'Wysokość (Y)', depth: 'Głębokość (Z)' };
@@ -140,8 +142,8 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
   return (
     <div className="properties">
       <h2 className="properties-title">{element.name}</h2>
-      {(element.type === 'shelf' || element.type === 'rod') ? (
-        <div className="properties-hint">Ustaw wymiary i pozycję pionową półki</div>
+      {(element.type === 'shelf' || element.type === 'board' || element.type === 'rod') ? (
+        <div className="properties-hint">Ustaw wymiary i pozycję pionową {element.type === 'board' ? 'płyty' : 'półki'}</div>
       ) : element.type === 'drawer' ? (
         <div className="properties-hint">Ustaw wymiary i pozycję pionową szuflady</div>
       ) : element.type === 'drawerbox' ? (
@@ -296,7 +298,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
         </div>
       ))}
 
-      {(element.type === 'shelf' || element.type === 'rod' || element.type === 'drawer' || element.type === 'drawerbox') && onYChange && (
+      {(element.type === 'shelf' || element.type === 'board' || element.type === 'rod' || element.type === 'drawer' || element.type === 'drawerbox') && onYChange && (
         <>
           <div className="prop-divider" />
           <div className="prop-row">

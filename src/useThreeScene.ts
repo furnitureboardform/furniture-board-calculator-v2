@@ -137,7 +137,7 @@ export function useThreeScene(
   // Helper to dispatch to correct rebuild function
   const rebuildElement = useCallback(
     (mesh: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) => {
-      if (element.type === 'shelf') rebuildShelf(mesh, element, color, emissive);
+      if (element.type === 'shelf' || element.type === 'board') rebuildShelf(mesh, element, color, emissive);
       else if (element.type === 'drawer') rebuildDrawer(mesh, element, color, emissive);
       else if (element.type === 'drawerbox') rebuildDrawerbox(mesh, element, color, emissive);
       else if (element.type === 'blenda') rebuildBlenda(mesh, element, color, emissive);
@@ -277,7 +277,7 @@ export function useThreeScene(
       const isSelected = element.id === selectedId;
       const isMultiSelected = multiSelectedIds.includes(element.id);
 
-      const color = (element.type === 'front' || element.type === 'plinth' || element.type === 'maskowanica')
+      const color = (element.type === 'front' || element.type === 'plinth' || element.type === 'maskowanica' || element.type === 'board')
         ? PANEL_COLOR
         : BOARD_COLOR;
       const emissive = new THREE.Color(isSelected ? 0x224488 : isMultiSelected ? 0x442266 : 0x000000);

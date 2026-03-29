@@ -14,6 +14,7 @@ export let drawerboxCounter = 1;
 export let blendaCounter = 1;
 export let plinthCounter = 1;
 export let maskownicaCounter = 1;
+export let boardCounter = 1;
 export let groupCounter = 1;
 
 export function nextColor(): string {
@@ -34,6 +35,18 @@ export function createBox(): BoxElement {
     type: 'cabinet',
     dimensions: { width: 1, height: 1, depth: 1 },
     position: { x: 0, y: 0, z: 0 },
+    color,
+  };
+}
+
+export function createBoard(): BoxElement {
+  const color = COLORS[colorIndex % COLORS.length];
+  return {
+    id: crypto.randomUUID(),
+    name: `Płyta ${boardCounter++}`,
+    type: 'board',
+    dimensions: { width: 0.6, height: 0.6, depth: 0.018 },
+    position: { x: 0, y: 0.3, z: 0 },
     color,
   };
 }

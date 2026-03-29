@@ -29,7 +29,7 @@ export function computeYForBox(box: BoxElement, allElements: BoxElement[], roomH
   let maxTop = 0;
   for (const other of allElements) {
     if (other.id === box.id) continue;
-    if (other.type === 'shelf' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'plinth' || other.type === 'maskowanica') continue;
+    if (other.type === 'shelf' || other.type === 'board' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'plinth' || other.type === 'maskowanica') continue;
     if (getBoxStackOverlap(box, other)) {
       const wouldFitBelow = box.position.y + box.dimensions.height <= other.position.y;
       if (!wouldFitBelow) {
@@ -188,12 +188,12 @@ export function recomputeAllY(elements: BoxElement[], roomH = Infinity): BoxElem
   );
   for (const el of ordered) {
     const box = resultMap.get(el.id)!;
-    if (box.type === 'shelf' || box.type === 'drawer' || box.type === 'drawerbox' || box.type === 'blenda' || box.type === 'divider' || box.type === 'front' || box.type === 'rod' || box.type === 'leg' || box.type === 'hdf' || box.type === 'maskowanica') continue;
+    if (box.type === 'shelf' || box.type === 'board' || box.type === 'drawer' || box.type === 'drawerbox' || box.type === 'blenda' || box.type === 'divider' || box.type === 'front' || box.type === 'rod' || box.type === 'leg' || box.type === 'hdf' || box.type === 'maskowanica') continue;
     const elOriginalY = originalY.get(el.id) ?? 0;
     let maxTop = 0;
     for (const [id, other] of resultMap) {
       if (id === box.id) continue;
-      if (other.type === 'shelf' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'plinth' || other.type === 'maskowanica') continue;
+      if (other.type === 'shelf' || other.type === 'board' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'plinth' || other.type === 'maskowanica') continue;
       if ((originalY.get(id) ?? 0) <= elOriginalY + 0.001) {
         if (getBoxStackOverlap(box, other)) {
           maxTop = Math.max(maxTop, other.position.y + other.dimensions.height);

@@ -171,7 +171,7 @@ export function useDragHandlers({
         // Fronts, HDF and cabinet-bound rods/legs are always locked in XZ
         if (movedEl.type === 'front' || movedEl.type === 'hdf' || (movedEl.type === 'rod' && movedEl.cabinetId) || (movedEl.type === 'leg' && movedEl.cabinetId) || (movedEl.type === 'plinth' && movedEl.cabinetId) || (movedEl.type === 'maskowanica' && movedEl.cabinetId)) return prev;
 
-        if (movedEl.type === 'shelf' || movedEl.type === 'divider') {
+        if (movedEl.type === 'shelf' || movedEl.type === 'board' || movedEl.type === 'divider') {
           if (movedEl.cabinetId) {
             const d = dragDeltaRef.current.get(id) ?? { dx: 0, dz: 0 };
             const nd = { dx: d.dx + dx, dz: d.dz + dz };

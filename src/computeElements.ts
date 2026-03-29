@@ -162,7 +162,24 @@ export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxEle
     minY = Math.min(minY, cab.position.y - legH);
     maxY = Math.max(maxY, cab.position.y + cab.dimensions.height);
   }
-  const totalH = Math.max(0.001, maxY - minY);
+  const TOUCH_TOL = PANEL_T * 2;
+  const sideEdgeX = mask.maskownicaSide === 'right' ? maxX : minX;
+  const adjBox = allElements.find((e) => {
+    if (e.groupId === group.id) return false;
+    if (e.type !== 'cabinet' && e.type !== 'group') return false;
+    const eLX = e.position.x - e.dimensions.width / 2;
+    const eRX = e.position.x + e.dimensions.width / 2;
+    const touchEdge = mask.maskownicaSide === 'right' ? eLX : eRX;
+    if (Math.abs(touchEdge - sideEdgeX) > TOUCH_TOL) return false;
+    return e.position.y + e.dimensions.height > minY && e.position.y < maxY;
+  });
+  let effMinY = minY;
+  let effMaxY = maxY;
+  if (adjBox) {
+    effMinY = Math.max(minY, adjBox.position.y);
+    effMaxY = Math.min(maxY, adjBox.position.y + adjBox.dimensions.height);
+  }
+  const totalH = Math.max(0.001, effMaxY - effMinY);
   const totalDepth = (maxFaceZ - minBackZ) + MASK_FRONT_EXT + MASK_BACK_EXT;
   const zPos = (maxFaceZ + MASK_FRONT_EXT + minBackZ - MASK_BACK_EXT) / 2;
   const xPos = mask.maskownicaSide === 'left'
@@ -171,7 +188,7 @@ export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxEle
   return {
     ...mask,
     dimensions: { width: PANEL_T, height: totalH, depth: totalDepth },
-    position: { x: xPos, y: minY, z: zPos },
+    position: { x: xPos, y: effMinY, z: zPos },
   };
 }
 
