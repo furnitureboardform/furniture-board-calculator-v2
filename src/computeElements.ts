@@ -191,8 +191,17 @@ export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxEle
   let effMaxY = maxY;
   if (adjBoxes.length > 0) {
     // Build covered intervals clipped to [minY, maxY], then find largest free gap
-    const covered = adjBoxes
+    // Also include side maskowanice of adjacent boxes (they may extend further e.g. due to legs)
+    const adjItems = adjBoxes.flatMap((b) => {
+      const bMasks = allElements.filter(
+        (e) => e.type === 'maskowanica' && e.cabinetId === b.id &&
+               (e.maskownicaSide === 'left' || e.maskownicaSide === 'right')
+      );
+      return [b, ...bMasks];
+    });
+    const covered = adjItems
       .map((b) => [Math.max(minY, b.position.y), Math.min(maxY, b.position.y + b.dimensions.height)] as [number, number])
+      .filter(([a, b]) => a < b)
       .sort((a, b) => a[0] - b[0]);
     // Merge overlapping intervals
     const merged: [number, number][] = [covered[0]];
