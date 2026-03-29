@@ -479,13 +479,25 @@ export function useDragHandlers({
         const idSet = new Set(ids);
         const bw = boardSizeRef.current.width / 1000;
         const bd = boardSizeRef.current.depth / 1000;
+        // Compute the tightest allowed delta for the whole group so no element exits the board
+        let minDx = -Infinity, maxDx = Infinity, minDz = -Infinity, maxDz = Infinity;
+        prev.forEach((el) => {
+          if (!idSet.has(el.id)) return;
+          if (el.type === 'front' || el.type === 'hdf' || (el.cabinetId && !idSet.has(el.cabinetId))) return;
+          const hw = el.dimensions.width / 2;
+          const hd = el.dimensions.depth / 2;
+          minDx = Math.max(minDx, -bw / 2 + hw - el.position.x);
+          maxDx = Math.min(maxDx, bw / 2 - hw - el.position.x);
+          minDz = Math.max(minDz, -bd / 2 + hd - el.position.z);
+          maxDz = Math.min(maxDz, bd / 2 - hd - el.position.z);
+        });
+        const cdx = Math.max(minDx, Math.min(maxDx, dx));
+        const cdz = Math.max(minDz, Math.min(maxDz, dz));
         // First pass: move top-level selected elements
         let updated = prev.map((el) => {
           if (!idSet.has(el.id)) return el;
           if (el.type === 'front' || el.type === 'hdf' || (el.cabinetId && !idSet.has(el.cabinetId))) return el;
-          const newX = Math.max(-(bw / 2), Math.min(bw / 2, el.position.x + dx));
-          const newZ = Math.max(-(bd / 2), Math.min(bd / 2, el.position.z + dz));
-          return { ...el, position: { ...el.position, x: newX, z: newZ } };
+          return { ...el, position: { ...el.position, x: el.position.x + cdx, z: el.position.z + cdz } };
         });
         // Second pass: recompute children of moved cabinets
         updated = updated.map((el) => {
@@ -497,7 +509,7 @@ export function useDragHandlers({
           if (el.type === 'leg') return computeLegsForCabinet(el, parent);
           if (el.type === 'plinth') return computePlinthForCabinet(el, parent, updated);
           if (el.type === 'maskowanica') return computeMaskowanicaForCabinet(el, parent, updated);
-          return { ...el, position: { ...el.position, x: el.position.x + dx, z: el.position.z + dz } };
+          return { ...el, position: { ...el.position, x: el.position.x + cdx, z: el.position.z + cdz } };
         });
         return recomputeGroups(updated);
       });
