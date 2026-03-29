@@ -265,6 +265,12 @@ const ElementLibrary: React.FC<Props> = ({
           <>
             {children.filter((c) => c.type !== 'drawerbox' && c.type !== 'blenda').map((child) => renderItem(child, true))}
             {children.filter((c) => c.type === 'drawerbox').map((dbox) => renderDrawerbox(dbox))}
+
+            {/* Section: Wnętrze */}
+            <li className="element-item element-item--section">
+              <span className="element-section-line" />
+              Wnętrze
+            </li>
             <li className="element-item element-item--add" onClick={() => onAddShelfToCabinet(cab.id)}>
               <span className="element-indent-line" />
               <span className="element-add-icon">＋</span>
@@ -290,6 +296,15 @@ const ElementLibrary: React.FC<Props> = ({
               <span className="element-add-icon">＋</span>
               <span className="element-name" style={{ color: '#6060a0' }}>Dodaj drążek</span>
             </li>
+
+            {/* Section: Podstawa */}
+            {(!elements.some((e) => e.type === 'leg' && e.cabinetId === cab.id) ||
+              !elements.some((e) => e.type === 'plinth' && e.cabinetId === cab.id)) && (
+              <li className="element-item element-item--section">
+                <span className="element-section-line" />
+                Podstawa
+              </li>
+            )}
             {!elements.some((e) => e.type === 'leg' && e.cabinetId === cab.id) && (
               <li className="element-item element-item--add" onClick={() => onAddLegsToCabinet(cab.id)}>
                 <span className="element-indent-line" />
@@ -304,10 +319,20 @@ const ElementLibrary: React.FC<Props> = ({
                 <span className="element-name" style={{ color: '#6060a0' }}>Dodaj cokoł</span>
               </li>
             )}
+
+            {/* Section: Wykończenie */}
+            {(!elements.some((e) => e.type === 'hdf' && e.cabinetId === cab.id) ||
+              !elements.some((e) => e.type === 'front' && e.cabinetId === cab.id) ||
+              !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id)) && (
+              <li className="element-item element-item--section">
+                <span className="element-section-line" />
+                Wykończenie
+              </li>
+            )}
             {!elements.some((e) => e.type === 'hdf' && e.cabinetId === cab.id) && (
               <li className="element-item element-item--add" onClick={() => onAddHdfToCabinet(cab.id)}>
                 <span className="element-indent-line" />
-                <span className="element-add-icon">️＋</span>
+                <span className="element-add-icon">＋</span>
                 <span className="element-name" style={{ color: '#6060a0' }}>Dodaj płytę HDF</span>
               </li>
             )}
@@ -329,14 +354,14 @@ const ElementLibrary: React.FC<Props> = ({
               <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'left')}>
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#6060a0' }}>Dodaj maskownicę L</span>
+                <span className="element-name" style={{ color: '#6060a0' }}>Dodaj maskownicę lewa</span>
               </li>
             )}
             {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'right') && (
               <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'right')}>
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#6060a0' }}>Dodaj maskownicę P</span>
+                <span className="element-name" style={{ color: '#6060a0' }}>Dodaj maskownicę prawa</span>
               </li>
             )}
             {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'bottom') && (
@@ -508,14 +533,14 @@ const ElementLibrary: React.FC<Props> = ({
                     <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToGroup(grp.id, 'left')}>
                       <span className="element-indent-line" />
                       <span className="element-add-icon">＋</span>
-                      <span className="element-name" style={{ color: '#6060a0' }}>Dodaj maskownicę L grupy</span>
+                      <span className="element-name" style={{ color: '#6060a0' }}>Dodaj maskownicę lewa grupy</span>
                     </li>
                   )}
                   {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'right') && (
                     <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToGroup(grp.id, 'right')}>
                       <span className="element-indent-line" />
                       <span className="element-add-icon">＋</span>
-                      <span className="element-name" style={{ color: '#6060a0' }}>Dodaj maskownicę P grupy</span>
+                      <span className="element-name" style={{ color: '#6060a0' }}>Dodaj maskownicę prawa grupy</span>
                     </li>
                   )}
                 </>
