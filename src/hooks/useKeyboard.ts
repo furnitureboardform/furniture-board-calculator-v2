@@ -10,20 +10,25 @@ import {
 
 interface Params {
   selectedId: string | null;
+  multiSelectedIds: string[];
   handleDelete: (id: string) => void;
   setElements: React.Dispatch<React.SetStateAction<BoxElement[]>>;
   undo: () => void;
   redo: () => void;
 }
 
-export function useKeyboard({ selectedId, handleDelete, setElements, undo, redo }: Params) {
+export function useKeyboard({ selectedId, multiSelectedIds, handleDelete, setElements, undo, redo }: Params) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 
       if (e.key === 'Delete') {
-        if (selectedId) handleDelete(selectedId);
+        if (multiSelectedIds.length > 0) {
+          for (const id of multiSelectedIds) handleDelete(id);
+        } else if (selectedId) {
+          handleDelete(selectedId);
+        }
         return;
       }
 
@@ -77,5 +82,5 @@ export function useKeyboard({ selectedId, handleDelete, setElements, undo, redo 
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectedId, handleDelete, setElements, undo, redo]);
+  }, [selectedId, multiSelectedIds, handleDelete, setElements, undo, redo]);
 }
