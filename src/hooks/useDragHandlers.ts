@@ -17,6 +17,7 @@ import {
   fitCabinetToBelow,
   computeDividerBounds,
   fitShelfToBay,
+  computeDrawerYBounds,
 } from '../geometry';
 import {
   findNearCabinetHysteresis,
@@ -306,9 +307,24 @@ export function useDragHandlers({
         if (el.cabinetId) {
           const cab = prev.find((e) => e.id === el.cabinetId);
           if (cab) {
-            const bottomOffset = cab.type === 'drawerbox' ? (cab.hasBottomPanel ? PANEL_T : 0) : PANEL_T;
-            const minY = cab.position.y + bottomOffset;
-            const maxY = cab.position.y + cab.dimensions.height - PANEL_T - el.dimensions.height;
+            const { minY, maxY } = el.type === 'drawer'
+              ? computeDrawerYBounds(el, cab, prev)
+              : (() => {
+                  const bottomOffset = cab.type === 'drawerbox' ? (cab.hasBottomPanel ? PANEL_T : 0) : PANEL_T;
+                  let mxY = cab.position.y + cab.dimensions.height - PANEL_T - el.dimensions.height;
+                  let mnY = cab.position.y + bottomOffset;
+                  if (el.type === 'shelf' || el.type === 'rod') {
+                    const drawerboxes = prev.filter((e) => e.cabinetId === cab.id && e.type === 'drawerbox');
+                    for (const db of drawerboxes) {
+                      if (db.position.y > newY) {
+                        mxY = Math.min(mxY, db.position.y - el.dimensions.height);
+                      } else {
+                        mnY = Math.max(mnY, db.position.y + db.dimensions.height);
+                      }
+                    }
+                  }
+                  return { minY: mnY, maxY: mxY };
+                })();
             newY = Math.min(Math.max(minY, newY), Math.max(minY, maxY));
           }
         } else {
@@ -386,9 +402,24 @@ export function useDragHandlers({
         if (el.cabinetId) {
           const cab = prev.find((e) => e.id === el.cabinetId);
           if (cab) {
-            const bottomOffset = cab.type === 'drawerbox' ? (cab.hasBottomPanel ? PANEL_T : 0) : PANEL_T;
-            const minY = cab.position.y + bottomOffset;
-            const maxY = cab.position.y + cab.dimensions.height - PANEL_T - el.dimensions.height;
+            const { minY, maxY } = el.type === 'drawer'
+              ? computeDrawerYBounds(el, cab, prev)
+              : (() => {
+                  const bottomOffset = cab.type === 'drawerbox' ? (cab.hasBottomPanel ? PANEL_T : 0) : PANEL_T;
+                  let mxY = cab.position.y + cab.dimensions.height - PANEL_T - el.dimensions.height;
+                  let mnY = cab.position.y + bottomOffset;
+                  if (el.type === 'shelf' || el.type === 'rod') {
+                    const drawerboxes = prev.filter((e) => e.cabinetId === cab.id && e.type === 'drawerbox');
+                    for (const db of drawerboxes) {
+                      if (db.position.y > newY) {
+                        mxY = Math.min(mxY, db.position.y - el.dimensions.height);
+                      } else {
+                        mnY = Math.max(mnY, db.position.y + db.dimensions.height);
+                      }
+                    }
+                  }
+                  return { minY: mnY, maxY: mxY };
+                })();
             newY = Math.min(Math.max(minY, newY), Math.max(minY, maxY));
           }
         } else {

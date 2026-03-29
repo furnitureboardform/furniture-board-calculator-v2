@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { BoxElement } from './types';
-import { PANEL_T } from './constants';
+import { PANEL_T, HDF_T } from './constants';
 import './OrderModal.css';
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
 
 // ── Prices ─────────────────────────────────────────────────────────────────────
 const PRICE_KORPUS_M2   = 37.85;
+const PRICE_HDF_M2      = 11.04;
 const PRICE_OBICIE_M2   = 46.05;
 const PRICE_CUT_M       = 6.00;
 const PRICE_EDGE_SVC_M  = 6.00;
@@ -17,6 +18,8 @@ const PRICE_OKLEINA_O_M = 1.35;
 const PRICE_ROD         = 15.00;
 const PRICE_HINGE       = 13.00;
 const PRICE_SLIDE       = 104.00;
+const PRICE_PTO_SLIDE   = 123.00;
+const PRICE_TIPON       = 72.00;
 const PRICE_COUPLING    = 8.00;
 const PRICE_HANDLE      = 46.00;
 const PRICE_LEG         = 6.00;
@@ -31,6 +34,7 @@ type PanelElemType =
   | 'divider'
   | 'front'
   | 'drawerbox'
+  | 'drawerbox_rail'
   | 'blenda'
   | 'plinth'
   | 'hdf'
@@ -93,6 +97,7 @@ function bandedEdgeMeters(p: PanelEntry): number {
     case 'maskowanica': return fa;          // 1 edge (height / largest dim)
     case 'cabinet_top':
     case 'shelf':       return fa;          // 1 edge (width / largest dim)
+    case 'drawerbox_rail': return fa;       // 1 edge (front edge = width)
     case 'plinth':      return fa + 2 * fb; // 3 edges: front + 2 sides
     case 'hdf':         return 0;
     default:            return 0;
@@ -115,6 +120,7 @@ function getEdgeBanding(p: PanelEntry): string {
     case 'divider':     return `Obrzeże na wysokości ${mmA} mm (1 bok)`;
     case 'cabinet_top':
     case 'shelf':       return `Obrzeże na szerokości ${mmA} mm (1 bok)`;
+    case 'drawerbox_rail': return `Obrzeże na przodzie ${mmA} mm (1 bok)`;
     case 'plinth':      return `Obrzeże na szerokości ${mmA} mm i na bokach ${mmB} mm (3 boki)`;
     case 'hdf':         return 'Bez obrzeży';
     default:            return 'Bez obrzeży';
@@ -127,19 +133,24 @@ const DRAWER_H_BACK        = 0.100;
 const DRAWER_H_FRONT_INNER = 0.130;
 const DRAWER_H_FRONT_FACE  = 0.170;
 
-function getDrawerPanels(drawer: BoxElement): { korpus: PanelEntry[]; face: PanelEntry } {
+function getDrawerPanels(drawer: BoxElement): { korpus: PanelEntry[]; hdf: PanelEntry; face: PanelEntry } {
   const W = drawer.dimensions.width;
   const D = drawer.dimensions.depth;
   const faceW = drawer.adjustedFrontWidth  ?? (drawer.parentIsDrawerbox === false ? W : W + 2 * T);
-  const faceH = drawer.adjustedFrontHeight ?? DRAWER_H_FRONT_FACE;
+  const faceH = drawer.adjustedFrontHeight ?? drawer.frontHeight ?? DRAWER_H_FRONT_FACE;
+  const extraH = Math.max(0, faceH - DRAWER_H_FRONT_FACE);
+  const hSide       = DRAWER_H_SIDE        + extraH;
+  const hBack       = DRAWER_H_BACK        + extraH;
+  const hFrontInner = DRAWER_H_FRONT_INNER + extraH;
+  const sideD = drawer.parentIsDrawerbox !== false ? D - 0.010 : D;
   return {
     korpus: [
-      { id: drawer.id + '_sl', w: T,       h: DRAWER_H_SIDE,        d: D - T, elemType: 'drawer_side'   },
-      { id: drawer.id + '_sr', w: T,       h: DRAWER_H_SIDE,        d: D - T, elemType: 'drawer_side'   },
-      { id: drawer.id + '_b',  w: W - 2*T, h: T,                    d: D - T, elemType: 'drawer_bottom' },
-      { id: drawer.id + '_bk', w: W - 2*T, h: DRAWER_H_BACK,        d: T,     elemType: 'drawer_back'   },
-      { id: drawer.id + '_fi', w: W - 2*T, h: DRAWER_H_FRONT_INNER, d: T,     elemType: 'drawer_back'   },
+      { id: drawer.id + '_sl', w: T,       h: hSide,       d: sideD,     elemType: 'drawer_side'   },
+      { id: drawer.id + '_sr', w: T,       h: hSide,       d: sideD,     elemType: 'drawer_side'   },
+      { id: drawer.id + '_bk', w: W - 2*T, h: hBack,       d: T,         elemType: 'drawer_back'   },
+      { id: drawer.id + '_fi', w: W - 2*T, h: hFrontInner, d: T,         elemType: 'drawer_back'   },
     ],
+    hdf:  { id: drawer.id + '_b',  w: W - 0.004, h: HDF_T,               d: sideD - 0.004, elemType: 'drawer_bottom' },
     face: { id: drawer.id + '_ff', w: faceW, h: faceH, d: T, elemType: 'drawer_face' },
   };
 }
@@ -191,10 +202,23 @@ function useOrderData(elements: BoxElement[]) {
       } else if (el.type === 'divider') {
         korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'divider' });
       } else if (el.type === 'drawerbox') {
-        korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'drawerbox' });
+        const W = el.dimensions.width;
+        const H = el.dimensions.height;
+        const D = el.dimensions.depth;
+        korpusPanels.push({ id: el.id + '_sl', w: T, h: H, d: D, elemType: 'cabinet_side' });
+        korpusPanels.push({ id: el.id + '_sr', w: T, h: H, d: D, elemType: 'cabinet_side' });
+        if (el.hasBottomPanel) {
+          korpusPanels.push({ id: el.id + '_bot', w: W - 2 * T, h: T, d: D, elemType: 'cabinet_top' });
+        }
+        if (el.hasTopRails) {
+          const railW = W - 2 * T;
+          korpusPanels.push({ id: el.id + '_rF', w: railW, h: T, d: 0.100, elemType: 'drawerbox_rail' });
+          korpusPanels.push({ id: el.id + '_rB', w: railW, h: T, d: 0.100, elemType: 'drawerbox_rail' });
+        }
       } else if (el.type === 'drawer') {
-        const { korpus, face } = getDrawerPanels(el);
+        const { korpus, hdf, face } = getDrawerPanels(el);
         korpusPanels.push(...korpus);
+        hdfPanels.push({ ...hdf, elemType: 'hdf' });
         obiciePanels.push(face);
       } else if (el.type === 'front') {
         obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'front' });
@@ -218,22 +242,27 @@ function useOrderData(elements: BoxElement[]) {
     const totalObicieArea = obiciePanels.reduce((s, p) => s + faceArea(p.w, p.h, p.d), 0);
     const totalKorpusCut  = korpusPanels.reduce((s, p) => s + cutMeters(p.w, p.h, p.d), 0);
     const totalObicieCut  = obiciePanels.reduce((s, p) => s + cutMeters(p.w, p.h, p.d), 0);
+    const totalHdfArea    = hdfPanels.reduce((s, p) => s + faceArea(p.w, p.h, p.d), 0);
+    const totalHdfCut     = hdfPanels.reduce((s, p) => s + cutMeters(p.w, p.h, p.d), 0);
     const totalKorpusEdge = korpusPanels.reduce((s, p) => s + bandedEdgeMeters(p), 0);
     const totalObicieEdge = obiciePanels.reduce((s, p) => s + bandedEdgeMeters(p), 0);
 
     // Hardware counts
     const rodCount      = elements.filter(e => e.type === 'rod').length;
     const hingeCount    = elements.filter(e => e.type === 'front').reduce((s, e) => s + hingesForFront(e), 0);
-    const slideCount    = elements.filter(e => e.type === 'drawer').length;
-    const couplingCount = slideCount;
+    const slideCount    = elements.filter(e => e.type === 'drawer' && !e.pushToOpen).length;
+    const ptoSlideCount = elements.filter(e => e.type === 'drawer' && !!e.pushToOpen).length;
+    const couplingCount = slideCount + ptoSlideCount;
     const handleCount   = elements.filter(e => e.type === 'front').length;
     const legCount      = elements.filter(e => e.type === 'leg').length * 4;
 
     // Costs
     const costKorpus        = totalKorpusArea * PRICE_KORPUS_M2;
     const costObicie        = totalObicieArea * PRICE_OBICIE_M2;
+    const costHdf           = totalHdfArea    * PRICE_HDF_M2;
     const costCutKorpus     = totalKorpusCut  * PRICE_CUT_M;
     const costCutObicie     = totalObicieCut  * PRICE_CUT_M;
+    const costCutHdf        = totalHdfCut     * PRICE_CUT_M;
     const costEdgeSvcKorpus = totalKorpusEdge * PRICE_EDGE_SVC_M;
     const costEdgeSvcObicie = totalObicieEdge * PRICE_EDGE_SVC_M;
     const costOkleinaK      = totalKorpusEdge * PRICE_OKLEINA_K_M;
@@ -241,28 +270,30 @@ function useOrderData(elements: BoxElement[]) {
     const costRods          = rodCount      * PRICE_ROD;
     const costHinges        = hingeCount    * PRICE_HINGE;
     const costSlides        = slideCount    * PRICE_SLIDE;
+    const costPtoSlides     = ptoSlideCount * PRICE_PTO_SLIDE;
+    const costTipOn         = ptoSlideCount * PRICE_TIPON;
     const costCouplings     = couplingCount * PRICE_COUPLING;
     const costHandles       = handleCount   * PRICE_HANDLE;
     const costLegs          = legCount      * PRICE_LEG;
 
     const grandTotal =
-      costKorpus + costObicie +
-      costCutKorpus + costCutObicie +
+      costKorpus + costObicie + costHdf +
+      costCutKorpus + costCutObicie + costCutHdf +
       costEdgeSvcKorpus + costEdgeSvcObicie +
       costOkleinaK + costOkleinaO +
-      costRods + costHinges + costSlides + costCouplings + costHandles + costLegs;
+      costRods + costHinges + costSlides + costPtoSlides + costTipOn + costCouplings + costHandles + costLegs;
 
     return {
       korpusGrouped, obicieGrouped, hdfGrouped,
-      totalKorpusArea, totalObicieArea,
-      totalKorpusCut, totalObicieCut,
+      totalKorpusArea, totalObicieArea, totalHdfArea,
+      totalKorpusCut, totalObicieCut, totalHdfCut,
       totalKorpusEdge, totalObicieEdge,
-      rodCount, hingeCount, slideCount, couplingCount, handleCount, legCount,
-      costKorpus, costObicie,
-      costCutKorpus, costCutObicie,
+      rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleCount, legCount,
+      costKorpus, costObicie, costHdf,
+      costCutKorpus, costCutObicie, costCutHdf,
       costEdgeSvcKorpus, costEdgeSvcObicie,
       costOkleinaK, costOkleinaO,
-      costRods, costHinges, costSlides, costCouplings, costHandles, costLegs,
+      costRods, costHinges, costSlides, costPtoSlides, costTipOn, costCouplings, costHandles, costLegs,
       grandTotal,
     };
   }, [elements]);
@@ -295,13 +326,15 @@ const GroupedSection: React.FC<{ title: string; panels: GroupedPanel[] }> = ({ t
 );
 
 const AdditionalSection: React.FC<{
-  rodCount: number; hingeCount: number; slideCount: number;
+  rodCount: number; hingeCount: number; slideCount: number; ptoSlideCount: number;
   couplingCount: number; handleCount: number; legCount: number;
-}> = ({ rodCount, hingeCount, slideCount, couplingCount, handleCount, legCount }) => {
+}> = ({ rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleCount, legCount }) => {
   const items: Array<{ name: string; qty: number; note?: string }> = [];
   if (rodCount > 0)       items.push({ name: 'Drążki',              qty: rodCount });
   if (hingeCount > 0)     items.push({ name: 'Zawiasy',             qty: hingeCount,    note: 'na drzwi (wg wysokości drzwi)' });
   if (slideCount > 0)     items.push({ name: 'Prowadnice przesuwne', qty: slideCount,   note: '1 zestaw na szufladę' });
+  if (ptoSlideCount > 0)  items.push({ name: 'Prowadnice push to open', qty: ptoSlideCount, note: '1 zestaw na szufladę' });
+  if (ptoSlideCount > 0)  items.push({ name: 'TIP-ON BLUMOTION', qty: ptoSlideCount, note: '1 na szufladę' });
   if (couplingCount > 0)  items.push({ name: 'Sprzęgła',            qty: couplingCount, note: '1 zestaw na szufladę' });
   if (handleCount > 0)    items.push({ name: 'Uchwyty',             qty: handleCount,   note: '1 na drzwi' });
   if (legCount > 0)       items.push({ name: 'Nóżki',               qty: legCount,      note: '4 na box' });
@@ -333,6 +366,7 @@ const SummaryTab: React.FC<{ data: ReturnType<typeof useOrderData> }> = ({ data 
       rodCount={data.rodCount}
       hingeCount={data.hingeCount}
       slideCount={data.slideCount}
+      ptoSlideCount={data.ptoSlideCount}
       couplingCount={data.couplingCount}
       handleCount={data.handleCount}
       legCount={data.legCount}
@@ -456,7 +490,7 @@ const CostTab: React.FC<{
   setFin: React.Dispatch<React.SetStateAction<FinancialState>>;
 }> = ({ data, fin, setFin }) => {
   const hardwareSubtotal =
-    data.costRods + data.costHinges + data.costSlides +
+    data.costRods + data.costHinges + data.costSlides + data.costPtoSlides + data.costTipOn +
     data.costCouplings + data.costHandles + data.costLegs;
 
   return (
@@ -469,9 +503,14 @@ const CostTab: React.FC<{
         <CostRow label="Płyta obicie" qty={data.totalObicieArea} unit="m²" price={PRICE_OBICIE_M2} cost={data.costObicie} />
       </CostSection>
 
-      <CostSection title="Cięcie płyt" subtotal={data.costCutKorpus + data.costCutObicie}>
+      <CostSection title="Płyta HDF" subtotal={data.costHdf}>
+        <CostRow label="Płyta HDF" qty={data.totalHdfArea} unit="m²" price={PRICE_HDF_M2} cost={data.costHdf} />
+      </CostSection>
+
+      <CostSection title="Cięcie płyt" subtotal={data.costCutKorpus + data.costCutObicie + data.costCutHdf}>
         <CostRow label="Cięcie płyty korpus" qty={data.totalKorpusCut} unit="m" price={PRICE_CUT_M} cost={data.costCutKorpus} />
         <CostRow label="Cięcie płyty obicie" qty={data.totalObicieCut} unit="m" price={PRICE_CUT_M} cost={data.costCutObicie} />
+        <CostRow label="Cięcie HDF"          qty={data.totalHdfCut}    unit="m" price={PRICE_CUT_M} cost={data.costCutHdf} />
       </CostSection>
 
       <CostSection
@@ -487,8 +526,10 @@ const CostTab: React.FC<{
       <CostSection title="Koszty sprzętu" subtotal={hardwareSubtotal}>
         {data.rodCount > 0     && <CostRow label="Drążek"              qty={data.rodCount}      unit="szt." price={PRICE_ROD}      cost={data.costRods} />}
         {data.hingeCount > 0   && <CostRow label="Zawiasy"             qty={data.hingeCount}    unit="szt." price={PRICE_HINGE}    cost={data.costHinges} />}
-        {data.slideCount > 0   && <CostRow label="Prowadnice przesuwne" qty={data.slideCount}   unit="szt." price={PRICE_SLIDE}    cost={data.costSlides} />}
-        {data.couplingCount > 0 && <CostRow label="Sprzęgła"           qty={data.couplingCount} unit="szt." price={PRICE_COUPLING} cost={data.costCouplings} />}
+        {data.slideCount > 0    && <CostRow label="Prowadnice przesuwne"    qty={data.slideCount}    unit="szt." price={PRICE_SLIDE}    cost={data.costSlides} />}
+        {data.ptoSlideCount > 0 && <CostRow label="Prowadnice push to open" qty={data.ptoSlideCount} unit="szt." price={PRICE_PTO_SLIDE} cost={data.costPtoSlides} />}
+        {data.ptoSlideCount > 0 && <CostRow label="TIP-ON BLUMOTION"        qty={data.ptoSlideCount} unit="szt." price={PRICE_TIPON}     cost={data.costTipOn} />}
+        {data.couplingCount > 0 && <CostRow label="Sprzęgła"               qty={data.couplingCount} unit="szt." price={PRICE_COUPLING} cost={data.costCouplings} />}
         {data.handleCount > 0  && <CostRow label="Uchwyty"             qty={data.handleCount}   unit="szt." price={PRICE_HANDLE}   cost={data.costHandles} />}
         {data.legCount > 0     && <CostRow label="Nóżki"               qty={data.legCount}      unit="szt." price={PRICE_LEG}      cost={data.costLegs} />}
         {hardwareSubtotal === 0 && <div className="om-empty-row">brak</div>}

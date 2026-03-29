@@ -9,6 +9,7 @@ interface Props {
 type Tab = 'elements';
 
 const PANEL_T_MM = 18; // must match PANEL_T in App.tsx / useThreeScene.ts
+const HDF_T_MM          = 3;
 const DRW_H_SIDE        = 145;
 const DRW_H_BACK        = 100;
 const DRW_H_FRONT_INNER = 130;
@@ -19,14 +20,21 @@ function getDrawerPanelsDisplay(el: BoxElement): Panel[] {
   const D  = toMm(el.dimensions.depth);
   const T  = PANEL_T_MM;
   const fW = el.adjustedFrontWidth  ? toMm(el.adjustedFrontWidth)  : (el.parentIsDrawerbox === false ? W : W + 2 * T);
-  const fH = el.adjustedFrontHeight ? toMm(el.adjustedFrontHeight) : DRW_H_FRONT_FACE;
+  const fH = el.adjustedFrontHeight ? toMm(el.adjustedFrontHeight) : el.frontHeight ? toMm(el.frontHeight) : DRW_H_FRONT_FACE;
+  const extraH = Math.max(0, fH - DRW_H_FRONT_FACE);
+  const hSide       = DRW_H_SIDE        + extraH;
+  const hBack       = DRW_H_BACK        + extraH;
+  const hFrontInner = DRW_H_FRONT_INNER + extraH;
+  const sideD = el.parentIsDrawerbox !== false ? D - 10 : D;
+  const bottomW = W - 4;
+  const bottomD = sideD - 4;
   return [
-    { label: 'Bok lewy',        w: T,       h: DRW_H_SIDE,        d: D - T },
-    { label: 'Bok prawy',       w: T,       h: DRW_H_SIDE,        d: D - T },
-    { label: 'Dno',             w: -1,      h: -1,                d: -1    },
-    { label: 'Tył',             w: W - 2*T, h: DRW_H_BACK,        d: T     },
-    { label: 'Przód wewnętrzny', w: W - 2*T, h: DRW_H_FRONT_INNER, d: T    },
-    { label: 'Front',           w: fW,      h: fH,                d: T     },
+    { label: 'Bok lewy',        w: T,       h: hSide,       d: sideD },
+    { label: 'Bok prawy',       w: T,       h: hSide,       d: sideD },
+    { label: 'Dno (HDF)',       w: bottomW, h: HDF_T_MM,    d: bottomD },
+    { label: 'Tył',             w: W - 2*T, h: hBack,       d: T     },
+    { label: 'Przód wewnętrzny', w: W - 2*T, h: hFrontInner, d: T    },
+    { label: 'Front',           w: fW,      h: fH,          d: T     },
   ];
 }
 
@@ -197,6 +205,34 @@ const ModelOverlay: React.FC<Props> = ({ elements }) => {
                       ))}
                     </div>
                   )}
+                  {el.type === 'drawerbox' && el.hasRearHdf && (() => {
+                    const hW = Math.round(toMm(el.dimensions.width) - 4);
+                    const hH = Math.round(toMm(el.dimensions.height) - 4);
+                    return (
+                      <div className="mo-panel-row mo-panel-row--nested">
+                        <span className="mo-panel-line" />
+                        <span className="mo-panel-name">HDF tył boxa</span>
+                        <span className="mo-panel-dims">{hW} × {hH} × {HDF_T_MM}</span>
+                      </div>
+                    );
+                  })()}
+                  {el.type === 'drawerbox' && el.hasTopRails && (() => {
+                    const rW = Math.round(toMm(el.dimensions.width) - 2 * PANEL_T_MM);
+                    return (
+                      <>
+                        <div className="mo-panel-row mo-panel-row--nested">
+                          <span className="mo-panel-line" />
+                          <span className="mo-panel-name">Płyta górna przód</span>
+                          <span className="mo-panel-dims">{rW} × {PANEL_T_MM} × 100</span>
+                        </div>
+                        <div className="mo-panel-row mo-panel-row--nested">
+                          <span className="mo-panel-line" />
+                          <span className="mo-panel-name">Płyta górna tył</span>
+                          <span className="mo-panel-dims">{rW} × {PANEL_T_MM} × 100</span>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               );
             })}

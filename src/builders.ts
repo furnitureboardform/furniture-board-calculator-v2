@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { BoxElement } from './types';
+import { HDF_T } from './constants';
 
 const PANEL_T = 0.018;
 const PANEL_COLOR = new THREE.Color(0xc8a97a);
@@ -69,7 +70,11 @@ export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: TH
   const H_FRONT_INNER = 0.130;
   const H_FRONT_FACE  = 0.170;
   const faceW = element.adjustedFrontWidth  ?? (element.parentIsDrawerbox === false ? width : width + 2 * t);
-  const faceH = element.adjustedFrontHeight ?? H_FRONT_FACE;
+  const faceH = element.adjustedFrontHeight ?? element.frontHeight ?? H_FRONT_FACE;
+  const extraH = Math.max(0, faceH - H_FRONT_FACE);
+  const hSide       = H_SIDE        + extraH;
+  const hBack       = H_BACK        + extraH;
+  const hFrontInner = H_FRONT_INNER + extraH;
   const makeMat = () => new THREE.MeshStandardMaterial({ color, emissive, roughness: 0.4, metalness: 0.05, side: THREE.DoubleSide });
   const addPanel = (w: number, h: number, d: number, px: number, py: number, pz: number) => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), makeMat());
@@ -79,11 +84,16 @@ export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: TH
     mesh.userData = { elementId: element.id };
     parent.add(mesh);
   };
-  addPanel(t, H_SIDE, depth - t, -(width / 2 - t / 2), 0, -t / 2);
-  addPanel(t, H_SIDE, depth - t,  (width / 2 - t / 2), 0, -t / 2);
-  addPanel(width - 2 * t, t, depth - t, 0, -(H_SIDE / 2 - t / 2), -t / 2);
-  addPanel(width - 2 * t, H_BACK, t, 0, (H_BACK - H_SIDE) / 2, -(depth / 2 - t / 2));
-  addPanel(width - 2 * t, H_FRONT_INNER, t, 0, (H_FRONT_INNER - H_SIDE) / 2, depth / 2 - t / 2);
+  const hdf = HDF_T;
+  const bottomW = width - 0.004;
+  const sideD = element.parentIsDrawerbox !== false ? depth - 0.010 : depth;
+  const bottomD = sideD - 0.004;
+  const sidePz = depth / 2 - sideD / 2;
+  addPanel(t, hSide, sideD, -(width / 2 - t / 2), (hSide - H_SIDE) / 2, sidePz);
+  addPanel(t, hSide, sideD,  (width / 2 - t / 2), (hSide - H_SIDE) / 2, sidePz);
+  addPanel(bottomW, hdf, bottomD, 0, -(H_SIDE / 2 - hdf / 2), -t / 2);
+  addPanel(width - 2 * t, hBack, t, 0, (hBack - H_SIDE) / 2, -(depth / 2 - t / 2));
+  addPanel(width - 2 * t, hFrontInner, t, 0, (hFrontInner - H_SIDE) / 2, depth / 2 - t / 2);
   addPanel(faceW, faceH, t, 0, (faceH - H_SIDE) / 2, depth / 2 + t / 2);
 }
 
@@ -102,9 +112,15 @@ export function rebuildDrawerbox(parent: THREE.Mesh, element: BoxElement, color:
   };
   addP(t, height, depth, -(width / 2 - t / 2), 0, 0);
   addP(t, height, depth, (width / 2 - t / 2), 0, 0);
-  addP(width - 2 * t, t, depth, 0, height / 2 - t / 2, 0);
   if (element.hasBottomPanel) {
     addP(width - 2 * t, t, depth, 0, -(height / 2 - t / 2), 0);
+  }
+  if (element.hasTopRails) {
+    const railW = width - 2 * t;
+    const railD = 0.100;
+    const railY = height / 2 - t / 2;
+    addP(railW, t, railD, 0, railY,  depth / 2 - railD / 2);
+    addP(railW, t, railD, 0, railY, -depth / 2 + railD / 2);
   }
 }
 

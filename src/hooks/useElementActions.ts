@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import type React from 'react';
 import type { BoxElement } from '../types';
-import { PANEL_T } from '../constants';
+import { PANEL_T, DRAWER_RAIL_CLEARANCE, FRONT_INSET } from '../constants';
 import {
   computeHdfForCabinet,
   computeLegsForCabinet,
@@ -73,8 +73,11 @@ export function useElementActions({
     setElements((prev) => {
       const cab = prev.find((e) => e.id === cabinetId);
       if (!cab) return prev;
-      const innerWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T - 0.004);
+      const innerWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T - 2 * DRAWER_RAIL_CLEARANCE);
       const isDrawerbox = cab.type === 'drawerbox';
+      const faceW = isDrawerbox
+        ? Math.max(0.01, cab.dimensions.width - 2 * FRONT_INSET)
+        : Math.max(0.01, cab.dimensions.width - 2 * PANEL_T - 2 * FRONT_INSET);
       const depth = isDrawerbox
         ? cab.dimensions.depth
         : Math.max(0.01, cab.dimensions.depth - PANEL_T - 0.01);
@@ -87,6 +90,7 @@ export function useElementActions({
         type: 'drawer',
         cabinetId,
         parentIsDrawerbox: isDrawerbox,
+        adjustedFrontWidth: faceW,
         dimensions: { width: innerWidth, height: 0.145, depth },
         position: {
           x: cab.position.x,
@@ -742,19 +746,47 @@ export function useElementActions({
       if (!drawer || drawer.type !== 'drawer' || !drawer.cabinetId) return prev;
       const parent = prev.find((e) => e.id === drawer.cabinetId);
       if (!parent) return prev;
+      if (!adjust) {
+        return prev.map((e) => e.id === drawerId ? { ...e, adjustedFrontHeight: undefined } : e);
+      }
       const GAP = 0.002;
-      const availW = parent.type === 'drawerbox'
-        ? parent.dimensions.width
-        : parent.dimensions.width - 2 * PANEL_T;
-      const availH = parent.type === 'drawerbox'
-        ? parent.dimensions.height
-        : parent.dimensions.height - 2 * PANEL_T;
-      return prev.map((e) => e.id === drawerId ? {
-        ...e,
-        adjustedFrontWidth:  adjust ? Math.max(0.01, availW - 2 * GAP) : undefined,
-        adjustedFrontHeight: adjust ? Math.max(0.01, availH - 2 * GAP) : undefined,
-      } : e);
+      const bottomOffset = parent.type === 'drawerbox' ? (parent.hasBottomPanel ? PANEL_T : 0) : PANEL_T;
+      const bottomBound = parent.position.y + bottomOffset;
+      const innerTop = parent.position.y + parent.dimensions.height - PANEL_T;
+      const newPositionY = bottomBound + GAP;
+      const siblingsAbove = prev.filter(
+        (e) =>
+          e.cabinetId === parent.id &&
+          e.id !== drawerId &&
+          e.position.y > newPositionY &&
+          (e.type === 'shelf' || e.type === 'drawer' || e.type === 'drawerbox')
+      );
+      const nearestObstacle = siblingsAbove.length > 0
+        ? Math.min(...siblingsAbove.map((e) => e.position.y))
+        : Infinity;
+      const topBound = Math.min(innerTop, nearestObstacle);
+      const faceH = Math.max(0.001, topBound - GAP - newPositionY);
+      return prev.map((e) => e.id === drawerId
+        ? { ...e, adjustedFrontHeight: faceH, position: { ...e.position, y: newPositionY } }
+        : e
+      );
     });
+  }, [setElements]);
+
+  const handleDrawerFrontHeightChange = useCallback((drawerId: string, faceH: number) => {
+    setElements((prev) => prev.map((e) => e.id === drawerId ? { ...e, frontHeight: faceH } : e));
+  }, [setElements]);
+
+  const handleDrawerPushToOpenChange = useCallback((drawerId: string, value: boolean) => {
+    setElements((prev) => prev.map((e) => e.id === drawerId ? { ...e, pushToOpen: value } : e));
+  }, [setElements]);
+
+  const handleHasTopRailsChange = useCallback((drawerboxId: string, has: boolean) => {
+    setElements((prev) => prev.map((e) => e.id === drawerboxId ? { ...e, hasTopRails: has } : e));
+  }, [setElements]);
+
+  const handleHasRearHdfChange = useCallback((drawerboxId: string, has: boolean) => {
+    setElements((prev) => prev.map((e) => e.id === drawerboxId ? { ...e, hasRearHdf: has } : e));
   }, [setElements]);
 
   const handleHasBottomPanelChange = useCallback((drawerboxId: string, has: boolean) => {
@@ -802,8 +834,12 @@ export function useElementActions({
     handleAddDoubleFrontToGroup,
     handleOpenFrontsChange,
     handleHasBottomPanelChange,
+    handleHasRearHdfChange,
+    handleHasTopRailsChange,
     handleHasSidePanelsChange,
     handleDrawerAdjustFrontChange,
+    handleDrawerFrontHeightChange,
+    handleDrawerPushToOpenChange,
     handleShelfSwitchBay,
     handleClearAll,
   };

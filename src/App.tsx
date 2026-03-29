@@ -55,8 +55,12 @@ const App: React.FC = () => {
     handleAddDoubleFrontToGroup,
     handleOpenFrontsChange,
     handleHasBottomPanelChange,
+    handleHasRearHdfChange,
+    handleHasTopRailsChange,
     handleHasSidePanelsChange,
     handleDrawerAdjustFrontChange,
+    handleDrawerFrontHeightChange,
+    handleDrawerPushToOpenChange,
     handleShelfSwitchBay,
     handleClearAll,
   } = useElementActions({ setElements, setSelectedId, setMultiSelectedIds, boardSizeRef, dividerYHintRef, dragDeltaRef, detachedFromRef });
@@ -142,8 +146,12 @@ const App: React.FC = () => {
           hasFront={selectedCabHasFront || selectedGroupHasFront}
           onOpenFrontsChange={(open) => selectedElement && handleOpenFrontsChange(selectedElement.id, open)}
           onHasBottomPanelChange={(has) => selectedElement && handleHasBottomPanelChange(selectedElement.id, has)}
+          onHasRearHdfChange={(has) => selectedElement && handleHasRearHdfChange(selectedElement.id, has)}
+          onHasTopRailsChange={(has) => selectedElement && handleHasTopRailsChange(selectedElement.id, has)}
           onHasSidePanelsChange={(has) => selectedElement && handleHasSidePanelsChange(selectedElement.id, has)}
           onDrawerAdjustFrontChange={(adj) => selectedElement && handleDrawerAdjustFrontChange(selectedElement.id, adj)}
+          onDrawerFrontHeightChange={(h) => selectedElement && handleDrawerFrontHeightChange(selectedElement.id, h)}
+          onDrawerPushToOpenChange={(v) => selectedElement && handleDrawerPushToOpenChange(selectedElement.id, v)}
           onShelfSwitchBay={handleShelfSwitchBay}
         />
       </aside>

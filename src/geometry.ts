@@ -255,3 +255,38 @@ export function recomputeAllY(elements: BoxElement[], roomH = Infinity): BoxElem
   const settled = elements.map((el) => resultMap.get(el.id)!);
   return recomputeGroups(settled);
 }
+
+const DRAWER_FACE_H_DEFAULT = 0.170;
+
+/**
+ * Returns the valid Y range for a drawer based on its front face bounds.
+ * Front bottom = drawer.position.y, front top = drawer.position.y + faceH.
+ * minY: front bottom at inner bottom of parent.
+ * maxY: front top just below nearest obstacle above (sibling shelf/drawer) or parent inner top.
+ */
+export function computeDrawerYBounds(
+  drawer: BoxElement,
+  parent: BoxElement,
+  allElements: BoxElement[]
+): { minY: number; maxY: number } {
+  const faceH = drawer.adjustedFrontHeight ?? drawer.frontHeight ?? DRAWER_FACE_H_DEFAULT;
+  const bottomOffset = parent.type === 'drawerbox' ? (parent.hasBottomPanel ? PANEL_T : 0) : PANEL_T;
+  const minY = parent.position.y + bottomOffset;
+  const innerTop = parent.position.y + parent.dimensions.height - PANEL_T;
+
+  // Find bottom edge of nearest sibling above current drawer position
+  const siblingsAbove = allElements.filter(
+    (e) =>
+      e.cabinetId === parent.id &&
+      e.id !== drawer.id &&
+      e.position.y > drawer.position.y &&
+      (e.type === 'shelf' || e.type === 'drawer' || e.type === 'drawerbox')
+  );
+  const nearestObstacle = siblingsAbove.length > 0
+    ? Math.min(...siblingsAbove.map((e) => e.position.y))
+    : Infinity;
+
+  const topBound = Math.min(innerTop, nearestObstacle);
+  const maxY = Math.max(minY, topBound - faceH);
+  return { minY, maxY };
+}

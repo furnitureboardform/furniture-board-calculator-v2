@@ -11,5 +11,6 @@ export const DETACH_DIST = 0.08;    // 80 mm drag displacement to detach
 export const DIVIDER_DETACH_DIST = 1.00; // 1000 mm Z drag needed to detach divider from cabinet
 export const HYSTERESIS_DIST = 0.15; // 150 mm before re-snap to same cabinet
 export const DIVIDER_EDGE_SNAP = 0.04; // 40 mm snap-to-edge distance for dividers
+export const DRAWER_RAIL_CLEARANCE = 0.0125; // 12.5 mm clearance per side for drawer slides
 
 export const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];

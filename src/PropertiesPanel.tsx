@@ -12,8 +12,12 @@ interface Props {
   hasFront?: boolean;
   onOpenFrontsChange?: (open: boolean) => void;
   onHasBottomPanelChange?: (has: boolean) => void;
+  onHasRearHdfChange?: (has: boolean) => void;
+  onHasTopRailsChange?: (has: boolean) => void;
   onHasSidePanelsChange?: (has: boolean) => void;
   onDrawerAdjustFrontChange?: (adj: boolean) => void;
+  onDrawerFrontHeightChange?: (h: number) => void;
+  onDrawerPushToOpenChange?: (v: boolean) => void;
   onShelfSwitchBay?: (id: string) => void;
 }
 
@@ -23,10 +27,11 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onShelfSwitchBay }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onShelfSwitchBay }) => {
   // Local draft strings so the user can type freely
   const [drafts, setDrafts] = useState<Record<DimKey, string>>({ width: '', height: '', depth: '' });
   const [yDraft, setYDraft] = useState('');
+  const [frontHeightDraft, setFrontHeightDraft] = useState('');
   const [distLeftDraft, setDistLeftDraft] = useState('');
   const [distRightDraft, setDistRightDraft] = useState('');
 
@@ -41,6 +46,9 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
       depth: toMm(element.dimensions.depth),
     });
     setYDraft(toMm(element.position.y));
+    if (element.type === 'drawer') {
+      setFrontHeightDraft(element.adjustedFrontHeight ? toMm(element.adjustedFrontHeight) : element.frontHeight ? toMm(element.frontHeight) : '170');
+    }
     if (element.type === 'divider') {
       const cab = getDividerCab();
       if (cab) {
@@ -51,7 +59,8 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [element?.id, element?.dimensions.width, element?.dimensions.height, element?.dimensions.depth, element?.position.y, element?.position.x]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [element?.id, element?.dimensions.width, element?.dimensions.height, element?.dimensions.depth, element?.position.y, element?.position.x, (element as BoxElement & { adjustedFrontHeight?: number })?.adjustedFrontHeight]);
 
   if (!element) {
     return (
@@ -213,6 +222,22 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
           </div>
         </>
       )}
+      {element.type === 'drawerbox' && onHasTopRailsChange && (
+        <>
+          <div className="prop-front-state">
+            <span className="prop-label" style={{ color: '#c0c0e0' }}>Dodatkowo płyty górne w boxie</span>
+            <label className="prop-toggle">
+              <input
+                type="checkbox"
+                checked={!!element.hasTopRails}
+                onChange={(e) => onHasTopRailsChange(e.target.checked)}
+              />
+              <span className="prop-toggle-track" />
+              <span className="prop-toggle-text">{element.hasTopRails ? 'tak' : 'nie'}</span>
+            </label>
+          </div>
+        </>
+      )}
       {element.type === 'drawerbox' && element.cabinetId && onHasSidePanelsChange && (() => {
         const hasFronts = elements?.some((e) => e.type === 'front' && e.cabinetId === element.cabinetId);
         if (!hasFronts) return null;
@@ -293,6 +318,11 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
       {element.type === 'drawer' && element.cabinetId && onDrawerAdjustFrontChange && (() => {
         const par = elements?.find((e) => e.id === element.cabinetId);
         if (!par) return null;
+        const commitFrontHeight = () => {
+          const m = fromMm(frontHeightDraft);
+          if (isNaN(m) || m <= 0) { setFrontHeightDraft(element.adjustedFrontHeight ? toMm(element.adjustedFrontHeight) : ''); return; }
+          onDrawerFrontHeightChange?.(m);
+        };
         return (
           <>
             <div className="prop-divider" />
@@ -301,16 +331,49 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
               <label className="prop-toggle">
                 <input
                   type="checkbox"
-                  checked={!!element.adjustedFrontWidth}
+                  checked={!!element.adjustedFrontHeight}
                   onChange={(e) => onDrawerAdjustFrontChange(e.target.checked)}
                 />
                 <span className="prop-toggle-track" />
-                <span className="prop-toggle-text">{element.adjustedFrontWidth ? 'tak' : 'nie'}</span>
+                <span className="prop-toggle-text">{element.adjustedFrontHeight ? 'tak' : 'nie'}</span>
               </label>
             </div>
+            {!element.adjustedFrontHeight && (
+              <div className="prop-row">
+                <label className="prop-label" style={{ color: '#44ff44' }}>Wys. frontu</label>
+                <input
+                  className="prop-input"
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={frontHeightDraft}
+                  onChange={(e) => setFrontHeightDraft(e.target.value)}
+                  onBlur={commitFrontHeight}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { commitFrontHeight(); (e.target as HTMLInputElement).blur(); } }}
+                />
+                <span className="prop-unit">mm</span>
+              </div>
+            )}
           </>
         );
       })()}
+      {element.type === 'drawer' && onDrawerPushToOpenChange && (
+        <>
+          <div className="prop-divider" />
+          <div className="prop-front-state">
+            <span className="prop-label" style={{ color: '#c0c0e0' }}>Push to open</span>
+            <label className="prop-toggle">
+              <input
+                type="checkbox"
+                checked={!!element.pushToOpen}
+                onChange={(e) => onDrawerPushToOpenChange(e.target.checked)}
+              />
+              <span className="prop-toggle-track" />
+              <span className="prop-toggle-text">{element.pushToOpen ? 'tak' : 'nie'}</span>
+            </label>
+          </div>
+        </>
+      )}
       {(element.type === 'shelf' || element.type === 'rod') && element.cabinetId && onShelfSwitchBay && (() => {
         const hasOverlappingDivider = elements?.some(
           (e) => e.cabinetId === element.cabinetId && e.type === 'divider' &&
