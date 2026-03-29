@@ -422,10 +422,27 @@ export function useElementActions({
         position: { x: 0, y: 0, z: 0 },
         color: cab.color,
       }, cab, prev);
+      const bw = boardSizeRef.current.width / 1000;
+      const maskLeft = mask.position.x - mask.dimensions.width / 2;
+      const maskRight = mask.position.x + mask.dimensions.width / 2;
+      let shift = 0;
+      if (maskLeft < -bw / 2) shift = -bw / 2 - maskLeft;
+      else if (maskRight > bw / 2) shift = bw / 2 - maskRight;
+      const shiftedCab = shift !== 0 ? { ...cab, position: { ...cab.position, x: cab.position.x + shift } } : cab;
+      const shiftedMask = shift !== 0 ? computeMaskowanicaForCabinet(mask, shiftedCab, prev) : mask;
       setSelectedId(cabinetId);
+      if (shift !== 0) {
+        return prev
+          .map((e) => {
+            if (e.id === cabinetId) return shiftedCab;
+            if (e.cabinetId === cabinetId) return { ...e, position: { ...e.position, x: e.position.x + shift } };
+            return e;
+          })
+          .concat(shiftedMask);
+      }
       return [...prev, mask];
     });
-  }, [setElements, setSelectedId]);
+  }, [setElements, setSelectedId, boardSizeRef]);
 
   const handleAddMaskowanicaToGroup = useCallback((groupId: string, side: 'left' | 'right') => {
     setElements((prev) => {
@@ -442,9 +459,23 @@ export function useElementActions({
         position: { x: 0, y: 0, z: 0 },
         color: group.color,
       }, prev);
+      const bw = boardSizeRef.current.width / 1000;
+      const maskLeft = mask.position.x - mask.dimensions.width / 2;
+      const maskRight = mask.position.x + mask.dimensions.width / 2;
+      let shift = 0;
+      if (maskLeft < -bw / 2) shift = -bw / 2 - maskLeft;
+      else if (maskRight > bw / 2) shift = bw / 2 - maskRight;
+      if (shift !== 0) {
+        const shifted = prev.map((e) => {
+          if (e.id === groupId || e.groupId === groupId || e.cabinetId === groupId)
+            return { ...e, position: { ...e.position, x: e.position.x + shift } };
+          return e;
+        });
+        return [...shifted, computeMaskowanicaForGroup(mask, shifted)];
+      }
       return [...prev, mask];
     });
-  }, [setElements]);
+  }, [setElements, boardSizeRef]);
 
   const handleAddRodToCabinet = useCallback((cabinetId: string) => {
     setElements((prev) => {
