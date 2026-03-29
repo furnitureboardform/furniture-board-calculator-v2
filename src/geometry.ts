@@ -31,7 +31,10 @@ export function computeYForBox(box: BoxElement, allElements: BoxElement[], roomH
     if (other.id === box.id) continue;
     if (other.type === 'shelf' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'plinth' || other.type === 'maskowanica') continue;
     if (getBoxStackOverlap(box, other)) {
-      maxTop = Math.max(maxTop, other.position.y + other.dimensions.height);
+      const wouldFitBelow = box.position.y + box.dimensions.height <= other.position.y;
+      if (!wouldFitBelow) {
+        maxTop = Math.max(maxTop, other.position.y + other.dimensions.height);
+      }
     }
   }
   const legs = allElements.filter((e) => e.type === 'leg' && e.cabinetId === box.id);
