@@ -473,6 +473,39 @@ export function useDragHandlers({
     []
   );
 
+  const handleMultiPositionChange = useCallback(
+    (ids: string[], dx: number, dz: number) => {
+      setElementsRaw((prev) => {
+        const idSet = new Set(ids);
+        const bw = boardSizeRef.current.width / 1000;
+        const bd = boardSizeRef.current.depth / 1000;
+        // First pass: move top-level selected elements
+        let updated = prev.map((el) => {
+          if (!idSet.has(el.id)) return el;
+          if (el.type === 'front' || el.type === 'hdf' || (el.cabinetId && !idSet.has(el.cabinetId))) return el;
+          const newX = Math.max(-(bw / 2), Math.min(bw / 2, el.position.x + dx));
+          const newZ = Math.max(-(bd / 2), Math.min(bd / 2, el.position.z + dz));
+          return { ...el, position: { ...el.position, x: newX, z: newZ } };
+        });
+        // Second pass: recompute children of moved cabinets
+        updated = updated.map((el) => {
+          if (!el.cabinetId || idSet.has(el.id)) return el;
+          const parent = updated.find((e) => e.id === el.cabinetId);
+          if (!parent || !idSet.has(parent.id)) return el;
+          if (el.type === 'front') return computeFrontForCabinet(el, parent);
+          if (el.type === 'hdf') return computeHdfForCabinet(el, parent);
+          if (el.type === 'leg') return computeLegsForCabinet(el, parent);
+          if (el.type === 'plinth') return computePlinthForCabinet(el, parent, updated);
+          if (el.type === 'maskowanica') return computeMaskowanicaForCabinet(el, parent, updated);
+          return { ...el, position: { ...el.position, x: el.position.x + dx, z: el.position.z + dz } };
+        });
+        return recomputeGroups(updated);
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
   const handleDragStart = useCallback((id: string) => {
     snapshotHistory();
     dragDeltaRef.current.set(id, { dx: 0, dz: 0 });
@@ -482,6 +515,7 @@ export function useDragHandlers({
     handleDimensionDrag,
     handleDimensionInput,
     handlePositionChange,
+    handleMultiPositionChange,
     handleYChange,
     handleDividerXChange,
     handleYMove,

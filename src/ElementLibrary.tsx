@@ -432,7 +432,7 @@ const ElementLibrary: React.FC<Props> = ({
             <React.Fragment key={grp.id}>
               <li
                 className={`element-item group-item ${isSelected ? 'selected' : ''}`}
-                onClick={() => onSelect(grp.id)}
+                onClick={() => { onSelect(grp.id); members.forEach((m) => onMultiSelectToggle(m.id)); }}
               >
                 <span className="group-icon">▤</span>
                 <span className="element-name">{grp.name}</span>

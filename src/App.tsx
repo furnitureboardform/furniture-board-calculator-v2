@@ -26,6 +26,7 @@ const App: React.FC = () => {
     handleDimensionDrag,
     handleDimensionInput,
     handlePositionChange,
+    handleMultiPositionChange,
     handleYChange,
     handleDividerXChange,
     handleYMove,
@@ -70,10 +71,13 @@ const App: React.FC = () => {
   useThreeScene(containerRef, {
     elements,
     selectedId,
+    multiSelectedIds,
     boardSize: { width: boardSize.width / 1000, depth: boardSize.depth / 1000 },
     onSelect: handleSelect,
+    onMultiSelectToggle: handleMultiSelectToggle,
     onDimensionChange: handleDimensionDrag,
     onPositionChange: handlePositionChange,
+    onMultiPositionChange: handleMultiPositionChange,
     onYMove: handleYMove,
     onDragStart: handleDragStart,
   });

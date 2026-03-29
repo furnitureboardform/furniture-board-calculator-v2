@@ -20,10 +20,13 @@ import {
 interface UseThreeSceneOptions {
   elements: BoxElement[];
   selectedId: string | null;
+  multiSelectedIds: string[];
   boardSize: { width: number; depth: number };
   onSelect: (id: string | null) => void;
+  onMultiSelectToggle: (id: string) => void;
   onDimensionChange: (id: string, axis: 'width' | 'height' | 'depth', delta: number, dir: number) => void;
   onPositionChange: (id: string, dx: number, dz: number) => void;
+  onMultiPositionChange: (ids: string[], dx: number, dz: number) => void;
   onYMove: (id: string, dy: number) => void;
   onDragStart?: (id: string) => void;
 }
@@ -74,6 +77,7 @@ export function useThreeScene(
   const isDraggingBoxYRef = useRef(false);
   const moveDragStateRef = useRef<{
     elementId: string;
+    elementIds: string[];
     lastWorldPos: THREE.Vector3;
   } | null>(null);
   const moveDragYStateRef = useRef<{
@@ -257,7 +261,7 @@ export function useThreeScene(
     const scene = sceneRef.current;
     if (!scene) return;
 
-    const { elements, selectedId } = optionsRef.current;
+    const { elements, selectedId, multiSelectedIds } = optionsRef.current;
 
     meshMapRef.current.forEach((mesh, id) => {
       if (!elements.find((e) => e.id === id)) {
@@ -271,11 +275,12 @@ export function useThreeScene(
 
       const { width, height, depth } = element.dimensions;
       const isSelected = element.id === selectedId;
+      const isMultiSelected = multiSelectedIds.includes(element.id);
 
       const color = (element.type === 'front' || element.type === 'plinth' || element.type === 'maskowanica')
         ? PANEL_COLOR
         : BOARD_COLOR;
-      const emissive = new THREE.Color(isSelected ? 0x224488 : 0x000000);
+      const emissive = new THREE.Color(isSelected ? 0x224488 : isMultiSelected ? 0x442266 : 0x000000);
 
       if (meshMapRef.current.has(element.id)) {
         const mesh = meshMapRef.current.get(element.id)!;
@@ -377,20 +382,31 @@ export function useThreeScene(
       const hits = raycaster.intersectObjects(allHittable, false);
       if (hits.length > 0) {
         const id = hits[0].object.userData.elementId as string;
-        if (id === optionsRef.current.selectedId) {
-          if (e.ctrlKey) {
+        if (e.ctrlKey) {
+          if (id === optionsRef.current.selectedId) {
             isDraggingBoxYRef.current = true;
             moveDragYStateRef.current = { elementId: id, lastClientY: e.clientY };
             optionsRef.current.onDragStart?.(id);
             controls.enabled = false;
           } else {
-            const worldPos = new THREE.Vector3();
-            raycaster.ray.intersectPlane(groundPlane.current, worldPos);
-            isDraggingBoxRef.current = true;
-            optionsRef.current.onDragStart?.(id);
-            moveDragStateRef.current = { elementId: id, lastWorldPos: worldPos };
-            controls.enabled = false;
+            const { selectedId, multiSelectedIds } = optionsRef.current;
+            if (selectedId && multiSelectedIds.length === 0 && selectedId !== id) {
+              optionsRef.current.onMultiSelectToggle(selectedId);
+            }
+            optionsRef.current.onMultiSelectToggle(id);
           }
+        } else if (id === optionsRef.current.selectedId || optionsRef.current.multiSelectedIds.includes(id)) {
+          const worldPos = new THREE.Vector3();
+          raycaster.ray.intersectPlane(groundPlane.current, worldPos);
+          isDraggingBoxRef.current = true;
+          optionsRef.current.onDragStart?.(id);
+          const multiIds = optionsRef.current.multiSelectedIds;
+          moveDragStateRef.current = {
+            elementId: id,
+            elementIds: multiIds.length > 0 ? multiIds : [id],
+            lastWorldPos: worldPos,
+          };
+          controls.enabled = false;
         } else {
           optionsRef.current.onSelect(id);
         }
@@ -440,7 +456,12 @@ export function useThreeScene(
         const last = moveDragStateRef.current.lastWorldPos;
         const dx = worldPos.x - last.x;
         const dz = worldPos.z - last.z;
-        optionsRef.current.onPositionChange(moveDragStateRef.current.elementId, dx, dz);
+        const { elementId, elementIds } = moveDragStateRef.current;
+        if (elementIds.length > 1) {
+          optionsRef.current.onMultiPositionChange(elementIds, dx, dz);
+        } else {
+          optionsRef.current.onPositionChange(elementId, dx, dz);
+        }
         moveDragStateRef.current.lastWorldPos = worldPos;
         return;
       }
@@ -465,7 +486,7 @@ export function useThreeScene(
         }
       });
       const hits = raycaster.intersectObjects(allHoverable, false);
-      if (hits.length > 0 && hits[0].object.userData.elementId === optionsRef.current.selectedId) {
+      if (hits.length > 0 && (hits[0].object.userData.elementId === optionsRef.current.selectedId || optionsRef.current.multiSelectedIds.includes(hits[0].object.userData.elementId))) {
         container.style.cursor = 'grab';
       } else {
         container.style.cursor = '';
