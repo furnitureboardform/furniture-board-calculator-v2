@@ -3,7 +3,6 @@ import type { BoxElement } from './types';
 import { HDF_T } from './constants';
 
 const PANEL_T = 0.018;
-const _PANEL_COLOR = new THREE.Color(0xc8a97a);
 const HDF_COLOR = new THREE.Color(0x5c4033);
 const ROD_RADIUS = 0.0125;
 const LEG_RADIUS = 0.02;
