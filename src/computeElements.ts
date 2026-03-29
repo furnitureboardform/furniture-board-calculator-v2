@@ -164,7 +164,7 @@ export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxEle
   }
   const TOUCH_TOL = PANEL_T * 2;
   const sideEdgeX = mask.maskownicaSide === 'right' ? maxX : minX;
-  const adjBox = allElements.find((e) => {
+  const adjBoxes = allElements.filter((e) => {
     if (e.groupId === group.id) return false;
     if (e.type !== 'cabinet' && e.type !== 'group') return false;
     const eLX = e.position.x - e.dimensions.width / 2;
@@ -175,9 +175,25 @@ export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxEle
   });
   let effMinY = minY;
   let effMaxY = maxY;
-  if (adjBox) {
-    effMinY = Math.max(minY, adjBox.position.y);
-    effMaxY = Math.min(maxY, adjBox.position.y + adjBox.dimensions.height);
+  if (adjBoxes.length > 0) {
+    // Build covered intervals clipped to [minY, maxY], then find largest free gap
+    const covered = adjBoxes
+      .map((b) => [Math.max(minY, b.position.y), Math.min(maxY, b.position.y + b.dimensions.height)] as [number, number])
+      .sort((a, b) => a[0] - b[0]);
+    // Merge overlapping intervals
+    const merged: [number, number][] = [covered[0]];
+    for (let i = 1; i < covered.length; i++) {
+      const last = merged[merged.length - 1];
+      if (covered[i][0] <= last[1]) last[1] = Math.max(last[1], covered[i][1]);
+      else merged.push(covered[i]);
+    }
+    // Free segments between minY..maxY
+    const breakpoints = [minY, ...merged.flatMap(([a, b]) => [a, b]), maxY];
+    let bestSize = -1;
+    for (let i = 0; i < breakpoints.length - 1; i += 2) {
+      const size = breakpoints[i + 1] - breakpoints[i];
+      if (size > bestSize) { bestSize = size; effMinY = breakpoints[i]; effMaxY = breakpoints[i + 1]; }
+    }
   }
   const totalH = Math.max(0.001, effMaxY - effMinY);
   const totalDepth = (maxFaceZ - minBackZ) + MASK_FRONT_EXT + MASK_BACK_EXT;
