@@ -435,10 +435,12 @@ const ElementLibrary: React.FC<Props> = ({
         {groups.map((grp) => {
           const members = elements.filter((e) => e.groupId === grp.id && e.type === 'cabinet');
           const groupFronts = elements.filter((e) => e.type === 'front' && e.cabinetId === grp.id);
+          const groupMaskowanice = elements.filter((e) => e.type === 'maskowanica' && e.cabinetId === grp.id);
           const isSelected = grp.id === selectedId;
           const isExpanded = isSelected || members.some((m) => m.id === selectedId) ||
             members.some((m) => elements.some((c) => c.cabinetId === m.id && c.id === selectedId)) ||
-            groupFronts.some((f) => f.id === selectedId);
+            groupFronts.some((f) => f.id === selectedId) ||
+            groupMaskowanice.some((m) => m.id === selectedId);
           return (
             <React.Fragment key={grp.id}>
               <li
@@ -465,6 +467,7 @@ const ElementLibrary: React.FC<Props> = ({
               {isExpanded && (
                 <>
                   {groupFronts.map((f) => renderItem(f, true))}
+                  {groupMaskowanice.map((m) => renderItem(m, true))}
                   {members.map((cab) => renderCabinet(cab, true))}
                   {!groupFronts.length && (
                     <>
