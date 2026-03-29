@@ -14,7 +14,8 @@ function clearChildren(parent: THREE.Mesh) {
   parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
     if (c instanceof THREE.Mesh) {
       c.geometry.dispose();
-      (c.material as THREE.MeshStandardMaterial).dispose();
+      const mat = c.material as THREE.MeshStandardMaterial | THREE.MeshStandardMaterial[];
+      Array.isArray(mat) ? mat.forEach(m => m.dispose()) : mat.dispose();
     }
     parent.remove(c);
   });
@@ -162,12 +163,12 @@ export function rebuildDivider(parent: THREE.Mesh, element: BoxElement, color: T
   parent.add(panel);
 }
 
-export function rebuildFront(parent: THREE.Mesh, element: BoxElement, emissive: THREE.Color) {
+export function rebuildFront(parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) {
   clearChildren(parent);
   const { width, height, depth } = element.dimensions;
   const geo = new THREE.BoxGeometry(width, height, depth);
   const mat = new THREE.MeshStandardMaterial({
-    color: PANEL_COLOR, emissive, roughness: 0.3, metalness: 0.15,
+    color, emissive, roughness: 0.3, metalness: 0.15,
     transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false,
   });
   const panel = new THREE.Mesh(geo, mat);
@@ -179,10 +180,11 @@ export function rebuildHdf(parent: THREE.Mesh, element: BoxElement, emissive: TH
   clearChildren(parent);
   const { width, height, depth } = element.dimensions;
   const geo = new THREE.BoxGeometry(width, height, depth);
-  const mat = new THREE.MeshStandardMaterial({
-    color: HDF_COLOR, emissive, roughness: 0.6, metalness: 0.05, side: THREE.DoubleSide,
-  });
-  const panel = new THREE.Mesh(geo, mat);
+  const outerMat = new THREE.MeshStandardMaterial({ color: HDF_COLOR, emissive, roughness: 0.6, metalness: 0.05 });
+  const innerMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive, roughness: 0.6, metalness: 0.05 });
+  // BoxGeometry face order: +X, -X, +Y, -Y, +Z (front/inside), -Z (back/outside)
+  const mats = [outerMat, outerMat, outerMat, outerMat, innerMat, outerMat];
+  const panel = new THREE.Mesh(geo, mats);
   panel.castShadow = true;
   panel.receiveShadow = true;
   panel.userData = { elementId: element.id };
@@ -220,7 +222,7 @@ export function rebuildLeg(parent: THREE.Mesh, element: BoxElement, color: THREE
   const { width, height, depth } = element.dimensions;
   const geo = new THREE.CylinderGeometry(LEG_RADIUS, LEG_RADIUS, height, 16);
   const mat = new THREE.MeshStandardMaterial({
-    color, emissive, roughness: 0.4, metalness: 0.3,
+    color: new THREE.Color(0x111111), emissive: new THREE.Color(0x000000), roughness: 0.4, metalness: 0.3,
   });
   const ox = width  / 2 - LEG_CORNER_OFFSET;
   const oz = depth  / 2 - LEG_CORNER_OFFSET;

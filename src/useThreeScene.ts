@@ -29,6 +29,7 @@ interface UseThreeSceneOptions {
 }
 
 const PANEL_COLOR = new THREE.Color(0xc8a97a);
+const BOARD_COLOR = new THREE.Color(0xffffff);
 
 /** Builds a rectangular grid as LineSegments (one line per cellSize metres). */
 function makeRectGrid(w: number, d: number, cellSize: number, color: number): THREE.LineSegments {
@@ -138,7 +139,7 @@ export function useThreeScene(
       else if (element.type === 'blenda') rebuildBlenda(mesh, element, color, emissive);
       else if (element.type === 'plinth') rebuildPlinth(mesh, element, color, emissive);
       else if (element.type === 'divider') rebuildDivider(mesh, element, color, emissive);
-      else if (element.type === 'front') rebuildFront(mesh, element, emissive);
+      else if (element.type === 'front') rebuildFront(mesh, element, color, emissive);
       else if (element.type === 'hdf') rebuildHdf(mesh, element, emissive);
       else if (element.type === 'rod') rebuildRod(mesh, element, color, emissive);
       else if (element.type === 'leg') rebuildLeg(mesh, element, color, emissive);
@@ -271,7 +272,9 @@ export function useThreeScene(
       const { width, height, depth } = element.dimensions;
       const isSelected = element.id === selectedId;
 
-      const color = PANEL_COLOR;
+      const color = (element.type === 'front' || element.type === 'plinth' || element.type === 'maskowanica')
+        ? PANEL_COLOR
+        : BOARD_COLOR;
       const emissive = new THREE.Color(isSelected ? 0x224488 : 0x000000);
 
       if (meshMapRef.current.has(element.id)) {
