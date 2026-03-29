@@ -201,7 +201,7 @@ export function recomputeAllY(elements: BoxElement[], roomH = Infinity): BoxElem
     if (legChildren.length > 0) {
       maxTop = maxTop + legChildren[0].dimensions.height;
     }
-    const withY = { ...box, position: { ...box.position, y: Math.min(maxTop, Math.max(0, roomH - box.dimensions.height)) } };
+    const withY = { ...box, position: { ...box.position, y: Math.min(Math.max(maxTop, elOriginalY), Math.max(0, roomH - box.dimensions.height)) } };
     const fitted = maxTop > 0 ? fitCabinetToBelow(withY, [...resultMap.values()]) : withY;
     resultMap.set(el.id, fitted);
   }

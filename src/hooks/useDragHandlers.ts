@@ -78,7 +78,9 @@ export function useDragHandlers({
 
           const newVal = Math.max(0.1, Math.min(maxAllowed, oldVal + delta));
           const actualDelta = newVal - oldVal;
-          const newPosVal = el.position[pa] + actualDelta / 2 * dir;
+          const newPosVal = axis === 'height'
+            ? (dir > 0 ? el.position.y : el.position.y + oldVal - newVal)
+            : el.position[pa] + actualDelta / 2 * dir;
           const withDelta = {
             ...el,
             dimensions: { ...el.dimensions, [axis]: newVal },
@@ -240,7 +242,7 @@ export function useDragHandlers({
         // Cabinet movement
         const prelim = afterMove.find((e) => e.id === id)!;
         const roomH = boardSizeRef.current.height / 1000;
-        const prelimY = computeYForBox(prelim, afterMove, roomH);
+        const prelimY = Math.max(computeYForBox(prelim, afterMove, roomH), movedEl.position.y);
         const prelimWithY = { ...prelim, position: { ...prelim.position, y: prelimY } };
         const withPrelimY = afterMove.map((el) => (el.id === id ? prelimWithY : el));
         const snapped = snapToNeighbors(prelimWithY, withPrelimY);
@@ -248,7 +250,7 @@ export function useDragHandlers({
           el.id === id ? { ...el, position: { x: snapped.x, y: 0, z: snapped.z } } : el
         );
         const finalBox = afterSnap.find((e) => e.id === id)!;
-        const finalY = computeYForBox(finalBox, afterSnap, roomH);
+        const finalY = Math.max(computeYForBox(finalBox, afterSnap, roomH), movedEl.position.y);
         const withFinalY = afterSnap.map((el) =>
           el.id === id ? { ...el, position: { ...el.position, y: finalY } } : el
         );
