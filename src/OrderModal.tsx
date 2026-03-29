@@ -183,8 +183,8 @@ function groupPanels(panels: PanelEntry[]): GroupedPanel[] {
 
 // ── Hinge count per door ───────────────────────────────────────────────────────
 function hingesForFront(el: BoxElement): number {
-  const [fa] = faceDims(el.dimensions.width, el.dimensions.height, el.dimensions.depth);
-  return Math.ceil((fa * 1000) / 600);
+  const heightMm = el.dimensions.height * 1000;
+  return Math.min(5, Math.max(2, Math.ceil(heightMm / 520)));
 }
 
 // ── Main data hook ─────────────────────────────────────────────────────────────
