@@ -3,7 +3,7 @@ import type { BoxElement } from './types';
 import { HDF_T } from './constants';
 
 const PANEL_T = 0.018;
-const PANEL_COLOR = new THREE.Color(0xc8a97a);
+const _PANEL_COLOR = new THREE.Color(0xc8a97a);
 const HDF_COLOR = new THREE.Color(0x5c4033);
 const ROD_RADIUS = 0.0125;
 const LEG_RADIUS = 0.02;
@@ -217,7 +217,7 @@ export function rebuildMaskowanica(parent: THREE.Mesh, element: BoxElement, colo
   parent.add(panel);
 }
 
-export function rebuildLeg(parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) {
+export function rebuildLeg(parent: THREE.Mesh, element: BoxElement, _color: THREE.Color, _emissive: THREE.Color) {
   clearChildren(parent);
   const { width, height, depth } = element.dimensions;
   const geo = new THREE.CylinderGeometry(LEG_RADIUS, LEG_RADIUS, height, 16);
