@@ -427,7 +427,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ grandTotal, fin, se
   const ownCost      = grandTotal + fin.transport + fin.nonStandard;
   const basePrice    = Math.ceil(ownCost * 2 / 100) * 100;
   const margin       = basePrice - ownCost;
-  const discountAmt  = margin * fin.discountPct / 100;
+  const discountAmt  = margin * fin.discountPct / 100 + fin.discountFixed;
   const autoPrice    = Math.ceil(Math.max(ownCost, basePrice - discountAmt) / 100) * 100;
   const displayPrice = fin.customerPriceManual ? fin.customerPrice : autoPrice;
   const deposit      = Math.ceil(ownCost / 100) * 100;
@@ -463,9 +463,13 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ grandTotal, fin, se
             <span className="om-fin-unit">%</span>
           </div>
         </div>
-        <div className="om-fin-card om-fin-card--result">
+        <div className="om-fin-card">
           <div className="om-fin-label">Rabat</div>
-          <div className="om-fin-result">{fmtPLN(discountAmt)}</div>
+          <div className="om-fin-value">
+            <input type="number" className="om-fin-input" value={fin.discountFixed} min={0}
+              onChange={e => set('discountFixed', Number(e.target.value))} />
+            <span className="om-fin-unit">zł</span>
+          </div>
         </div>
         <div className="om-fin-card om-fin-card--result">
           <div className="om-fin-label">Suma całkowita (koszt własny)</div>
