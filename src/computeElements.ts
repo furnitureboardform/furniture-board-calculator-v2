@@ -143,7 +143,7 @@ export function computeMaskowanicaForCabinet(mask: BoxElement, cab: BoxElement, 
     return {
       ...mask,
       dimensions: { width: cab.dimensions.width, height: PANEL_T, depth: totalDepth },
-      position: { x: cab.position.x, y: cab.position.y + cab.dimensions.height + PANEL_T / 2, z: zPos },
+      position: { x: cab.position.x, y: cab.position.y + cab.dimensions.height - PANEL_T / 2, z: zPos },
     };
   }
   const totalH = cab.dimensions.height + legH;
