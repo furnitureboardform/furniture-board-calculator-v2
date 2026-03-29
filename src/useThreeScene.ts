@@ -412,8 +412,20 @@ export function useThreeScene(
           let delta = 0;
           if (entry.axis === 'height') {
             delta = (-dy / container.clientHeight) * 5 * entry.dir;
-          } else {
+          } else if (entry.axis === 'width') {
             delta = (dx / container.clientWidth) * 5 * entry.dir;
+          } else {
+            // depth: project world Z direction to screen space, use dot product with mouse movement
+            const origin = new THREE.Vector3(0, 0, 0).project(camera);
+            const zTip = new THREE.Vector3(0, 0, 1).project(camera);
+            const sdx = zTip.x - origin.x;
+            const sdy = zTip.y - origin.y;
+            const len = Math.sqrt(sdx * sdx + sdy * sdy);
+            if (len > 0) {
+              const mdx = (dx / container.clientWidth) * 2;
+              const mdy = (-dy / container.clientHeight) * 2;
+              delta = ((mdx * sdx + mdy * sdy) / len) * 2.5 * entry.dir;
+            }
           }
           optionsRef.current.onDimensionChange(entry.elementId, entry.axis, delta, entry.dir);
           dragStateRef.current.startMouseX = e.clientX;
