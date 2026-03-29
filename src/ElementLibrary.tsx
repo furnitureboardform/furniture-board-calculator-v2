@@ -297,47 +297,13 @@ const ElementLibrary: React.FC<Props> = ({
               <span className="element-name" style={{ color: '#6060a0' }}>Dodaj drążek</span>
             </li>
 
-            {/* Section: Podstawa */}
-            {(!elements.some((e) => e.type === 'leg' && e.cabinetId === cab.id) ||
-              !elements.some((e) => e.type === 'plinth' && e.cabinetId === cab.id)) && (
-              <li className="element-item element-item--section">
-                <span className="element-section-line" />
-                Podstawa
-              </li>
-            )}
-            {!elements.some((e) => e.type === 'leg' && e.cabinetId === cab.id) && (
-              <li className="element-item element-item--add" onClick={() => onAddLegsToCabinet(cab.id)}>
-                <span className="element-indent-line" />
-                <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#6060a0' }}>Dodaj nóżki</span>
-              </li>
-            )}
-            {!elements.some((e) => e.type === 'plinth' && e.cabinetId === cab.id) && (
-              <li className="element-item element-item--add" onClick={() => onAddPlinthToCabinet(cab.id)}>
-                <span className="element-indent-line" />
-                <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#6060a0' }}>Dodaj cokoł</span>
-              </li>
-            )}
-
-            {/* Section: Wykończenie */}
-            {(!elements.some((e) => e.type === 'hdf' && e.cabinetId === cab.id) ||
-              !elements.some((e) => e.type === 'front' && e.cabinetId === cab.id) ||
-              !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id)) && (
-              <li className="element-item element-item--section">
-                <span className="element-section-line" />
-                Wykończenie
-              </li>
-            )}
-            {!elements.some((e) => e.type === 'hdf' && e.cabinetId === cab.id) && (
-              <li className="element-item element-item--add" onClick={() => onAddHdfToCabinet(cab.id)}>
-                <span className="element-indent-line" />
-                <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#6060a0' }}>Dodaj płytę HDF</span>
-              </li>
-            )}
+            {/* Section: Wykończenie (fronty) */}
             {!elements.some((e) => e.type === 'front' && e.cabinetId === cab.id) && (
               <>
+                <li className="element-item element-item--section">
+                  <span className="element-section-line" />
+                  Wykończenie
+                </li>
                 <li className="element-item element-item--add" onClick={() => onAddFrontToCabinet(cab.id)}>
                   <span className="element-indent-line" />
                   <span className="element-add-icon">＋</span>
@@ -349,6 +315,22 @@ const ElementLibrary: React.FC<Props> = ({
                   <span className="element-name" style={{ color: '#6060a0' }}>Dodaj podwójny front</span>
                 </li>
               </>
+            )}
+
+            {/* Section: Maskowanie */}
+            {(!elements.some((e) => e.type === 'plinth' && e.cabinetId === cab.id) ||
+              !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id)) && (
+              <li className="element-item element-item--section">
+                <span className="element-section-line" />
+                Maskowanie
+              </li>
+            )}
+            {!elements.some((e) => e.type === 'plinth' && e.cabinetId === cab.id) && (
+              <li className="element-item element-item--add" onClick={() => onAddPlinthToCabinet(cab.id)}>
+                <span className="element-indent-line" />
+                <span className="element-add-icon">＋</span>
+                <span className="element-name" style={{ color: '#6060a0' }}>Dodaj cokoł</span>
+              </li>
             )}
             {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'left') && (
               <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'left')}>
@@ -377,6 +359,36 @@ const ElementLibrary: React.FC<Props> = ({
                 <span className="element-add-icon">＋</span>
                 <span className="element-name" style={{ color: '#6060a0' }}>Dodaj maskownicę góra</span>
               </li>
+            )}
+
+            {/* Section: HDF */}
+            {!elements.some((e) => e.type === 'hdf' && e.cabinetId === cab.id) && (
+              <>
+                <li className="element-item element-item--section">
+                  <span className="element-section-line" />
+                  HDF
+                </li>
+                <li className="element-item element-item--add" onClick={() => onAddHdfToCabinet(cab.id)}>
+                  <span className="element-indent-line" />
+                  <span className="element-add-icon">＋</span>
+                  <span className="element-name" style={{ color: '#6060a0' }}>Dodaj płytę HDF</span>
+                </li>
+              </>
+            )}
+
+            {/* Section: Dodatki */}
+            {!elements.some((e) => e.type === 'leg' && e.cabinetId === cab.id) && (
+              <>
+                <li className="element-item element-item--section">
+                  <span className="element-section-line" />
+                  Dodatki
+                </li>
+                <li className="element-item element-item--add" onClick={() => onAddLegsToCabinet(cab.id)}>
+                  <span className="element-indent-line" />
+                  <span className="element-add-icon">＋</span>
+                  <span className="element-name" style={{ color: '#6060a0' }}>Dodaj nóżki</span>
+                </li>
+              </>
             )}
           </>
         )}
