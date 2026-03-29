@@ -72,7 +72,7 @@ interface Props {
   onAddPlinthToCabinet: (cabinetId: string) => void;
   onAddFrontToGroup: (groupId: string) => void;
   onAddDoubleFrontToGroup: (groupId: string) => void;
-  onAddMaskowanicaToCabinet: (cabinetId: string, side: 'left' | 'right') => void;
+  onAddMaskowanicaToCabinet: (cabinetId: string, side: 'left' | 'right' | 'bottom' | 'top') => void;
   onAddMaskowanicaToGroup: (groupId: string, side: 'left' | 'right') => void;
   onUngroup: (groupId: string) => void;
   onDelete: (id: string) => void;
@@ -337,6 +337,20 @@ const ElementLibrary: React.FC<Props> = ({
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
                 <span className="element-name" style={{ color: '#6060a0' }}>Dodaj maskownicę P</span>
+              </li>
+            )}
+            {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'bottom') && (
+              <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'bottom')}>
+                <span className="element-indent-line" />
+                <span className="element-add-icon">＋</span>
+                <span className="element-name" style={{ color: '#6060a0' }}>Dodaj maskownicę dół</span>
+              </li>
+            )}
+            {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'top') && (
+              <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'top')}>
+                <span className="element-indent-line" />
+                <span className="element-add-icon">＋</span>
+                <span className="element-name" style={{ color: '#6060a0' }}>Dodaj maskownicę góra</span>
               </li>
             )}
           </>

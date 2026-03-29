@@ -407,14 +407,15 @@ export function useElementActions({
     });
   }, [setElements, setSelectedId]);
 
-  const handleAddMaskowanicaToCabinet = useCallback((cabinetId: string, side: 'left' | 'right') => {
+  const handleAddMaskowanicaToCabinet = useCallback((cabinetId: string, side: 'left' | 'right' | 'bottom' | 'top') => {
     setElements((prev) => {
       const cab = prev.find((e) => e.id === cabinetId);
       if (!cab) return prev;
       if (prev.some((e) => e.type === 'maskowanica' && e.cabinetId === cabinetId && e.maskownicaSide === side)) return prev;
+      const name = side === 'left' ? `Maskowanica L${counters.maskowanica++}` : side === 'right' ? `Maskowanica P${counters.maskowanica++}` : side === 'bottom' ? `Maskowanica dół${counters.maskowanica++}` : `Maskowanica góra${counters.maskowanica++}`;
       const mask: BoxElement = computeMaskowanicaForCabinet({
         id: crypto.randomUUID(),
-        name: `Maskowanica ${side === 'left' ? 'L' : 'P'}${counters.maskowanica++}`,
+        name,
         type: 'maskowanica',
         cabinetId,
         maskownicaSide: side,
@@ -422,6 +423,8 @@ export function useElementActions({
         position: { x: 0, y: 0, z: 0 },
         color: cab.color,
       }, cab, prev);
+      setSelectedId(cabinetId);
+      if (side === 'bottom' || side === 'top') return [...prev, mask];
       const bw = boardSizeRef.current.width / 1000;
       const maskLeft = mask.position.x - mask.dimensions.width / 2;
       const maskRight = mask.position.x + mask.dimensions.width / 2;
@@ -430,7 +433,6 @@ export function useElementActions({
       else if (maskRight > bw / 2) shift = bw / 2 - maskRight;
       const shiftedCab = shift !== 0 ? { ...cab, position: { ...cab.position, x: cab.position.x + shift } } : cab;
       const shiftedMask = shift !== 0 ? computeMaskowanicaForCabinet(mask, shiftedCab, prev) : mask;
-      setSelectedId(cabinetId);
       if (shift !== 0) {
         return prev
           .map((e) => {

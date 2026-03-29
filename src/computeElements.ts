@@ -130,13 +130,27 @@ const MASK_BACK_EXT  = HDF_T;            // 3 mm płyta HDF
 export function computeMaskowanicaForCabinet(mask: BoxElement, cab: BoxElement, allElements: BoxElement[]): BoxElement {
   const legs = allElements.find((e) => e.type === 'leg' && e.cabinetId === cab.id);
   const legH = legs ? legs.dimensions.height : 0;
+  const totalDepth = cab.dimensions.depth + MASK_FRONT_EXT + MASK_BACK_EXT;
+  const zPos = cab.position.z + (MASK_FRONT_EXT - MASK_BACK_EXT) / 2;
+  if (mask.maskownicaSide === 'bottom') {
+    return {
+      ...mask,
+      dimensions: { width: cab.dimensions.width, height: PANEL_T, depth: totalDepth },
+      position: { x: cab.position.x, y: cab.position.y - legH - PANEL_T / 2, z: zPos },
+    };
+  }
+  if (mask.maskownicaSide === 'top') {
+    return {
+      ...mask,
+      dimensions: { width: cab.dimensions.width, height: PANEL_T, depth: totalDepth },
+      position: { x: cab.position.x, y: cab.position.y + cab.dimensions.height + PANEL_T / 2, z: zPos },
+    };
+  }
   const totalH = cab.dimensions.height + legH;
   const yPos = cab.position.y - legH;
   const xPos = mask.maskownicaSide === 'left'
     ? cab.position.x - cab.dimensions.width / 2 - PANEL_T / 2
     : cab.position.x + cab.dimensions.width / 2 + PANEL_T / 2;
-  const totalDepth = cab.dimensions.depth + MASK_FRONT_EXT + MASK_BACK_EXT;
-  const zPos = cab.position.z + (MASK_FRONT_EXT - MASK_BACK_EXT) / 2;
   return {
     ...mask,
     dimensions: { width: PANEL_T, height: totalH, depth: totalDepth },
