@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import type { BoxElement } from './types';
 import { PANEL_T, HDF_T } from './constants';
 import './OrderModal.css';
@@ -559,6 +560,17 @@ const OrderModal: React.FC<Props> = ({ elements }) => {
   });
 
   const hasCabinets = elements.some(e => e.type === 'cabinet');
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const appRoot = document.getElementById('root');
+    if (appRoot) (appRoot as any).inert = true;
+    modalRef.current?.focus();
+    return () => {
+      if (appRoot) (appRoot as any).inert = false;
+    };
+  }, [open]);
 
   return (
     <>
@@ -566,8 +578,8 @@ const OrderModal: React.FC<Props> = ({ elements }) => {
         <span className="om-fab-label">Zamówienie</span>
       </button>
 
-      {open && (
-        <div className="om-overlay" onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}>
+      {open && createPortal(
+        <div ref={modalRef} className="om-overlay" tabIndex={-1} role="dialog" aria-modal="true" onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}>
           <div className="om-modal">
             <div className="om-modal-header">
               <span className="om-modal-title">Zamówienia</span>
@@ -600,7 +612,7 @@ const OrderModal: React.FC<Props> = ({ elements }) => {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </>
   );
 };
