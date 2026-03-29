@@ -332,10 +332,12 @@
 .group-bar {
   padding: 6px 12px;
   flex-shrink: 0;
+  display: flex;
+  gap: 6px;
 }
 
 .btn-group {
-  width: 100%;
+  flex: 1;
   padding: 7px 12px;
   background: #1a3a2a;
   border: 1px solid #3aaa3a;
@@ -350,6 +352,24 @@
 .btn-group:hover {
   background: #234a30;
   border-color: #55dd55;
+}
+
+.btn-ungroup--bar {
+  flex: 1;
+  padding: 7px 12px;
+  background: #2a1010;
+  border: 1px solid #6b2020;
+  border-radius: 7px;
+  color: #e06060;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-ungroup--bar:hover {
+  background: #3d1515;
+  border-color: #c03030;
 }
 
 /* Group item row */

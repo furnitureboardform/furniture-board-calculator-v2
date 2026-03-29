@@ -431,12 +431,19 @@ const ElementLibrary: React.FC<Props> = ({
         ))}
       </div>
 
-      {/* Połącz button */}
-      {canGroup && (
+      {/* Połącz / Rozłącz buttons */}
+      {(canGroup || elements.some((e) => e.id === selectedId && e.type === 'group')) && (
         <div className="group-bar">
-          <button className="btn-group" onClick={() => onGroup(multiSelectedIds)}>
-            Połącz ({multiSelectedIds.length})
-          </button>
+          {canGroup && (
+            <button className="btn-group" onClick={() => onGroup(multiSelectedIds)}>
+              Połącz ({multiSelectedIds.length})
+            </button>
+          )}
+          {elements.some((e) => e.id === selectedId && e.type === 'group') && (
+            <button className="btn-ungroup--bar" onClick={() => onUngroup(selectedId!)}>
+              Rozłącz
+            </button>
+          )}
         </div>
       )}
 

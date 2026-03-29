@@ -629,6 +629,28 @@ export function useElementActions({
     setSelectedId((prev) => (prev === groupId ? null : prev));
   }, [setElements, setSelectedId]);
 
+  const handleRemoveFromGroup = useCallback((cabinetId: string) => {
+    setElements((prev) => {
+      const cab = prev.find((e) => e.id === cabinetId);
+      if (!cab?.groupId) return prev;
+      const groupId = cab.groupId;
+      const remaining = prev.filter((e) => e.groupId === groupId && e.id !== cabinetId);
+      if (remaining.length < 2) {
+        // dissolve group — same as ungroup
+        const toRemove = new Set<string>([groupId]);
+        for (const e of prev) {
+          if (e.type === 'front' && e.cabinetId === groupId) toRemove.add(e.id);
+          if (e.type === 'maskowanica' && e.cabinetId === groupId) toRemove.add(e.id);
+        }
+        return prev
+          .filter((e) => !toRemove.has(e.id))
+          .map((e) => e.groupId === groupId ? { ...e, groupId: undefined } : e);
+      }
+      const updated = prev.map((e) => e.id === cabinetId ? { ...e, groupId: undefined } : e);
+      return recomputeGroups(updated);
+    });
+  }, [setElements]);
+
   const handleGroup = useCallback((ids: string[]) => {
     setElements((prev) => {
       const validIds = ids.filter((id) => {
@@ -862,6 +884,7 @@ export function useElementActions({
     handleAdd,
     handleDelete,
     handleUngroup,
+    handleRemoveFromGroup,
     handleGroup,
     handleAddFrontToGroup,
     handleAddDoubleFrontToGroup,
