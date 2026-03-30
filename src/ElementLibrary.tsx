@@ -14,12 +14,12 @@ const CATALOG: CatalogItem[] = [
     label: 'Box',
     icon: (
       <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="catalog-icon">
-        <polygon points="18,4 32,11 32,25 18,32 4,25 4,11" fill="#1e2d55" stroke="#3b6fd4" strokeWidth="1.5"/>
-        <polyline points="18,4 18,32" stroke="#3b6fd4" strokeWidth="1" strokeDasharray="3 2"/>
-        <polyline points="4,11 18,18 32,11" stroke="#3b6fd4" strokeWidth="1.5"/>
-        <polygon points="18,18 32,11 32,25 18,32" fill="#253a6e" stroke="#3b6fd4" strokeWidth="1.5"/>
-        <polygon points="18,18 4,11 4,25 18,32" fill="#1a2d5a" stroke="#3b6fd4" strokeWidth="1.5"/>
-        <polygon points="18,4 32,11 18,18 4,11" fill="#2e4a8a" stroke="#4a7fe0" strokeWidth="1.5"/>
+        <polygon points="18,4 32,11 32,25 18,32 4,25 4,11" fill="#2d2d30" stroke="#569cd6" strokeWidth="1.5"/>
+        <polyline points="18,4 18,32" stroke="#569cd6" strokeWidth="1" strokeDasharray="3 2"/>
+        <polyline points="4,11 18,18 32,11" stroke="#569cd6" strokeWidth="1.5"/>
+        <polygon points="18,18 32,11 32,25 18,32" fill="#3c3c3c" stroke="#569cd6" strokeWidth="1.5"/>
+        <polygon points="18,18 4,11 4,25 18,32" fill="#252526" stroke="#569cd6" strokeWidth="1.5"/>
+        <polygon points="18,4 32,11 18,18 4,11" fill="#454545" stroke="#9cdcfe" strokeWidth="1.5"/>
       </svg>
     ),
   },
@@ -28,12 +28,12 @@ const CATALOG: CatalogItem[] = [
     label: 'Półka',
     icon: (
       <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="catalog-icon">
-        <rect x="4" y="16" width="28" height="5" rx="1" fill="#2e4a8a" stroke="#4a7fe0" strokeWidth="1.5"/>
-        <line x1="4" y1="16" x2="10" y2="11" stroke="#3b6fd4" strokeWidth="1.5"/>
-        <line x1="32" y1="16" x2="38" y2="11" stroke="#3b6fd4" strokeWidth="1.5" strokeLinecap="round"/>
-        <line x1="4" y1="16" x2="10" y2="11" stroke="#3b6fd4" strokeWidth="1.5"/>
-        <line x1="32" y1="16" x2="26" y2="11" stroke="#3b6fd4" strokeWidth="1.5"/>
-        <rect x="10" y="11" width="16" height="5" rx="1" fill="#1a2d5a" stroke="#3b6fd4" strokeWidth="1.5"/>
+        <rect x="4" y="16" width="28" height="5" rx="1" fill="#3c3c3c" stroke="#9cdcfe" strokeWidth="1.5"/>
+        <line x1="4" y1="16" x2="10" y2="11" stroke="#569cd6" strokeWidth="1.5"/>
+        <line x1="32" y1="16" x2="38" y2="11" stroke="#569cd6" strokeWidth="1.5" strokeLinecap="round"/>
+        <line x1="4" y1="16" x2="10" y2="11" stroke="#569cd6" strokeWidth="1.5"/>
+        <line x1="32" y1="16" x2="26" y2="11" stroke="#569cd6" strokeWidth="1.5"/>
+        <rect x="10" y="11" width="16" height="5" rx="1" fill="#252526" stroke="#569cd6" strokeWidth="1.5"/>
       </svg>
     ),
   },
@@ -42,9 +42,9 @@ const CATALOG: CatalogItem[] = [
     label: 'Płyta',
     icon: (
       <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="catalog-icon">
-        <rect x="4" y="14" width="28" height="8" rx="1" fill="#2e4a8a" stroke="#4a7fe0" strokeWidth="1.5"/>
-        <polygon points="4,14 10,9 38,9 32,14" fill="#1a2d5a" stroke="#3b6fd4" strokeWidth="1.5"/>
-        <polygon points="32,14 38,9 38,17 32,22" fill="#253a6e" stroke="#3b6fd4" strokeWidth="1.5"/>
+        <rect x="4" y="14" width="28" height="8" rx="1" fill="#3c3c3c" stroke="#9cdcfe" strokeWidth="1.5"/>
+        <polygon points="4,14 10,9 38,9 32,14" fill="#252526" stroke="#569cd6" strokeWidth="1.5"/>
+        <polygon points="32,14 38,9 38,17 32,22" fill="#454545" stroke="#569cd6" strokeWidth="1.5"/>
       </svg>
     ),
   },
@@ -230,7 +230,7 @@ const ElementLibrary: React.FC<Props> = ({
               <span className="element-indent-line" />
               <span className="element-indent-line" />
               <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#6060a0' }}>Dodaj szufladę</span>
+              <span className="element-name" style={{ color: '#6e7681' }}>Dodaj szufladę</span>
             </li>
           </>
         )}
@@ -274,22 +274,22 @@ const ElementLibrary: React.FC<Props> = ({
             <li className="element-item element-item--add" onClick={() => onAddShelfToCabinet(cab.id)}>
               <span className="element-indent-line" />
               <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#6060a0' }}>Dodaj półkę</span>
+              <span className="element-name" style={{ color: '#6e7681' }}>Dodaj półkę</span>
             </li>
             <li className="element-item element-item--add" onClick={() => onAddDrawerToCabinet(cab.id)}>
               <span className="element-indent-line" />
               <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#6060a0' }}>Dodaj szufladę</span>
+              <span className="element-name" style={{ color: '#6e7681' }}>Dodaj szufladę</span>
             </li>
             <li className="element-item element-item--add" onClick={() => onAddDrawerboxToCabinet(cab.id)}>
               <span className="element-indent-line" />
               <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#6060a0' }}>Dodaj box szuflady</span>
+              <span className="element-name" style={{ color: '#6e7681' }}>Dodaj box szuflady</span>
             </li>
             <li className="element-item element-item--add" onClick={() => onAddDividerToCabinet(cab.id)}>
               <span className="element-indent-line" />
               <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#6060a0' }}>Dodaj przegrodę</span>
+              <span className="element-name" style={{ color: '#6e7681' }}>Dodaj przegrodę</span>
             </li>
 
             {/* Section: Wykończenie (fronty) */}
@@ -302,12 +302,12 @@ const ElementLibrary: React.FC<Props> = ({
                 <li className="element-item element-item--add" onClick={() => onAddFrontToCabinet(cab.id)}>
                   <span className="element-indent-line" />
                   <span className="element-add-icon">＋</span>
-                  <span className="element-name" style={{ color: '#6060a0' }}>Dodaj front</span>
+                  <span className="element-name" style={{ color: '#6e7681' }}>Dodaj front</span>
                 </li>
                 <li className="element-item element-item--add" onClick={() => onAddDoubleFrontToCabinet(cab.id)}>
                   <span className="element-indent-line" />
                   <span className="element-add-icon">＋</span>
-                  <span className="element-name" style={{ color: '#6060a0' }}>Dodaj podwójny front</span>
+                  <span className="element-name" style={{ color: '#6e7681' }}>Dodaj podwójny front</span>
                 </li>
               </>
             )}
@@ -324,35 +324,35 @@ const ElementLibrary: React.FC<Props> = ({
               <li className="element-item element-item--add" onClick={() => onAddPlinthToCabinet(cab.id)}>
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#6060a0' }}>Dodaj cokoł</span>
+                <span className="element-name" style={{ color: '#6e7681' }}>Dodaj cokoł</span>
               </li>
             )}
             {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'left') && (
               <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'left')}>
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#6060a0' }}>Dodaj maskownicę lewa</span>
+                <span className="element-name" style={{ color: '#6e7681' }}>Dodaj maskownicę lewa</span>
               </li>
             )}
             {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'right') && (
               <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'right')}>
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#6060a0' }}>Dodaj maskownicę prawa</span>
+                <span className="element-name" style={{ color: '#6e7681' }}>Dodaj maskownicę prawa</span>
               </li>
             )}
             {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'bottom') && (
               <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'bottom')}>
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#6060a0' }}>Dodaj maskownicę dół</span>
+                <span className="element-name" style={{ color: '#6e7681' }}>Dodaj maskownicę dół</span>
               </li>
             )}
             {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'top') && (
               <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'top')}>
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#6060a0' }}>Dodaj maskownicę góra</span>
+                <span className="element-name" style={{ color: '#6e7681' }}>Dodaj maskownicę góra</span>
               </li>
             )}
 
@@ -366,7 +366,7 @@ const ElementLibrary: React.FC<Props> = ({
                 <li className="element-item element-item--add" onClick={() => onAddHdfToCabinet(cab.id)}>
                   <span className="element-indent-line" />
                   <span className="element-add-icon">＋</span>
-                  <span className="element-name" style={{ color: '#6060a0' }}>Dodaj płytę HDF</span>
+                  <span className="element-name" style={{ color: '#6e7681' }}>Dodaj płytę HDF</span>
                 </li>
               </>
             )}
@@ -379,13 +379,13 @@ const ElementLibrary: React.FC<Props> = ({
             <li className="element-item element-item--add" onClick={() => onAddRodToCabinet(cab.id)}>
               <span className="element-indent-line" />
               <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#6060a0' }}>Dodaj drążek</span>
+              <span className="element-name" style={{ color: '#6e7681' }}>Dodaj drążek</span>
             </li>
             {!elements.some((e) => e.type === 'leg' && e.cabinetId === cab.id) && (
               <li className="element-item element-item--add" onClick={() => onAddLegsToCabinet(cab.id)}>
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#6060a0' }}>Dodaj nóżki</span>
+                <span className="element-name" style={{ color: '#6e7681' }}>Dodaj nóżki</span>
               </li>
             )}
           </>
@@ -530,12 +530,12 @@ const ElementLibrary: React.FC<Props> = ({
                       <li className="element-item element-item--add" onClick={() => onAddFrontToGroup(grp.id)}>
                         <span className="element-indent-line" />
                         <span className="element-add-icon">＋</span>
-                        <span className="element-name" style={{ color: '#6060a0' }}>Dodaj front grupy</span>
+                        <span className="element-name" style={{ color: '#6e7681' }}>Dodaj front grupy</span>
                       </li>
                       <li className="element-item element-item--add" onClick={() => onAddDoubleFrontToGroup(grp.id)}>
                         <span className="element-indent-line" />
                         <span className="element-add-icon">＋</span>
-                        <span className="element-name" style={{ color: '#6060a0' }}>Dodaj podwójny front grupy</span>
+                        <span className="element-name" style={{ color: '#6e7681' }}>Dodaj podwójny front grupy</span>
                       </li>
                     </>
                   )}
@@ -543,14 +543,14 @@ const ElementLibrary: React.FC<Props> = ({
                     <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToGroup(grp.id, 'left')}>
                       <span className="element-indent-line" />
                       <span className="element-add-icon">＋</span>
-                      <span className="element-name" style={{ color: '#6060a0' }}>Dodaj maskownicę lewa grupy</span>
+                      <span className="element-name" style={{ color: '#6e7681' }}>Dodaj maskownicę lewa grupy</span>
                     </li>
                   )}
                   {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'right') && (
                     <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToGroup(grp.id, 'right')}>
                       <span className="element-indent-line" />
                       <span className="element-add-icon">＋</span>
-                      <span className="element-name" style={{ color: '#6060a0' }}>Dodaj maskownicę prawa grupy</span>
+                      <span className="element-name" style={{ color: '#6e7681' }}>Dodaj maskownicę prawa grupy</span>
                     </li>
                   )}
                 </>

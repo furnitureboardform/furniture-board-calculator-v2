@@ -25,10 +25,10 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: #16162a;
-  border: 1px solid #2a2a4a;
+  background: #252526;
+  border: 1px solid #3d3d3d;
   border-radius: 8px;
-  color: #a0a0c0;
+  color: #9d9d9d;
   font-size: 18px;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
@@ -36,15 +36,15 @@
 }
 
 .mo-ceiling-btn:hover {
-  background: #1e1e3a;
-  border-color: #3b6fd4;
-  color: #e0e0f0;
+  background: #3c3c3c;
+  border-color: #007acc;
+  color: #d4d4d4;
 }
 
 .mo-ceiling-btn--active {
-  background: #1a3a1a;
-  border-color: #4a9a4a;
-  color: #80e080;
+  background: #1a2d25;
+  border-color: #4ec9b0;
+  color: #4ec9b0;
 }
 
 /* Toggle button */
@@ -54,10 +54,10 @@
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  background: #16162a;
-  border: 1px solid #2a2a4a;
+  background: #252526;
+  border: 1px solid #3d3d3d;
   border-radius: 8px;
-  color: #a0a0c0;
+  color: #9d9d9d;
   font-size: 15px;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
@@ -65,15 +65,15 @@
 }
 
 .mo-toggle:hover {
-  background: #1e1e3a;
-  border-color: #3b6fd4;
-  color: #e0e0f0;
+  background: #3c3c3c;
+  border-color: #007acc;
+  color: #d4d4d4;
 }
 
 .mo-toggle--active {
-  background: #1e2d55;
-  border-color: #3b6fd4;
-  color: #e0e0f0;
+  background: #094771;
+  border-color: #007acc;
+  color: #d4d4d4;
 }
 
 .mo-toggle-icon {
@@ -82,7 +82,7 @@
 }
 
 .mo-toggle-badge {
-  background: #3b6fd4;
+  background: #007acc;
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -95,8 +95,8 @@
 .mo-panel {
   pointer-events: all;
   width: 280px;
-  background: #16162a;
-  border: 1px solid #2a2a4a;
+  background: #252526;
+  border: 1px solid #3d3d3d;
   border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   display: flex;
@@ -108,7 +108,7 @@
 /* Tab bar */
 .mo-tab-bar {
   display: flex;
-  border-bottom: 1px solid #2a2a4a;
+  border-bottom: 1px solid #3d3d3d;
   padding: 0 8px;
   flex-shrink: 0;
 }
@@ -117,7 +117,7 @@
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  color: #60608a;
+  color: #6e7681;
   font-size: 12px;
   font-weight: 600;
   padding: 10px 10px 8px;
@@ -128,12 +128,12 @@
 }
 
 .mo-tab:hover {
-  color: #a0a0c0;
+  color: #9d9d9d;
 }
 
 .mo-tab--active {
-  color: #c0c0e0;
-  border-bottom-color: #3b6fd4;
+  color: #cccccc;
+  border-bottom-color: #007acc;
 }
 
 /* Content area */
@@ -152,13 +152,13 @@
 }
 
 .mo-content::-webkit-scrollbar-thumb {
-  background: #2a2a4a;
+  background: #454545;
   border-radius: 2px;
 }
 
 /* Empty state */
 .mo-empty {
-  color: #50507a;
+  color: #6e7681;
   font-size: 12px;
   text-align: center;
   padding: 20px 12px;
@@ -174,15 +174,15 @@
   align-items: center;
   gap: 6px;
   padding: 6px 8px;
-  background: #111128;
-  border: 1px solid #2a3a5a;
+  background: #2d2d30;
+  border: 1px solid #094771;
   border-radius: 6px;
   margin-bottom: 2px;
 }
 
 .mo-group-icon {
   font-size: 14px;
-  color: #5588cc;
+  color: #569cd6;
   flex-shrink: 0;
 }
 
@@ -190,7 +190,7 @@
   flex: 1;
   font-size: 12px;
   font-weight: 600;
-  color: #8aacde;
+  color: #9cdcfe;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -198,15 +198,15 @@
 
 .mo-group-count {
   font-size: 10px;
-  color: #50508a;
+  color: #6e7681;
   flex-shrink: 0;
 }
 
 /* Cabinet */
 .mo-cabinet {
   margin-bottom: 4px;
-  background: #0f0f22;
-  border: 1px solid #222244;
+  background: #1e1e1e;
+  border: 1px solid #3d3d3d;
   border-radius: 7px;
   overflow: hidden;
 }
@@ -233,7 +233,7 @@
   flex: 1;
   font-size: 12px;
   font-weight: 600;
-  color: #d0d0f0;
+  color: #d4d4d4;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -241,14 +241,14 @@
 
 .mo-cab-dims {
   font-size: 10px;
-  color: #50508a;
+  color: #6e7681;
   flex-shrink: 0;
   white-space: nowrap;
 }
 
 /* Section (Płyty / Elementy) */
 .mo-section {
-  border-top: 1px solid #1e1e38;
+  border-top: 1px solid #3d3d3d;
   padding: 4px 8px 6px 14px;
   display: flex;
   flex-direction: column;
@@ -258,7 +258,7 @@
 .mo-section-label {
   font-size: 9px;
   font-weight: 700;
-  color: #404068;
+  color: #555555;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 2px;
@@ -290,7 +290,7 @@
   display: inline-block;
   width: 2px;
   height: 14px;
-  background: #2a3a50;
+  background: #454545;
   border-radius: 1px;
   flex-shrink: 0;
 }
@@ -298,7 +298,7 @@
 .mo-panel-name {
   flex: 1;
   font-size: 11px;
-  color: #8090b0;
+  color: #9d9d9d;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -306,7 +306,7 @@
 
 .mo-panel-dims--todo {
   font-size: 10px;
-  color: #806040;
+  color: #ce9178;
   font-style: italic;
   white-space: nowrap;
   flex-shrink: 0;
@@ -314,7 +314,7 @@
 
 .mo-panel-dims {
   font-size: 10px;
-  color: #5060a0;
+  color: #6e7681;
   white-space: nowrap;
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
@@ -331,7 +331,7 @@
   display: inline-block;
   width: 2px;
   height: 14px;
-  background: #2a2a50;
+  background: #454545;
   border-radius: 1px;
   flex-shrink: 0;
 }
@@ -339,7 +339,7 @@
 .mo-child-name {
   flex: 1;
   font-size: 11px;
-  color: #9090b0;
+  color: #9d9d9d;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -347,9 +347,9 @@
 
 .mo-child-tag {
   font-size: 10px;
-  color: #50508a;
-  background: #1a1a32;
-  border: 1px solid #2a2a48;
+  color: #6e7681;
+  background: #2d2d30;
+  border: 1px solid #3d3d3d;
   border-radius: 4px;
   padding: 1px 5px;
   flex-shrink: 0;
