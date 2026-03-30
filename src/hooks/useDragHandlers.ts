@@ -98,7 +98,8 @@ export function useDragHandlers({
           }
           return withDelta;
         });
-        return recomputeAllY(updated, boardSizeRef.current.height / 1000);
+        const changedEl = updated.find((e) => e.id === id);
+        return recomputeAllY(updated, boardSizeRef.current.height / 1000, changedEl?.type === 'shelf');
       });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -140,7 +141,7 @@ export function useDragHandlers({
           }
           return { ...e, dimensions: clampedDims };
         });
-        return recomputeAllY(updated, boardSizeRef.current.height / 1000);
+        return recomputeAllY(updated, boardSizeRef.current.height / 1000, el?.type === 'shelf');
       });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -144,10 +144,10 @@ export function switchShelfToNextBay(shelf: BoxElement, allElements: BoxElement[
   };
 }
 
-/** Returns the Y bottom and height for a divider based on shelves above/below in the same cabinet. */
+/** Returns the Y bottom and height for a divider spanning the full interior of the cabinet. */
 export function computeDividerBounds(
   cabinetId: string,
-  dividerY: number,
+  _dividerY: number,
   allElements: BoxElement[]
 ): { y: number; height: number } {
   const cab = allElements.find((e) => e.id === cabinetId);
@@ -156,29 +156,11 @@ export function computeDividerBounds(
   const cabBottom = cab.position.y + PANEL_T;
   const cabTop = cab.position.y + cab.dimensions.height - PANEL_T;
 
-  const surfaces: number[] = [cabBottom, cabTop];
-  for (const el of allElements) {
-    if (el.cabinetId !== cabinetId || el.type !== 'shelf') continue;
-    surfaces.push(el.position.y);
-    surfaces.push(el.position.y + el.dimensions.height);
-  }
-  surfaces.sort((a, b) => a - b);
-
-  let floorY = cabBottom;
-  let ceilY = cabTop;
-  for (let i = 0; i < surfaces.length - 1; i++) {
-    if (surfaces[i] <= dividerY + 0.001 && dividerY < surfaces[i + 1]) {
-      floorY = surfaces[i];
-      ceilY = surfaces[i + 1];
-      break;
-    }
-  }
-
-  return { y: floorY, height: Math.max(PANEL_T, ceilY - floorY) };
+  return { y: cabBottom, height: Math.max(PANEL_T, cabTop - cabBottom) };
 }
 
 /** Recomputes Y for all boxes bottom-up (used after dimension changes). */
-export function recomputeAllY(elements: BoxElement[], roomH = Infinity): BoxElement[] {
+export function recomputeAllY(elements: BoxElement[], roomH = Infinity, skipDividerRecompute = false): BoxElement[] {
   const originalY = new Map(elements.map((el) => [el.id, el.position.y]));
   const ordered = [...elements].sort(
     (a, b) => (originalY.get(a.id) ?? 0) - (originalY.get(b.id) ?? 0)
@@ -208,17 +190,19 @@ export function recomputeAllY(elements: BoxElement[], roomH = Infinity): BoxElem
     const fitted = maxTop > 0 ? fitCabinetToBelow(withY, [...resultMap.values()]) : withY;
     resultMap.set(el.id, fitted);
   }
-  // Recompute divider bounds
-  const allSettled = [...resultMap.values()];
-  for (const el of allSettled) {
-    if (el.type !== 'divider' || !el.cabinetId) continue;
-    const bounds = computeDividerBounds(el.cabinetId, el.position.y + el.dimensions.height / 2, allSettled);
-    const cab = allSettled.find((e) => e.id === el.cabinetId);
-    resultMap.set(el.id, {
-      ...el,
-      dimensions: { ...el.dimensions, height: bounds.height, depth: cab ? cab.dimensions.depth : el.dimensions.depth },
-      position: { ...el.position, y: bounds.y },
-    });
+  // Recompute divider bounds (skip when shelf was resized — dividers should not be affected)
+  if (!skipDividerRecompute) {
+    const allSettled = [...resultMap.values()];
+    for (const el of allSettled) {
+      if (el.type !== 'divider' || !el.cabinetId) continue;
+      const bounds = computeDividerBounds(el.cabinetId, el.position.y + el.dimensions.height / 2, allSettled);
+      const cab = allSettled.find((e) => e.id === el.cabinetId);
+      resultMap.set(el.id, {
+        ...el,
+        dimensions: { ...el.dimensions, height: bounds.height, depth: cab ? cab.dimensions.depth : el.dimensions.depth },
+        position: { ...el.position, y: bounds.y },
+      });
+    }
   }
   // Recompute front panel positions
   const allSettled2 = [...resultMap.values()];
