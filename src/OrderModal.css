@@ -83,6 +83,27 @@
   letter-spacing: 0.03em;
 }
 
+.om-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.om-pdf-btn {
+  background: #4a7c3f;
+  border: 1px solid #6aac5e;
+  border-radius: 6px;
+  color: #c8ecc4;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.om-pdf-btn:hover {
+  background: #5a9c4e;
+}
+
 .om-modal-close {
   background: none;
   border: none;

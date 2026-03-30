@@ -548,6 +548,62 @@ const CostTab: React.FC<{
   );
 };
 
+// ── PDF generation ─────────────────────────────────────────────────────────────
+
+function generatePdf(data: ReturnType<typeof useOrderData>) {
+  const sectionHtml = (title: string, panels: GroupedPanel[]) => {
+    if (panels.length === 0) return `<h3>${title}</h3><p>brak</p>`;
+    const rows = panels.map(g =>
+      `<tr><td>${g.fa} × ${g.fb}</td><td>${g.count} szt.</td><td>${g.edgeBanding}</td></tr>`
+    ).join('');
+    return `
+      <h3>${title}</h3>
+      <table>
+        <thead><tr><th>Wymiary (mm)</th><th>Ilość</th><th>Obrzeże</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  };
+
+  const addonItems: Array<{ name: string; qty: number; note?: string }> = [];
+  if (data.rodCount > 0)       addonItems.push({ name: 'Drążki', qty: data.rodCount });
+  if (data.hingeCount > 0)     addonItems.push({ name: 'Zawiasy', qty: data.hingeCount, note: 'na drzwi (wg wysokości drzwi)' });
+  if (data.slideCount > 0)     addonItems.push({ name: 'Prowadnice przesuwne', qty: data.slideCount, note: '1 zestaw na szufladę' });
+  if (data.ptoSlideCount > 0)  addonItems.push({ name: 'Prowadnice push to open', qty: data.ptoSlideCount, note: '1 zestaw na szufladę' });
+  if (data.ptoSlideCount > 0)  addonItems.push({ name: 'TIP-ON BLUMOTION', qty: data.ptoSlideCount, note: '1 na szufladę' });
+  if (data.couplingCount > 0)  addonItems.push({ name: 'Sprzęgła', qty: data.couplingCount, note: '1 zestaw na szufladę' });
+  if (data.handleCount > 0)    addonItems.push({ name: 'Uchwyty', qty: data.handleCount, note: '1 na drzwi' });
+  if (data.legCount > 0)       addonItems.push({ name: 'Nóżki', qty: data.legCount, note: '4 na box' });
+
+  const addonsHtml = addonItems.length === 0 ? '<p>brak</p>' :
+    `<table><tbody>${addonItems.map(i =>
+      `<tr><td>${i.name}</td><td>${i.qty} szt.</td><td>${i.note ?? ''}</td></tr>`
+    ).join('')}</tbody></table>`;
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Zamówienie</title><style>
+    body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; color: #111; }
+    h2 { margin-bottom: 4px; }
+    h3 { margin: 16px 0 4px; font-size: 13px; border-bottom: 1px solid #ccc; padding-bottom: 2px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+    th, td { border: 1px solid #ccc; padding: 4px 8px; text-align: left; }
+    th { background: #f0f0f0; }
+    p { margin: 4px 0; }
+    @media print { body { margin: 10mm; } }
+  </style></head><body>
+    <h2>Zamówienie – lista płyt</h2>
+    ${sectionHtml('Płyty obicie', data.obicieGrouped)}
+    ${sectionHtml('Płyty korpus', data.korpusGrouped)}
+    ${sectionHtml('Płyta HDF', data.hdfGrouped)}
+    <h3>Dodatki</h3>${addonsHtml}
+  </body></html>`;
+
+  const win = window.open('', '_blank');
+  if (!win) return;
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 type ModalTab = 'summary' | 'cost';
@@ -590,7 +646,12 @@ const OrderModal: React.FC<Props> = ({ elements }) => {
           <div className="om-modal">
             <div className="om-modal-header">
               <span className="om-modal-title">Zamówienia</span>
-              <button className="om-modal-close" onClick={() => setOpen(false)} title="Zamknij">✕</button>
+              <div className="om-modal-header-actions">
+                {tab === 'summary' && hasCabinets && (
+                  <button className="om-pdf-btn" onClick={() => generatePdf(data)} title="Generuj PDF">PDF</button>
+                )}
+                <button className="om-modal-close" onClick={() => setOpen(false)} title="Zamknij">✕</button>
+              </div>
             </div>
 
             <div className="om-tab-bar">
