@@ -136,18 +136,22 @@ export function computeMaskowanicaForCabinet(mask: BoxElement, cab: BoxElement, 
     return {
       ...mask,
       dimensions: { width: cab.dimensions.width, height: PANEL_T, depth: totalDepth },
-      position: { x: cab.position.x, y: cab.position.y - legH - PANEL_T / 2, z: zPos },
+      position: { x: cab.position.x, y: cab.position.y - legH - PANEL_T, z: zPos },
     };
   }
   if (mask.maskownicaSide === 'top') {
     return {
       ...mask,
       dimensions: { width: cab.dimensions.width, height: PANEL_T, depth: totalDepth },
-      position: { x: cab.position.x, y: cab.position.y + cab.dimensions.height - PANEL_T / 2, z: zPos },
+      position: { x: cab.position.x, y: cab.position.y + cab.dimensions.height, z: zPos },
     };
   }
-  const totalH = cab.dimensions.height + legH;
-  const yPos = cab.position.y - legH;
+  const hasTop    = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'top'    && e.id !== mask.id);
+  const hasBottom = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'bottom' && e.id !== mask.id);
+  const topExt    = hasTop    ? PANEL_T : 0;
+  const bottomExt = hasBottom ? PANEL_T : 0;
+  const totalH = cab.dimensions.height + legH + topExt + bottomExt;
+  const yPos = cab.position.y - legH - bottomExt;
   const xPos = mask.maskownicaSide === 'left'
     ? cab.position.x - cab.dimensions.width / 2 - PANEL_T / 2
     : cab.position.x + cab.dimensions.width / 2 + PANEL_T / 2;
