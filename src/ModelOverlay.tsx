@@ -292,9 +292,6 @@ const ModelOverlay: React.FC<Props> = ({ elements, showCeilingGrid, onToggleCeil
           title={open ? 'Zamknij panel' : 'Otwórz panel modelu'}
         >
           <span className="mo-toggle-icon">☰</span>
-          {!open && totalCabs > 0 && (
-            <span className="mo-toggle-badge">{totalCabs}</span>
-          )}
         </button>
       </div>
 
