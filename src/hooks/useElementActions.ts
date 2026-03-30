@@ -424,7 +424,15 @@ export function useElementActions({
         color: cab.color,
       }, cab, prev);
       setSelectedId(cabinetId);
-      if (side === 'bottom' || side === 'top') return [...prev, mask];
+      if (side === 'bottom' || side === 'top') {
+        const withNewMask = [...prev, mask];
+        return withNewMask.map((e) =>
+          e.type === 'maskowanica' && e.cabinetId === cabinetId &&
+          (e.maskownicaSide === 'left' || e.maskownicaSide === 'right')
+            ? computeMaskowanicaForCabinet(e, cab, withNewMask)
+            : e
+        );
+      }
       const bw = boardSizeRef.current.width / 1000;
       const maskLeft = mask.position.x - mask.dimensions.width / 2;
       const maskRight = mask.position.x + mask.dimensions.width / 2;
