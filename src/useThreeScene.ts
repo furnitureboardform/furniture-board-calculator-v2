@@ -119,8 +119,6 @@ export function useThreeScene(
           { axis: 'height' as const, dir: 1, offset: new THREE.Vector3(0, height / 2, 0), color: 0x44ff44 },
           { axis: 'height' as const, dir: -1, offset: new THREE.Vector3(0, -height / 2, 0), color: 0x44ff44 },
         ] : []),
-        { axis: 'depth', dir: 1, offset: new THREE.Vector3(0, 0, depth / 2), color: 0x4488ff },
-        { axis: 'depth', dir: -1, offset: new THREE.Vector3(0, 0, -depth / 2), color: 0x4488ff },
       ];
 
       parent.children.slice().filter((c) => c.userData.isHandle).forEach((c) => parent.remove(c));
