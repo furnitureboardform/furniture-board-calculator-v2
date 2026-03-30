@@ -189,7 +189,7 @@ export function useThreeScene(
 
   const placeHandles = useCallback(
     (parent: THREE.Mesh, element: BoxElement) => {
-      const { width, height, depth } = element.dimensions;
+      const { width, height } = element.dimensions;
       const axes: { axis: 'width' | 'height' | 'depth'; dir: number; offset: THREE.Vector3; color: number }[] = [
         ...(element.type !== 'divider' ? [
           { axis: 'width' as const, dir: 1, offset: new THREE.Vector3(width / 2, 0, 0), color: 0xff4444 },
