@@ -179,8 +179,14 @@ const ModelOverlay: React.FC<Props> = ({ elements }) => {
                 <div key={el.id}>
                   <div className="mo-child">
                     <span className="mo-child-line" />
-                    <span className="mo-child-name">{el.name}</span>
-                    <span className="mo-child-tag">{TYPE_LABELS[el.type] ?? el.type}</span>
+                    <span className="mo-child-name">
+                      {el.type === 'front'
+                        ? `Front${el.frontSide === 'left' ? ' lewy' : el.frontSide === 'right' ? ' prawy' : ''}`
+                        : el.name}
+                    </span>
+                    {el.type === 'front'
+                      ? <span className="mo-panel-dims">{toMm(el.dimensions.width)} × {toMm(el.dimensions.height)}</span>
+                      : <span className="mo-child-tag">{TYPE_LABELS[el.type] ?? el.type}</span>}
                   </div>
                   {dboxDrawers.length > 0 && (
                     <div className="mo-section mo-section--nested">

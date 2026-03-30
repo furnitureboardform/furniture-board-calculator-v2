@@ -259,7 +259,7 @@ export function useElementActions({
       if (prev.some((e) => e.type === 'front' && e.cabinetId === cabinetId)) return prev;
       const leftLeaf: BoxElement = computeFrontForCabinet({
         id: crypto.randomUUID(),
-        name: `Front L${counters.front}`,
+        name: `Front lewy ${counters.front}`,
         type: 'front',
         frontSide: 'left',
         cabinetId,
@@ -269,7 +269,7 @@ export function useElementActions({
       }, cab);
       const rightLeaf: BoxElement = computeFrontForCabinet({
         id: crypto.randomUUID(),
-        name: `Front R${counters.front++}`,
+        name: `Front prawy ${counters.front++}`,
         type: 'front',
         frontSide: 'right',
         cabinetId,
@@ -701,7 +701,7 @@ export function useElementActions({
       if (prev.some((e) => e.type === 'front' && e.cabinetId === groupId)) return prev;
       const leftLeaf: BoxElement = computeFrontForGroup({
         id: crypto.randomUUID(),
-        name: `Front gr. L${counters.front}`,
+        name: `Front gr. lewy ${counters.front}`,
         type: 'front',
         frontSide: 'left',
         cabinetId: groupId,
@@ -711,7 +711,7 @@ export function useElementActions({
       }, prev);
       const rightLeaf: BoxElement = computeFrontForGroup({
         id: crypto.randomUUID(),
-        name: `Front gr. R${counters.front++}`,
+        name: `Front gr. prawy ${counters.front++}`,
         type: 'front',
         frontSide: 'right',
         cabinetId: groupId,
