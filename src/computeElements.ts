@@ -150,15 +150,56 @@ export function computeMaskowanicaForCabinet(mask: BoxElement, cab: BoxElement, 
   const hasBottom = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'bottom' && e.id !== mask.id);
   const topExt    = hasTop    ? PANEL_T : 0;
   const bottomExt = hasBottom ? PANEL_T : 0;
-  const totalH = cab.dimensions.height + legH + topExt + bottomExt;
-  const yPos = cab.position.y - legH - bottomExt;
+  const minY = cab.position.y - legH - bottomExt;
+  const maxY = cab.position.y + cab.dimensions.height + topExt;
   const xPos = mask.maskownicaSide === 'left'
     ? cab.position.x - cab.dimensions.width / 2 - PANEL_T / 2
     : cab.position.x + cab.dimensions.width / 2 + PANEL_T / 2;
+  const sideEdgeX = mask.maskownicaSide === 'left'
+    ? cab.position.x - cab.dimensions.width / 2
+    : cab.position.x + cab.dimensions.width / 2;
+  const TOUCH_TOL = PANEL_T * 2;
+  const adjBoxes = allElements.filter((e) => {
+    if (e.id === cab.id || e.cabinetId === cab.id) return false;
+    if (e.type !== 'cabinet' && e.type !== 'group') return false;
+    const eLX = e.position.x - e.dimensions.width / 2;
+    const eRX = e.position.x + e.dimensions.width / 2;
+    const touchEdge = mask.maskownicaSide === 'left' ? eRX : eLX;
+    if (Math.abs(touchEdge - sideEdgeX) > TOUCH_TOL) return false;
+    return e.position.y + e.dimensions.height > minY && e.position.y < maxY;
+  });
+  let effMinY = minY;
+  let effMaxY = maxY;
+  if (adjBoxes.length > 0) {
+    const adjItems = adjBoxes.flatMap((b) => {
+      const bMasks = allElements.filter(
+        (e) => e.type === 'maskowanica' && e.cabinetId === b.id &&
+               (e.maskownicaSide === 'left' || e.maskownicaSide === 'right')
+      );
+      return [b, ...bMasks];
+    });
+    const covered = adjItems
+      .map((b) => [Math.max(minY, b.position.y), Math.min(maxY, b.position.y + b.dimensions.height)] as [number, number])
+      .filter(([a, b]) => a < b)
+      .sort((a, b) => a[0] - b[0]);
+    const merged: [number, number][] = [covered[0]];
+    for (let i = 1; i < covered.length; i++) {
+      const last = merged[merged.length - 1];
+      if (covered[i][0] <= last[1]) last[1] = Math.max(last[1], covered[i][1]);
+      else merged.push(covered[i]);
+    }
+    const breakpoints = [minY, ...merged.flatMap(([a, b]) => [a, b]), maxY];
+    let bestSize = -1;
+    for (let i = 0; i < breakpoints.length - 1; i += 2) {
+      const size = breakpoints[i + 1] - breakpoints[i];
+      if (size > bestSize) { bestSize = size; effMinY = breakpoints[i]; effMaxY = breakpoints[i + 1]; }
+    }
+  }
+  const totalH = Math.max(0.001, effMaxY - effMinY);
   return {
     ...mask,
     dimensions: { width: PANEL_T, height: totalH, depth: totalDepth },
-    position: { x: xPos, y: yPos, z: zPos },
+    position: { x: xPos, y: effMinY, z: zPos },
   };
 }
 
