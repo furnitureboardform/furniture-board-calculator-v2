@@ -559,6 +559,7 @@ function generatePdf(data: ReturnType<typeof useOrderData>) {
     return `
       <h3>${title}</h3>
       <table>
+        <colgroup><col style="width:40%"><col style="width:15%"><col style="width:45%"></colgroup>
         <thead><tr><th>Wymiary (mm)</th><th>Ilość</th><th>Obrzeże</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
@@ -575,7 +576,7 @@ function generatePdf(data: ReturnType<typeof useOrderData>) {
   if (data.legCount > 0)       addonItems.push({ name: 'Nóżki', qty: data.legCount, note: '4 na box' });
 
   const addonsHtml = addonItems.length === 0 ? '<p>brak</p>' :
-    `<table><tbody>${addonItems.map(i =>
+    `<table><colgroup><col style="width:40%"><col style="width:15%"><col style="width:45%"></colgroup><tbody>${addonItems.map(i =>
       `<tr><td>${i.name}</td><td>${i.qty} szt.</td><td>${i.note ?? ''}</td></tr>`
     ).join('')}</tbody></table>`;
 
@@ -583,11 +584,15 @@ function generatePdf(data: ReturnType<typeof useOrderData>) {
     body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; color: #111; }
     h2 { margin-bottom: 4px; }
     h3 { margin: 16px 0 4px; font-size: 13px; border-bottom: 1px solid #ccc; padding-bottom: 2px; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-    th, td { border: 1px solid #ccc; padding: 4px 8px; text-align: left; }
-    th { background: #f0f0f0; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 8px; }
+    th, td { padding: 4px 8px; text-align: left; border-top: 1px solid #ccc; border-left: 1px solid #ccc; }
+    th:last-child, td:last-child { border-right: 1px solid #ccc; }
+    thead tr:last-child th { border-bottom: 1px solid #ccc; }
+    tbody tr:last-child td { border-bottom: 1px solid #ccc; }
+    tr { break-inside: avoid; }
+    th { background: #f0f0f0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     p { margin: 4px 0; }
-    @media print { body { margin: 10mm; } }
+    @media print { body { margin: 10mm; } @page { margin: 10mm; size: A4; } }
   </style></head><body>
     <h2>Zamówienie – lista płyt</h2>
     ${sectionHtml('Płyty obicie', data.obicieGrouped)}
