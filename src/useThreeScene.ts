@@ -111,10 +111,14 @@ export function useThreeScene(
     (parent: THREE.Mesh, element: BoxElement) => {
       const { width, height, depth } = element.dimensions;
       const axes: { axis: 'width' | 'height' | 'depth'; dir: number; offset: THREE.Vector3; color: number }[] = [
-        { axis: 'width', dir: 1, offset: new THREE.Vector3(width / 2, 0, 0), color: 0xff4444 },
-        { axis: 'width', dir: -1, offset: new THREE.Vector3(-width / 2, 0, 0), color: 0xff4444 },
-        { axis: 'height', dir: 1, offset: new THREE.Vector3(0, height / 2, 0), color: 0x44ff44 },
-        { axis: 'height', dir: -1, offset: new THREE.Vector3(0, -height / 2, 0), color: 0x44ff44 },
+        ...(element.type !== 'divider' ? [
+          { axis: 'width' as const, dir: 1, offset: new THREE.Vector3(width / 2, 0, 0), color: 0xff4444 },
+          { axis: 'width' as const, dir: -1, offset: new THREE.Vector3(-width / 2, 0, 0), color: 0xff4444 },
+        ] : []),
+        ...(element.type !== 'shelf' ? [
+          { axis: 'height' as const, dir: 1, offset: new THREE.Vector3(0, height / 2, 0), color: 0x44ff44 },
+          { axis: 'height' as const, dir: -1, offset: new THREE.Vector3(0, -height / 2, 0), color: 0x44ff44 },
+        ] : []),
         { axis: 'depth', dir: 1, offset: new THREE.Vector3(0, 0, depth / 2), color: 0x4488ff },
         { axis: 'depth', dir: -1, offset: new THREE.Vector3(0, 0, -depth / 2), color: 0x4488ff },
       ];
