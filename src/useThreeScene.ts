@@ -34,6 +34,86 @@ interface UseThreeSceneOptions {
 const PANEL_COLOR = new THREE.Color(0xc8a97a);
 const BOARD_COLOR = new THREE.Color(0xffffff);
 
+const SNAP_DIST = 0.08;
+
+function snapAndCollide(
+  el: BoxElement,
+  nx: number,
+  nz: number,
+  others: BoxElement[]
+): { x: number; z: number } {
+  const W = el.dimensions.width;
+  const D = el.dimensions.depth;
+  const elYMin = el.position.y;
+  const elYMax = el.position.y + el.dimensions.height;
+
+  let bestX = nx;
+  let bestZ = nz;
+  let minDistX = SNAP_DIST;
+  let minDistZ = SNAP_DIST;
+
+  const relevant = others.filter(o => {
+    if (o.type === 'group') return false;
+    return elYMin < o.position.y + o.dimensions.height && elYMax > o.position.y;
+  });
+
+  for (const other of relevant) {
+    const oW = other.dimensions.width;
+    const oD = other.dimensions.depth;
+    const ox = other.position.x;
+    const oz = other.position.z;
+
+    const xCandidates: [number, number, number][] = [
+      [nx + W / 2, ox - oW / 2, ox - oW / 2 - W / 2],
+      [nx - W / 2, ox + oW / 2, ox + oW / 2 + W / 2],
+      [nx - W / 2, ox - oW / 2, ox - oW / 2 + W / 2],
+      [nx + W / 2, ox + oW / 2, ox + oW / 2 - W / 2],
+    ];
+    for (const [bf, of_, tx] of xCandidates) {
+      const dist = Math.abs(bf - of_);
+      if (dist < minDistX) { minDistX = dist; bestX = tx; }
+    }
+
+    const zCandidates: [number, number, number][] = [
+      [nz + D / 2, oz - oD / 2, oz - oD / 2 - D / 2],
+      [nz - D / 2, oz + oD / 2, oz + oD / 2 + D / 2],
+      [nz - D / 2, oz - oD / 2, oz - oD / 2 + D / 2],
+      [nz + D / 2, oz + oD / 2, oz + oD / 2 - D / 2],
+    ];
+    for (const [bf, of_, tz] of zCandidates) {
+      const dist = Math.abs(bf - of_);
+      if (dist < minDistZ) { minDistZ = dist; bestZ = tz; }
+    }
+  }
+
+  // Collision resolution
+  for (const other of relevant) {
+    const oW = other.dimensions.width;
+    const oD = other.dimensions.depth;
+    const ox = other.position.x;
+    const oz = other.position.z;
+
+    const xOverlap = bestX + W / 2 > ox - oW / 2 && bestX - W / 2 < ox + oW / 2;
+    const zOverlap = bestZ + D / 2 > oz - oD / 2 && bestZ - D / 2 < oz + oD / 2;
+
+    if (xOverlap && zOverlap) {
+      const penXR = bestX + W / 2 - (ox - oW / 2);
+      const penXL = ox + oW / 2 - (bestX - W / 2);
+      const penZF = bestZ + D / 2 - (oz - oD / 2);
+      const penZB = oz + oD / 2 - (bestZ - D / 2);
+      const minPenX = Math.min(Math.abs(penXR), Math.abs(penXL));
+      const minPenZ = Math.min(Math.abs(penZF), Math.abs(penZB));
+      if (minPenX <= minPenZ) {
+        bestX += Math.abs(penXR) < Math.abs(penXL) ? -penXR : penXL;
+      } else {
+        bestZ += Math.abs(penZF) < Math.abs(penZB) ? -penZF : penZB;
+      }
+    }
+  }
+
+  return { x: bestX, z: bestZ };
+}
+
 /** Builds a rectangular grid as LineSegments (one line per cellSize metres). */
 function makeRectGrid(w: number, d: number, cellSize: number, color: number): THREE.LineSegments {
   const pts: number[] = [];
@@ -456,9 +536,22 @@ export function useThreeScene(
         const worldPos = new THREE.Vector3();
         raycaster.ray.intersectPlane(groundPlane.current, worldPos);
         const last = moveDragStateRef.current.lastWorldPos;
-        const dx = worldPos.x - last.x;
-        const dz = worldPos.z - last.z;
+        let dx = worldPos.x - last.x;
+        let dz = worldPos.z - last.z;
         const { elementId, elementIds } = moveDragStateRef.current;
+        if (elementIds.length === 1) {
+          const el = optionsRef.current.elements.find(e => e.id === elementId);
+          if (el?.type === 'board') {
+            const snapped = snapAndCollide(
+              el,
+              el.position.x + dx,
+              el.position.z + dz,
+              optionsRef.current.elements.filter(e => e.id !== elementId)
+            );
+            dx = snapped.x - el.position.x;
+            dz = snapped.z - el.position.z;
+          }
+        }
         if (elementIds.length > 1) {
           optionsRef.current.onMultiPositionChange(elementIds, dx, dz);
         } else {
