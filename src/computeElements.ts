@@ -218,8 +218,12 @@ export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxEle
   for (const cab of members) {
     const legs = allElements.find((e) => e.type === 'leg' && e.cabinetId === cab.id);
     const legH = legs ? legs.dimensions.height : 0;
-    minY = Math.min(minY, cab.position.y - legH);
-    maxY = Math.max(maxY, cab.position.y + cab.dimensions.height);
+    const hasTop = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'top');
+    const hasBottom = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'bottom');
+    const topExt = hasTop ? PANEL_T : 0;
+    const bottomExt = hasBottom ? PANEL_T : 0;
+    minY = Math.min(minY, cab.position.y - legH - bottomExt);
+    maxY = Math.max(maxY, cab.position.y + cab.dimensions.height + topExt);
   }
   const TOUCH_TOL = PANEL_T * 2;
   const sideEdgeX = mask.maskownicaSide === 'right' ? maxX : minX;
