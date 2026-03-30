@@ -608,6 +608,21 @@ export function useElementActions({
             });
           }
         }
+        if (
+          el?.type === 'maskowanica' &&
+          el.cabinetId &&
+          (el.maskownicaSide === 'top' || el.maskownicaSide === 'bottom')
+        ) {
+          const cab = filtered.find((e) => e.id === el.cabinetId);
+          if (cab) {
+            return filtered.map((e) =>
+              e.type === 'maskowanica' && e.cabinetId === cab.id &&
+              (e.maskownicaSide === 'left' || e.maskownicaSide === 'right')
+                ? computeMaskowanicaForCabinet(e, cab, filtered)
+                : e
+            );
+          }
+        }
         return filtered;
       });
       setSelectedId((prev) => (prev === id ? null : prev));
