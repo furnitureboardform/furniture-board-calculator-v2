@@ -14,12 +14,12 @@ const CATALOG: CatalogItem[] = [
     label: 'Box',
     icon: (
       <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="catalog-icon">
-        <polygon points="18,4 32,11 32,25 18,32 4,25 4,11" fill="#2d2d30" stroke="#569cd6" strokeWidth="1.5"/>
+        <polygon points="18,4 32,11 32,25 18,32 4,25 4,11" fill="#0e3a5a" stroke="#569cd6" strokeWidth="1.5"/>
         <polyline points="18,4 18,32" stroke="#569cd6" strokeWidth="1" strokeDasharray="3 2"/>
         <polyline points="4,11 18,18 32,11" stroke="#569cd6" strokeWidth="1.5"/>
-        <polygon points="18,18 32,11 32,25 18,32" fill="#3c3c3c" stroke="#569cd6" strokeWidth="1.5"/>
-        <polygon points="18,18 4,11 4,25 18,32" fill="#252526" stroke="#569cd6" strokeWidth="1.5"/>
-        <polygon points="18,4 32,11 18,18 4,11" fill="#454545" stroke="#9cdcfe" strokeWidth="1.5"/>
+        <polygon points="18,18 32,11 32,25 18,32" fill="#1a4a6e" stroke="#569cd6" strokeWidth="1.5"/>
+        <polygon points="18,18 4,11 4,25 18,32" fill="#0a2840" stroke="#569cd6" strokeWidth="1.5"/>
+        <polygon points="18,4 32,11 18,18 4,11" fill="#1e5580" stroke="#9cdcfe" strokeWidth="1.5"/>
       </svg>
     ),
   },
@@ -28,12 +28,12 @@ const CATALOG: CatalogItem[] = [
     label: 'Półka',
     icon: (
       <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="catalog-icon">
-        <rect x="4" y="16" width="28" height="5" rx="1" fill="#3c3c3c" stroke="#9cdcfe" strokeWidth="1.5"/>
-        <line x1="4" y1="16" x2="10" y2="11" stroke="#569cd6" strokeWidth="1.5"/>
-        <line x1="32" y1="16" x2="38" y2="11" stroke="#569cd6" strokeWidth="1.5" strokeLinecap="round"/>
-        <line x1="4" y1="16" x2="10" y2="11" stroke="#569cd6" strokeWidth="1.5"/>
-        <line x1="32" y1="16" x2="26" y2="11" stroke="#569cd6" strokeWidth="1.5"/>
-        <rect x="10" y="11" width="16" height="5" rx="1" fill="#252526" stroke="#569cd6" strokeWidth="1.5"/>
+        <rect x="4" y="16" width="28" height="5" rx="1" fill="#123a32" stroke="#4ec9b0" strokeWidth="1.5"/>
+        <line x1="4" y1="16" x2="10" y2="11" stroke="#4ec9b0" strokeWidth="1.5"/>
+        <line x1="32" y1="16" x2="38" y2="11" stroke="#4ec9b0" strokeWidth="1.5" strokeLinecap="round"/>
+        <line x1="4" y1="16" x2="10" y2="11" stroke="#4ec9b0" strokeWidth="1.5"/>
+        <line x1="32" y1="16" x2="26" y2="11" stroke="#4ec9b0" strokeWidth="1.5"/>
+        <rect x="10" y="11" width="16" height="5" rx="1" fill="#0d2e28" stroke="#4ec9b0" strokeWidth="1.5"/>
       </svg>
     ),
   },
@@ -42,9 +42,9 @@ const CATALOG: CatalogItem[] = [
     label: 'Płyta',
     icon: (
       <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="catalog-icon">
-        <rect x="4" y="14" width="28" height="8" rx="1" fill="#3c3c3c" stroke="#9cdcfe" strokeWidth="1.5"/>
-        <polygon points="4,14 10,9 38,9 32,14" fill="#252526" stroke="#569cd6" strokeWidth="1.5"/>
-        <polygon points="32,14 38,9 38,17 32,22" fill="#454545" stroke="#569cd6" strokeWidth="1.5"/>
+        <rect x="4" y="14" width="28" height="8" rx="1" fill="#3c2210" stroke="#ce9178" strokeWidth="1.5"/>
+        <polygon points="4,14 10,9 38,9 32,14" fill="#251508" stroke="#ce9178" strokeWidth="1.5"/>
+        <polygon points="32,14 38,9 38,17 32,22" fill="#4a2a14" stroke="#ce9178" strokeWidth="1.5"/>
       </svg>
     ),
   },
@@ -457,6 +457,7 @@ const ElementLibrary: React.FC<Props> = ({
           <button
             key={item.type}
             className="catalog-card"
+            data-type={item.type}
             onClick={() => onAdd(item.type)}
             title={`Dodaj ${item.label}`}
           >
