@@ -3,6 +3,9 @@ import { createPortal } from 'react-dom';
 import type { BoxElement } from './types';
 import { PANEL_T, HDF_T } from './constants';
 import './OrderModal.css';
+import pdfMake from 'pdfmake/build/pdfmake';
+import pdfFonts from 'pdfmake/build/vfs_fonts';
+(pdfMake as any).vfs = (pdfFonts as any).vfs;
 
 interface Props {
   elements: BoxElement[];
@@ -551,62 +554,71 @@ const CostTab: React.FC<{
 // ── PDF generation ─────────────────────────────────────────────────────────────
 
 function generatePdf(data: ReturnType<typeof useOrderData>) {
-  const sectionHtml = (title: string, panels: GroupedPanel[]) => {
-    if (panels.length === 0) return `<h3>${title}</h3><p>brak</p>`;
-    const rows = panels.map(g =>
-      `<tr><td>${g.fa} × ${g.fb}</td><td>${g.count} szt.</td><td>${g.edgeBanding}</td></tr>`
-    ).join('');
-    return `
-      <h3>${title}</h3>
-      <table>
-        <colgroup><col style="width:40%"><col style="width:15%"><col style="width:45%"></colgroup>
-        <thead><tr><th>Wymiary (mm)</th><th>Ilość</th><th>Obrzeże</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>`;
+  const headerRow = (text: string) => ({
+    text, bold: true, fontSize: 11, margin: [0, 12, 0, 2] as [number,number,number,number],
+  });
+
+  const panelTable = (panels: GroupedPanel[]) => {
+    if (panels.length === 0) return { text: 'brak', fontSize: 10, margin: [0, 0, 0, 6] as [number,number,number,number] };
+    return {
+      table: {
+        widths: [160, 50, '*'],
+        headerRows: 1,
+        body: [
+          [
+            { text: 'Wymiary (mm)', bold: true, fillColor: '#f0f0f0' },
+            { text: 'Ilość',        bold: true, fillColor: '#f0f0f0' },
+            { text: 'Obrzeże',      bold: true, fillColor: '#f0f0f0' },
+          ],
+          ...panels.map(g => [
+            `${g.fa} × ${g.fb}`,
+            `${g.count} szt.`,
+            g.edgeBanding,
+          ]),
+        ],
+      },
+      layout: 'lightHorizontalLines',
+      fontSize: 10,
+      margin: [0, 0, 0, 6] as [number,number,number,number],
+    };
   };
 
-  const addonItems: Array<{ name: string; qty: number; note?: string }> = [];
-  if (data.rodCount > 0)       addonItems.push({ name: 'Drążki', qty: data.rodCount });
-  if (data.hingeCount > 0)     addonItems.push({ name: 'Zawiasy', qty: data.hingeCount, note: 'na drzwi (wg wysokości drzwi)' });
-  if (data.slideCount > 0)     addonItems.push({ name: 'Prowadnice przesuwne', qty: data.slideCount, note: '1 zestaw na szufladę' });
-  if (data.ptoSlideCount > 0)  addonItems.push({ name: 'Prowadnice push to open', qty: data.ptoSlideCount, note: '1 zestaw na szufladę' });
-  if (data.ptoSlideCount > 0)  addonItems.push({ name: 'TIP-ON BLUMOTION', qty: data.ptoSlideCount, note: '1 na szufladę' });
-  if (data.couplingCount > 0)  addonItems.push({ name: 'Sprzęgła', qty: data.couplingCount, note: '1 zestaw na szufladę' });
-  if (data.handleCount > 0)    addonItems.push({ name: 'Uchwyty', qty: data.handleCount, note: '1 na drzwi' });
-  if (data.legCount > 0)       addonItems.push({ name: 'Nóżki', qty: data.legCount, note: '4 na box' });
+  const addonRows: string[][] = [];
+  if (data.rodCount > 0)       addonRows.push(['Drążki',                   `${data.rodCount} szt.`,      '']);
+  if (data.hingeCount > 0)     addonRows.push(['Zawiasy',                  `${data.hingeCount} szt.`,    'na drzwi (wg wysokości drzwi)']);
+  if (data.slideCount > 0)     addonRows.push(['Prowadnice przesuwne',     `${data.slideCount} szt.`,    '1 zestaw na szufladę']);
+  if (data.ptoSlideCount > 0)  addonRows.push(['Prowadnice push to open',  `${data.ptoSlideCount} szt.`, '1 zestaw na szufladę']);
+  if (data.ptoSlideCount > 0)  addonRows.push(['TIP-ON BLUMOTION',         `${data.ptoSlideCount} szt.`, '1 na szufladę']);
+  if (data.couplingCount > 0)  addonRows.push(['Sprzęgła',                 `${data.couplingCount} szt.`, '1 zestaw na szufladę']);
+  if (data.handleCount > 0)    addonRows.push(['Uchwyty',                  `${data.handleCount} szt.`,   '1 na drzwi']);
+  if (data.legCount > 0)       addonRows.push(['Nóżki',                    `${data.legCount} szt.`,      '4 na box']);
 
-  const addonsHtml = addonItems.length === 0 ? '<p>brak</p>' :
-    `<table><colgroup><col style="width:40%"><col style="width:15%"><col style="width:45%"></colgroup><tbody>${addonItems.map(i =>
-      `<tr><td>${i.name}</td><td>${i.qty} szt.</td><td>${i.note ?? ''}</td></tr>`
-    ).join('')}</tbody></table>`;
+  const addonsContent = addonRows.length === 0
+    ? { text: 'brak', fontSize: 10 }
+    : {
+        table: {
+          widths: [160, 50, '*'],
+          body: addonRows,
+        },
+        layout: 'lightHorizontalLines',
+        fontSize: 10,
+      };
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Zamówienie</title><style>
-    body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; color: #111; }
-    h2 { margin-bottom: 4px; }
-    h3 { margin: 16px 0 4px; font-size: 13px; border-bottom: 1px solid #ccc; padding-bottom: 2px; }
-    table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 8px; }
-    th, td { padding: 4px 8px; text-align: left; border-top: 1px solid #ccc; border-left: 1px solid #ccc; }
-    th:last-child, td:last-child { border-right: 1px solid #ccc; }
-    thead tr:last-child th { border-bottom: 1px solid #ccc; }
-    tbody tr:last-child td { border-bottom: 1px solid #ccc; }
-    tr { break-inside: avoid; }
-    th { background: #f0f0f0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    p { margin: 4px 0; }
-    @media print { body { margin: 10mm; } @page { margin: 10mm; size: A4; } }
-  </style></head><body>
-    <h2>Zamówienie – lista płyt</h2>
-    ${sectionHtml('Płyty obicie', data.obicieGrouped)}
-    ${sectionHtml('Płyty korpus', data.korpusGrouped)}
-    ${sectionHtml('Płyta HDF', data.hdfGrouped)}
-    <h3>Dodatki</h3>${addonsHtml}
-  </body></html>`;
-
-  const win = window.open('', '_blank');
-  if (!win) return;
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  win.print();
+  pdfMake.createPdf({
+    pageSize: 'A4',
+    pageMargins: [30, 30, 30, 30],
+    defaultStyle: { font: 'Roboto', fontSize: 10 },
+    content: [
+headerRow('Płyty obicie'),
+      panelTable(data.obicieGrouped),
+      headerRow('Płyty korpus'),
+      panelTable(data.korpusGrouped),
+      headerRow('Płyta HDF'),
+      panelTable(data.hdfGrouped),
+      headerRow('Dodatki'),
+      addonsContent,
+    ],
+  }).download('zamowienie.pdf');
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────

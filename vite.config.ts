@@ -5,4 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: '/furniture-board-calculator-v2/',
+  optimizeDeps: {
+    include: ['pdfmake/build/pdfmake', 'pdfmake/build/vfs_fonts'],
+  },
 })
