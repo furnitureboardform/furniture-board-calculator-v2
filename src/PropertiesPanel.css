@@ -9,7 +9,7 @@
   justify-content: center;
   align-items: center;
   height: 100%;
-  color: #6e7681;
+  color: #a0a8b0;
   font-size: 13px;
   text-align: center;
 }
@@ -24,7 +24,7 @@
 
 .properties-hint {
   font-size: 11px;
-  color: #6e7681;
+  color: #a0a8b0;
   margin-top: -8px;
 }
 
@@ -60,7 +60,7 @@
 
 .prop-unit {
   font-size: 11px;
-  color: #6e7681;
+  color: #a0a8b0;
   flex-shrink: 0;
   width: 14px;
 }

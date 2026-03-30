@@ -86,7 +86,7 @@
 .om-modal-close {
   background: none;
   border: none;
-  color: #6e7681;
+  color: #a0a8b0;
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
@@ -114,7 +114,7 @@
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  color: #6e7681;
+  color: #a0a8b0;
   font-size: 12px;
   font-weight: 700;
   padding: 10px 14px 8px;
@@ -173,7 +173,7 @@
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #6e7681;
+  color: #a0a8b0;
   padding: 7px 12px 6px;
   background: #2d2d30;
   border-bottom: 1px solid #3d3d3d;
@@ -211,7 +211,7 @@
 
 .om-panel-dims {
   font-size: 11px;
-  color: #6e7681;
+  color: #a0a8b0;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   min-width: 120px;
@@ -252,7 +252,7 @@
 
 .om-cost-qty {
   font-size: 11px;
-  color: #6e7681;
+  color: #a0a8b0;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -261,7 +261,7 @@
 
 .om-cost-price {
   font-size: 11px;
-  color: #6e7681;
+  color: #a0a8b0;
   white-space: nowrap;
   text-align: right;
   min-width: 90px;
@@ -349,7 +349,7 @@
 
 .om-grouped-edge {
   font-size: 11px;
-  color: #6e7681;
+  color: #a0a8b0;
   line-height: 1.4;
 }
 
@@ -381,7 +381,7 @@
 
 .om-addon-note {
   font-size: 11px;
-  color: #6e7681;
+  color: #a0a8b0;
 }
 
 /* ── Financial summary grid ───────────────────────────────────────────────────── */
@@ -418,7 +418,7 @@
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #6e7681;
+  color: #a0a8b0;
 }
 
 .om-fin-value {
@@ -452,7 +452,7 @@
 
 .om-fin-unit {
   font-size: 11px;
-  color: #6e7681;
+  color: #a0a8b0;
 }
 
 .om-fin-result {

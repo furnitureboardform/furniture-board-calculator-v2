@@ -52,7 +52,7 @@
 .board-size-field span:last-child {
   flex-shrink: 0;
   white-space: nowrap;
-  color: #6e7681;
+  color: #a0a8b0;
 }
 
 .board-size-field input {
@@ -275,7 +275,7 @@
 
 .element-dims {
   font-size: 10px;
-  color: #6e7681;
+  color: #a0a8b0;
   white-space: nowrap;
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
@@ -303,7 +303,7 @@
 }
 
 .element-item:hover .btn-delete {
-  color: #6e7681;
+  color: #a0a8b0;
 }
 
 .btn-delete:hover {
@@ -341,7 +341,7 @@
   padding: 10px 10px 2px 14px;
   font-size: 10px;
   font-weight: 700;
-  color: #6e7681;
+  color: #a0a8b0;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   cursor: default;
@@ -384,7 +384,7 @@
 
 /* ── Empty state ─────────────────────────────────────────────────────────────── */
 .element-empty {
-  color: #6e7681;
+  color: #a0a8b0;
   font-size: 12px;
   text-align: center;
   padding: 24px 16px;

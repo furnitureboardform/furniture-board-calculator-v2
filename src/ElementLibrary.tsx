@@ -230,7 +230,7 @@ const ElementLibrary: React.FC<Props> = ({
               <span className="element-indent-line" />
               <span className="element-indent-line" />
               <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#6e7681' }}>Dodaj szufladę</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj szufladę</span>
             </li>
           </>
         )}
@@ -274,22 +274,22 @@ const ElementLibrary: React.FC<Props> = ({
             <li className="element-item element-item--add" onClick={() => onAddShelfToCabinet(cab.id)}>
               <span className="element-indent-line" />
               <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#6e7681' }}>Dodaj półkę</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj półkę</span>
             </li>
             <li className="element-item element-item--add" onClick={() => onAddDrawerToCabinet(cab.id)}>
               <span className="element-indent-line" />
               <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#6e7681' }}>Dodaj szufladę</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj szufladę</span>
             </li>
             <li className="element-item element-item--add" onClick={() => onAddDrawerboxToCabinet(cab.id)}>
               <span className="element-indent-line" />
               <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#6e7681' }}>Dodaj box szuflady</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj box szuflady</span>
             </li>
             <li className="element-item element-item--add" onClick={() => onAddDividerToCabinet(cab.id)}>
               <span className="element-indent-line" />
               <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#6e7681' }}>Dodaj przegrodę</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj przegrodę</span>
             </li>
 
             {/* Section: Wykończenie (fronty) */}
@@ -302,12 +302,12 @@ const ElementLibrary: React.FC<Props> = ({
                 <li className="element-item element-item--add" onClick={() => onAddFrontToCabinet(cab.id)}>
                   <span className="element-indent-line" />
                   <span className="element-add-icon">＋</span>
-                  <span className="element-name" style={{ color: '#6e7681' }}>Dodaj front</span>
+                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front</span>
                 </li>
                 <li className="element-item element-item--add" onClick={() => onAddDoubleFrontToCabinet(cab.id)}>
                   <span className="element-indent-line" />
                   <span className="element-add-icon">＋</span>
-                  <span className="element-name" style={{ color: '#6e7681' }}>Dodaj podwójny front</span>
+                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj podwójny front</span>
                 </li>
               </>
             )}
@@ -324,35 +324,35 @@ const ElementLibrary: React.FC<Props> = ({
               <li className="element-item element-item--add" onClick={() => onAddPlinthToCabinet(cab.id)}>
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#6e7681' }}>Dodaj cokoł</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cokoł</span>
               </li>
             )}
             {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'left') && (
               <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'left')}>
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#6e7681' }}>Dodaj maskownicę lewa</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę lewa</span>
               </li>
             )}
             {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'right') && (
               <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'right')}>
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#6e7681' }}>Dodaj maskownicę prawa</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę prawa</span>
               </li>
             )}
             {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'bottom') && (
               <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'bottom')}>
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#6e7681' }}>Dodaj maskownicę dół</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę dół</span>
               </li>
             )}
             {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'top') && (
               <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'top')}>
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#6e7681' }}>Dodaj maskownicę góra</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę góra</span>
               </li>
             )}
 
@@ -366,7 +366,7 @@ const ElementLibrary: React.FC<Props> = ({
                 <li className="element-item element-item--add" onClick={() => onAddHdfToCabinet(cab.id)}>
                   <span className="element-indent-line" />
                   <span className="element-add-icon">＋</span>
-                  <span className="element-name" style={{ color: '#6e7681' }}>Dodaj płytę HDF</span>
+                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj płytę HDF</span>
                 </li>
               </>
             )}
@@ -379,13 +379,13 @@ const ElementLibrary: React.FC<Props> = ({
             <li className="element-item element-item--add" onClick={() => onAddRodToCabinet(cab.id)}>
               <span className="element-indent-line" />
               <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#6e7681' }}>Dodaj drążek</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj drążek</span>
             </li>
             {!elements.some((e) => e.type === 'leg' && e.cabinetId === cab.id) && (
               <li className="element-item element-item--add" onClick={() => onAddLegsToCabinet(cab.id)}>
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#6e7681' }}>Dodaj nóżki</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj nóżki</span>
               </li>
             )}
           </>
@@ -531,12 +531,12 @@ const ElementLibrary: React.FC<Props> = ({
                       <li className="element-item element-item--add" onClick={() => onAddFrontToGroup(grp.id)}>
                         <span className="element-indent-line" />
                         <span className="element-add-icon">＋</span>
-                        <span className="element-name" style={{ color: '#6e7681' }}>Dodaj front grupy</span>
+                        <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front grupy</span>
                       </li>
                       <li className="element-item element-item--add" onClick={() => onAddDoubleFrontToGroup(grp.id)}>
                         <span className="element-indent-line" />
                         <span className="element-add-icon">＋</span>
-                        <span className="element-name" style={{ color: '#6e7681' }}>Dodaj podwójny front grupy</span>
+                        <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj podwójny front grupy</span>
                       </li>
                     </>
                   )}
@@ -544,14 +544,14 @@ const ElementLibrary: React.FC<Props> = ({
                     <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToGroup(grp.id, 'left')}>
                       <span className="element-indent-line" />
                       <span className="element-add-icon">＋</span>
-                      <span className="element-name" style={{ color: '#6e7681' }}>Dodaj maskownicę lewa grupy</span>
+                      <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę lewa grupy</span>
                     </li>
                   )}
                   {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'right') && (
                     <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToGroup(grp.id, 'right')}>
                       <span className="element-indent-line" />
                       <span className="element-add-icon">＋</span>
-                      <span className="element-name" style={{ color: '#6e7681' }}>Dodaj maskownicę prawa grupy</span>
+                      <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę prawa grupy</span>
                     </li>
                   )}
                 </>
