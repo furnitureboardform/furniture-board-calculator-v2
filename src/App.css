@@ -67,10 +67,10 @@ body, html, #root {
   justify-content: center;
   width: 38px;
   height: 38px;
-  background: #0e639c;
-  border: 1px solid #007acc;
+  background: #6b3f10;
+  border: 1px solid #c07828;
   border-radius: 10px;
-  color: #d4d4d4;
+  color: #e8c89a;
   font-size: 18px;
   cursor: pointer;
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
@@ -78,10 +78,10 @@ body, html, #root {
 }
 
 .undo-redo-btn:hover:not(:disabled) {
-  background: #1177bb;
-  border-color: #1a8ad4;
+  background: #8c5418;
+  border-color: #d4923a;
   color: #ffffff;
-  box-shadow: 0 4px 16px rgba(0, 122, 204, 0.35);
+  box-shadow: 0 4px 16px rgba(192, 120, 40, 0.4);
 }
 
 .undo-redo-btn:disabled {

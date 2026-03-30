@@ -243,7 +243,7 @@ export function useThreeScene(
     if (!container) return;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1a2e);
+    scene.background = new THREE.Color(0x2a2a2a);
     sceneRef.current = scene;
 
     const w = container.clientWidth;
@@ -270,13 +270,13 @@ export function useThreeScene(
     dirLight.castShadow = true;
     scene.add(dirLight);
 
-    const grid = makeRectGrid(20, 20, 0.5, 0x444466);
+    const grid = makeRectGrid(20, 20, 0.5, 0x3d3d3d);
     scene.add(grid);
     gridRef.current = grid;
 
     const boardGeo = new THREE.PlaneGeometry(20, 20);
     const boardMat = new THREE.MeshStandardMaterial({
-      color: 0x252540,
+      color: 0x252526,
       roughness: 0.9,
       metalness: 0.0,
       transparent: true,
@@ -328,7 +328,7 @@ export function useThreeScene(
     if (scene) {
       const oldGrid = gridRef.current;
       if (oldGrid) { scene.remove(oldGrid); oldGrid.geometry.dispose(); (oldGrid.material as THREE.Material).dispose(); }
-      const newGrid = makeRectGrid(w, d, 0.5, 0x444466);
+      const newGrid = makeRectGrid(w, d, 0.5, 0x3d3d3d);
       scene.add(newGrid);
       gridRef.current = newGrid;
     }
@@ -342,7 +342,7 @@ export function useThreeScene(
     const oldCeil = ceilingGridRef.current;
     if (oldCeil && scene) {
       scene.remove(oldCeil); oldCeil.geometry.dispose(); (oldCeil.material as THREE.Material).dispose();
-      const newCeil = makeRectGrid(w, d, 0.5, 0x446644);
+      const newCeil = makeRectGrid(w, d, 0.5, 0x1a3a55);
       newCeil.position.y = boardSize.height;
       scene.add(newCeil);
       ceilingGridRef.current = newCeil;
@@ -355,7 +355,7 @@ export function useThreeScene(
     if (!scene) return;
     if (showCeilingGrid) {
       const { boardSize } = optionsRef.current;
-      const grid = makeRectGrid(boardSize.width, boardSize.depth, 0.5, 0x446644);
+      const grid = makeRectGrid(boardSize.width, boardSize.depth, 0.5, 0x1a3a55);
       grid.position.y = boardSize.height;
       scene.add(grid);
       ceilingGridRef.current = grid;
