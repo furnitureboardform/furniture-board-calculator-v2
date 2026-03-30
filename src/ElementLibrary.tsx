@@ -291,18 +291,13 @@ const ElementLibrary: React.FC<Props> = ({
               <span className="element-add-icon">＋</span>
               <span className="element-name" style={{ color: '#6060a0' }}>Dodaj przegrodę</span>
             </li>
-            <li className="element-item element-item--add" onClick={() => onAddRodToCabinet(cab.id)}>
-              <span className="element-indent-line" />
-              <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#6060a0' }}>Dodaj drążek</span>
-            </li>
 
             {/* Section: Wykończenie (fronty) */}
             {!elements.some((e) => e.type === 'front' && e.cabinetId === cab.id) && (
               <>
                 <li className="element-item element-item--section">
                   <span className="element-section-line" />
-                  Wykończenie
+                  Front
                 </li>
                 <li className="element-item element-item--add" onClick={() => onAddFrontToCabinet(cab.id)}>
                   <span className="element-indent-line" />
@@ -377,18 +372,21 @@ const ElementLibrary: React.FC<Props> = ({
             )}
 
             {/* Section: Dodatki */}
+            <li className="element-item element-item--section">
+              <span className="element-section-line" />
+              Dodatki
+            </li>
+            <li className="element-item element-item--add" onClick={() => onAddRodToCabinet(cab.id)}>
+              <span className="element-indent-line" />
+              <span className="element-add-icon">＋</span>
+              <span className="element-name" style={{ color: '#6060a0' }}>Dodaj drążek</span>
+            </li>
             {!elements.some((e) => e.type === 'leg' && e.cabinetId === cab.id) && (
-              <>
-                <li className="element-item element-item--section">
-                  <span className="element-section-line" />
-                  Dodatki
-                </li>
-                <li className="element-item element-item--add" onClick={() => onAddLegsToCabinet(cab.id)}>
-                  <span className="element-indent-line" />
-                  <span className="element-add-icon">＋</span>
-                  <span className="element-name" style={{ color: '#6060a0' }}>Dodaj nóżki</span>
-                </li>
-              </>
+              <li className="element-item element-item--add" onClick={() => onAddLegsToCabinet(cab.id)}>
+                <span className="element-indent-line" />
+                <span className="element-add-icon">＋</span>
+                <span className="element-name" style={{ color: '#6060a0' }}>Dodaj nóżki</span>
+              </li>
             )}
           </>
         )}
