@@ -4,6 +4,8 @@ import './ModelOverlay.css';
 
 interface Props {
   elements: BoxElement[];
+  showCeilingGrid?: boolean;
+  onToggleCeilingGrid?: (v: boolean) => void;
 }
 
 type Tab = 'elements';
@@ -74,7 +76,7 @@ function getCabinetPanels(cab: BoxElement): Panel[] {
   ];
 }
 
-const ModelOverlay: React.FC<Props> = ({ elements }) => {
+const ModelOverlay: React.FC<Props> = ({ elements, showCeilingGrid, onToggleCeilingGrid }) => {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('elements');
 
@@ -276,16 +278,25 @@ const ModelOverlay: React.FC<Props> = ({ elements }) => {
 
   return (
     <div className="model-overlay">
-      <button
-        className={`mo-toggle ${open ? 'mo-toggle--active' : ''}`}
-        onClick={() => setOpen((v) => !v)}
-        title={open ? 'Zamknij panel' : 'Otwórz panel modelu'}
-      >
-        <span className="mo-toggle-icon">☰</span>
-        {!open && totalCabs > 0 && (
-          <span className="mo-toggle-badge">{totalCabs}</span>
-        )}
-      </button>
+      <div className="mo-button-row">
+        <button
+          className={`mo-ceiling-btn ${showCeilingGrid ? 'mo-ceiling-btn--active' : ''}`}
+          onClick={() => onToggleCeilingGrid?.(!showCeilingGrid)}
+          title={showCeilingGrid ? 'Ukryj siatkę sufitu' : 'Pokaż siatkę sufitu'}
+        >
+          ⊞
+        </button>
+        <button
+          className={`mo-toggle ${open ? 'mo-toggle--active' : ''}`}
+          onClick={() => setOpen((v) => !v)}
+          title={open ? 'Zamknij panel' : 'Otwórz panel modelu'}
+        >
+          <span className="mo-toggle-icon">☰</span>
+          {!open && totalCabs > 0 && (
+            <span className="mo-toggle-badge">{totalCabs}</span>
+          )}
+        </button>
+      </div>
 
       {open && (
         <div className="mo-panel">

@@ -16,6 +16,7 @@ const App: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [multiSelectedIds, setMultiSelectedIds] = useState<string[]>([]);
   const [boardSize, setBoardSize] = useState<{ width: number; depth: number; height: number }>({ width: 6000, depth: 6000, height: 2600 });
+  const [showCeilingGrid, setShowCeilingGrid] = useState(false);
   const boardSizeRef = useRef(boardSize);
   React.useEffect(() => { boardSizeRef.current = boardSize; }, [boardSize]);
   const dividerYHintRef = useRef<Map<string, number>>(new Map());
@@ -72,7 +73,7 @@ const App: React.FC = () => {
     elements,
     selectedId,
     multiSelectedIds,
-    boardSize: { width: boardSize.width / 1000, depth: boardSize.depth / 1000 },
+    boardSize: { width: boardSize.width / 1000, depth: boardSize.depth / 1000, height: boardSize.height / 1000 },
     onSelect: handleSelect,
     onMultiSelectToggle: handleMultiSelectToggle,
     onDimensionChange: handleDimensionDrag,
@@ -80,7 +81,7 @@ const App: React.FC = () => {
     onMultiPositionChange: handleMultiPositionChange,
     onYMove: handleYMove,
     onDragStart: handleDragStart,
-  });
+  }, showCeilingGrid);
 
   const selectedElement = elements.find((e) => e.id === selectedId) ?? null;
   const selectedCabHasFront = selectedElement?.type === 'cabinet' &&
@@ -122,7 +123,7 @@ const App: React.FC = () => {
       </aside>
 
       <main className="viewport" ref={containerRef}>
-        <ModelOverlay elements={elements} />
+        <ModelOverlay elements={elements} showCeilingGrid={showCeilingGrid} onToggleCeilingGrid={setShowCeilingGrid} />
         <OrderModal elements={elements} />
         <div className="undo-redo-fab">
           <button

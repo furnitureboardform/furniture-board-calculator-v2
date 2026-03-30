@@ -21,7 +21,7 @@ interface UseThreeSceneOptions {
   elements: BoxElement[];
   selectedId: string | null;
   multiSelectedIds: string[];
-  boardSize: { width: number; depth: number };
+  boardSize: { width: number; depth: number; height: number };
   onSelect: (id: string | null) => void;
   onMultiSelectToggle: (id: string) => void;
   onDimensionChange: (id: string, axis: 'width' | 'height' | 'depth', delta: number, dir: number) => void;
@@ -135,7 +135,8 @@ function makeRectGrid(w: number, d: number, cellSize: number, color: number): TH
 
 export function useThreeScene(
   containerRef: React.RefObject<HTMLDivElement | null>,
-  options: UseThreeSceneOptions
+  options: UseThreeSceneOptions,
+  showCeilingGrid: boolean
 ) {
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -146,6 +147,7 @@ export function useThreeScene(
   const animFrameRef = useRef<number>(0);
   const boardMeshRef = useRef<THREE.Mesh | null>(null);
   const gridRef = useRef<THREE.LineSegments | null>(null);
+  const ceilingGridRef = useRef<THREE.LineSegments | null>(null);
   const lastBoardSizeRef = useRef<{ width: number; depth: number } | null>(null);
   const isDraggingHandleRef = useRef(false);
   const dragStateRef = useRef<{
@@ -336,7 +338,32 @@ export function useThreeScene(
       board.geometry.dispose();
       board.geometry = new THREE.PlaneGeometry(w, d);
     }
+
+    const oldCeil = ceilingGridRef.current;
+    if (oldCeil && scene) {
+      scene.remove(oldCeil); oldCeil.geometry.dispose(); (oldCeil.material as THREE.Material).dispose();
+      const newCeil = makeRectGrid(w, d, 0.5, 0x446644);
+      newCeil.position.y = boardSize.height;
+      scene.add(newCeil);
+      ceilingGridRef.current = newCeil;
+    }
   });
+
+  // Toggle ceiling grid
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    if (showCeilingGrid) {
+      const { boardSize } = optionsRef.current;
+      const grid = makeRectGrid(boardSize.width, boardSize.depth, 0.5, 0x446644);
+      grid.position.y = boardSize.height;
+      scene.add(grid);
+      ceilingGridRef.current = grid;
+    } else {
+      const g = ceilingGridRef.current;
+      if (g) { scene.remove(g); g.geometry.dispose(); (g.material as THREE.Material).dispose(); ceilingGridRef.current = null; }
+    }
+  }, [showCeilingGrid]);
 
   // Sync elements to scene
   useEffect(() => {

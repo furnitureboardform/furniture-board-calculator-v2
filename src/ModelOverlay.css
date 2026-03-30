@@ -10,6 +10,43 @@
   pointer-events: none;
 }
 
+/* Button row */
+.mo-button-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Ceiling grid button */
+.mo-ceiling-btn {
+  pointer-events: all;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #16162a;
+  border: 1px solid #2a2a4a;
+  border-radius: 8px;
+  color: #a0a0c0;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.mo-ceiling-btn:hover {
+  background: #1e1e3a;
+  border-color: #3b6fd4;
+  color: #e0e0f0;
+}
+
+.mo-ceiling-btn--active {
+  background: #1a3a1a;
+  border-color: #4a9a4a;
+  color: #80e080;
+}
+
 /* Toggle button */
 .mo-toggle {
   pointer-events: all;
