@@ -63,6 +63,7 @@ const App: React.FC = () => {
     handleDrawerAdjustFrontChange,
     handleDrawerFrontHeightChange,
     handleDrawerPushToOpenChange,
+    handleMaskownicaNiepelnaChange,
     handleShelfSwitchBay,
     handleClearAll,
   } = useElementActions({ setElements, setSelectedId, setMultiSelectedIds, boardSizeRef, dividerYHintRef, dragDeltaRef, detachedFromRef });
@@ -157,6 +158,7 @@ const App: React.FC = () => {
           onDrawerAdjustFrontChange={(adj) => selectedElement && handleDrawerAdjustFrontChange(selectedElement.id, adj)}
           onDrawerFrontHeightChange={(h) => selectedElement && handleDrawerFrontHeightChange(selectedElement.id, h)}
           onDrawerPushToOpenChange={(v) => selectedElement && handleDrawerPushToOpenChange(selectedElement.id, v)}
+          onMaskownicaNiepelnaChange={(v) => selectedElement && handleMaskownicaNiepelnaChange(selectedElement.id, v)}
           onShelfSwitchBay={handleShelfSwitchBay}
         />
       </aside>

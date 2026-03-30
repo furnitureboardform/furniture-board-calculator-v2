@@ -130,8 +130,10 @@ const MASK_BACK_EXT  = HDF_T;            // 3 mm płyta HDF
 export function computeMaskowanicaForCabinet(mask: BoxElement, cab: BoxElement, allElements: BoxElement[]): BoxElement {
   const legs = allElements.find((e) => e.type === 'leg' && e.cabinetId === cab.id);
   const legH = legs ? legs.dimensions.height : 0;
-  const totalDepth = cab.dimensions.depth + MASK_FRONT_EXT + MASK_BACK_EXT;
-  const zPos = cab.position.z + (MASK_FRONT_EXT - MASK_BACK_EXT) / 2;
+  const totalDepth = mask.niepelna ? 0.08 : cab.dimensions.depth + MASK_FRONT_EXT + MASK_BACK_EXT;
+  const zPos = mask.niepelna
+    ? cab.position.z + cab.dimensions.depth / 2 + MASK_FRONT_EXT - 0.04
+    : cab.position.z + (MASK_FRONT_EXT - MASK_BACK_EXT) / 2;
   if (mask.maskownicaSide === 'bottom') {
     return {
       ...mask,
@@ -268,8 +270,10 @@ export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxEle
     }
   }
   const totalH = Math.max(0.001, effMaxY - effMinY);
-  const totalDepth = (maxFaceZ - minBackZ) + MASK_FRONT_EXT + MASK_BACK_EXT;
-  const zPos = (maxFaceZ + MASK_FRONT_EXT + minBackZ - MASK_BACK_EXT) / 2;
+  const totalDepth = mask.niepelna ? 0.08 : (maxFaceZ - minBackZ) + MASK_FRONT_EXT + MASK_BACK_EXT;
+  const zPos = mask.niepelna
+    ? maxFaceZ + MASK_FRONT_EXT - 0.04
+    : (maxFaceZ + MASK_FRONT_EXT + minBackZ - MASK_BACK_EXT) / 2;
   const xPos = mask.maskownicaSide === 'left'
     ? minX - PANEL_T / 2
     : maxX + PANEL_T / 2;

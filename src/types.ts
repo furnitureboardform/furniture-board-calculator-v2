@@ -14,6 +14,7 @@ export interface BoxElement {
   legCorner?: 'FL' | 'FR' | 'BL' | 'BR'; // only for legs: Front-Left, Front-Right, Back-Left, Back-Right
   blendaSide?: 'left' | 'right'; // only for blenda elements
   maskownicaSide?: 'left' | 'right' | 'bottom' | 'top'; // only for maskowanica elements
+  niepelna?: boolean; // only for maskowanica: depth forced to 80mm
   openFronts?: boolean; // only for cabinets: front panels shown open at 90°
   hasBottomPanel?: boolean; // only for drawerbox: whether bottom panel is rendered
   hasRearHdf?: boolean;     // only for drawerbox: whether rear HDF panel is shown

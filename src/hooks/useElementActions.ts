@@ -871,6 +871,20 @@ export function useElementActions({
     setElements((prev) => prev.map((e) => e.id === drawerboxId ? { ...e, hasBottomPanel: has } : e));
   }, [setElements]);
 
+  const handleMaskownicaNiepelnaChange = useCallback((maskId: string, value: boolean) => {
+    setElements((prev) => {
+      const updated = prev.map((e) => e.id === maskId ? { ...e, niepelna: value } : e);
+      return updated.map((e) => {
+        if (e.id !== maskId || e.type !== 'maskowanica' || !e.cabinetId) return e;
+        const parent = updated.find((p) => p.id === e.cabinetId);
+        if (!parent) return e;
+        if (parent.type === 'cabinet') return computeMaskowanicaForCabinet(e, parent, updated);
+        if (parent.type === 'group') return computeMaskowanicaForGroup(e, updated);
+        return e;
+      });
+    });
+  }, [setElements]);
+
   const handleShelfSwitchBay = useCallback((shelfId: string) => {
     setElements((prev) => {
       const shelf = prev.find((e) => e.id === shelfId);
@@ -919,6 +933,7 @@ export function useElementActions({
     handleDrawerAdjustFrontChange,
     handleDrawerFrontHeightChange,
     handleDrawerPushToOpenChange,
+    handleMaskownicaNiepelnaChange,
     handleShelfSwitchBay,
     handleClearAll,
   };
