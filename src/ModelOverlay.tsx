@@ -78,9 +78,10 @@ const ModelOverlay: React.FC<Props> = ({ elements }) => {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('elements');
 
-  const groups         = elements.filter((e) => e.type === 'group');
-  const standaloneCabs = elements.filter((e) => e.type === 'cabinet' && !e.groupId);
-  const totalCabs      = elements.filter((e) => e.type === 'cabinet').length;
+  const groups              = elements.filter((e) => e.type === 'group');
+  const standaloneCabs      = elements.filter((e) => e.type === 'cabinet' && !e.groupId);
+  const totalCabs           = elements.filter((e) => e.type === 'cabinet').length;
+  const standaloneBoards    = elements.filter((e) => (e.type === 'board' || e.type === 'shelf') && !e.cabinetId);
 
   const renderCabinet = (cab: BoxElement, indent = false) => {
     const w = toMm(cab.dimensions.width);
@@ -318,7 +319,22 @@ const ModelOverlay: React.FC<Props> = ({ elements }) => {
 
                 {standaloneCabs.map((cab) => renderCabinet(cab, false))}
 
-                {totalCabs === 0 && (
+                {standaloneBoards.length > 0 && (
+                  <div className="mo-section">
+                    <div className="mo-section-label">Płyty wolnostojące</div>
+                    {standaloneBoards.map((el) => (
+                      <div key={el.id} className="mo-panel-row">
+                        <span className="mo-color-dot" style={{ background: el.color }} />
+                        <span className="mo-panel-name">{el.name}</span>
+                        <span className="mo-panel-dims">
+                          {toMm(el.dimensions.width)} × {toMm(el.dimensions.height)} × {toMm(el.dimensions.depth)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {totalCabs === 0 && standaloneBoards.length === 0 && (
                   <div className="mo-empty">Brak elementów na modelu.</div>
                 )}
               </>
