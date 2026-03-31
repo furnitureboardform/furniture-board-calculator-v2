@@ -363,6 +363,28 @@ export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxEle
   };
 }
 
+/** Computes position/dimensions of a group-level blenda (left/right/top). */
+export function computeBlendaForGroup(blenda: BoxElement, group: BoxElement, allElements: BoxElement[] = []): BoxElement {
+  const zFront = group.position.z + group.dimensions.depth / 2 + PANEL_T / 2;
+  if (blenda.blendaSide === 'top') {
+    return {
+      ...blenda,
+      dimensions: { width: group.dimensions.width, height: BLENDA_CAB_DEPTH, depth: PANEL_T },
+      position: { x: group.position.x, y: group.position.y + group.dimensions.height, z: zFront },
+    };
+  }
+  const topBlenda = allElements.find((e) => e.type === 'blenda' && e.cabinetId === group.id && e.blendaSide === 'top' && e.blendaScope === 'group');
+  const topH = topBlenda ? BLENDA_CAB_DEPTH : 0;
+  const xPos = blenda.blendaSide === 'left'
+    ? group.position.x - group.dimensions.width / 2 - BLENDA_CAB_DEPTH / 2
+    : group.position.x + group.dimensions.width / 2 + BLENDA_CAB_DEPTH / 2;
+  return {
+    ...blenda,
+    dimensions: { width: BLENDA_CAB_DEPTH, height: group.dimensions.height + topH, depth: PANEL_T },
+    position: { x: xPos, y: group.position.y, z: zFront },
+  };
+}
+
 /** Recompute the bounds of a group element from its member cabinets. */
 export function computeGroupBounds(group: BoxElement, allElements: BoxElement[]): BoxElement {
   const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
@@ -400,5 +422,12 @@ export function recomputeGroups(elements: BoxElement[]): BoxElement[] {
     }
     return e;
   });
-  return result3;
+  const result4 = result3.map((e) => {
+    if (e.type === 'blenda' && e.blendaScope === 'group' && e.cabinetId) {
+      const linked = result3.find((g) => g.id === e.cabinetId);
+      if (linked?.type === 'group') return computeBlendaForGroup(e, linked, result3);
+    }
+    return e;
+  });
+  return result4;
 }

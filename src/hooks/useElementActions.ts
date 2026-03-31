@@ -7,6 +7,7 @@ import {
   computeLegsForCabinet,
   computePlinthForCabinet,
   computeBlendaForCabinet,
+  computeBlendaForGroup,
   computeFrontForCabinet,
   computeFrontForGroup,
   computeMaskowanicaForCabinet,
@@ -470,6 +471,36 @@ export function useElementActions({
     });
   }, [setElements, setSelectedId]);
 
+  const handleAddBlendaToGroup = useCallback((groupId: string, side: 'left' | 'right' | 'top') => {
+    setElements((prev) => {
+      const group = prev.find((e) => e.id === groupId && e.type === 'group');
+      if (!group) return prev;
+      if (prev.some((e) => e.type === 'blenda' && e.cabinetId === groupId && e.blendaSide === side && e.blendaScope === 'group')) return prev;
+      const label = side === 'left' ? 'lewa' : side === 'right' ? 'prawa' : 'górna';
+      const blenda: BoxElement = computeBlendaForGroup({
+        id: crypto.randomUUID(),
+        name: `Blenda gr. ${label} ${counters.blenda++}`,
+        type: 'blenda',
+        cabinetId: groupId,
+        blendaSide: side,
+        blendaScope: 'group',
+        dimensions: { width: 0, height: 0, depth: 0 },
+        position: { x: 0, y: 0, z: 0 },
+        color: group.color,
+      }, group, prev);
+      const withBlenda = [...prev, blenda];
+      if (side === 'top') {
+        return withBlenda.map((e) =>
+          e.type === 'blenda' && e.cabinetId === groupId &&
+          (e.blendaSide === 'left' || e.blendaSide === 'right') && e.blendaScope === 'group'
+            ? computeBlendaForGroup(e, group, withBlenda)
+            : e
+        );
+      }
+      return withBlenda;
+    });
+  }, [setElements]);
+
   const handleAddMaskowanicaToCabinet = useCallback((cabinetId: string, side: 'left' | 'right' | 'bottom' | 'top') => {
     setElements((prev) => {
       const cab = prev.find((e) => e.id === cabinetId);
@@ -610,6 +641,7 @@ export function useElementActions({
           for (const e of prev) {
             if (e.type === 'front' && e.cabinetId === id) toRemove.add(e.id);
             if (e.type === 'maskowanica' && e.cabinetId === id) toRemove.add(e.id);
+            if (e.type === 'blenda' && e.cabinetId === id && e.blendaScope === 'group') toRemove.add(e.id);
           }
           for (const e of prev) {
             if (e.groupIds?.includes(id) && (e.groupIds.length === 1)) {
@@ -1016,6 +1048,7 @@ export function useElementActions({
     handleAddHdfToCabinet,
     handleAddPlinthToCabinet,
     handleAddBlendaToCabinet,
+    handleAddBlendaToGroup,
     handleAddMaskowanicaToCabinet,
     handleAddMaskowanicaToGroup,
     handleAddRodToCabinet,

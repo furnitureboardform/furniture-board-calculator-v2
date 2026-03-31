@@ -83,6 +83,7 @@ interface Props {
   onAddHdfToCabinet: (cabinetId: string) => void;
   onAddPlinthToCabinet: (cabinetId: string) => void;
   onAddBlendaToCabinet: (cabinetId: string, side: 'left' | 'right' | 'top') => void;
+  onAddBlendaToGroup: (groupId: string, side: 'left' | 'right' | 'top') => void;
   onAddFrontToGroup: (groupId: string) => void;
   onAddDoubleFrontToGroup: (groupId: string) => void;
   onAddMaskowanicaToCabinet: (cabinetId: string, side: 'left' | 'right' | 'bottom' | 'top') => void;
@@ -111,6 +112,7 @@ const ElementLibrary: React.FC<Props> = ({
   onAddShelfToCabinet, onAddDrawerToCabinet, onAddDrawerboxToCabinet, onAddDividerToCabinet,
   onAddFrontToCabinet, onAddDoubleFrontToCabinet,
   onAddRodToCabinet, onAddLegsToCabinet, onAddLegsToBoxKuchenny, onAddHdfToCabinet, onAddPlinthToCabinet, onAddBlendaToCabinet,
+  onAddBlendaToGroup,
   onAddFrontToGroup, onAddDoubleFrontToGroup,
   onAddMaskowanicaToCabinet, onAddMaskowanicaToGroup,
   onUngroup, onDelete, onClearAll,
@@ -627,6 +629,38 @@ const ElementLibrary: React.FC<Props> = ({
                         <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj podwójny front grupy</span>
                       </li>
                     </>
+                  )}
+
+                  {/* Section: Blenda grupy */}
+                  {(!elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'left') ||
+                    !elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'right') ||
+                    !elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'top')) && (
+                    <li className="element-item element-item--section">
+                      <span className="element-section-line" />
+                      Blenda grupy
+                    </li>
+                  )}
+                  {elements.filter((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group').map((b) => renderItem(b, true))}
+                  {!elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'left') && (
+                    <li className="element-item element-item--add" onClick={() => onAddBlendaToGroup(grp.id, 'left')}>
+                      <span className="element-indent-line" />
+                      <span className="element-add-icon">＋</span>
+                      <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę lewą grupy</span>
+                    </li>
+                  )}
+                  {!elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'right') && (
+                    <li className="element-item element-item--add" onClick={() => onAddBlendaToGroup(grp.id, 'right')}>
+                      <span className="element-indent-line" />
+                      <span className="element-add-icon">＋</span>
+                      <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę prawą grupy</span>
+                    </li>
+                  )}
+                  {!elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'top') && (
+                    <li className="element-item element-item--add" onClick={() => onAddBlendaToGroup(grp.id, 'top')}>
+                      <span className="element-indent-line" />
+                      <span className="element-add-icon">＋</span>
+                      <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę górną grupy</span>
+                    </li>
                   )}
 
                   {/* Section: Maskowanie */}
