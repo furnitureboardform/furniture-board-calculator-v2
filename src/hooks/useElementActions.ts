@@ -495,7 +495,7 @@ export function useElementActions({
         position: { x: 0, y: 0, z: 0 },
         color: group.color,
       }, prev);
-      if (side === 'top' || side === 'bottom') return [...prev, mask];
+      if (side === 'top' || side === 'bottom') return recomputeGroups([...prev, mask]);
       const bw = boardSizeRef.current.width / 1000;
       const maskLeft = mask.position.x - mask.dimensions.width / 2;
       const maskRight = mask.position.x + mask.dimensions.width / 2;
@@ -668,13 +668,7 @@ export function useElementActions({
           }
           const group = filtered.find((e) => e.id === el.cabinetId && e.type === 'group');
           if (group) {
-            return filtered.map((e) => {
-              if (e.type === 'maskowanica' && (e.maskownicaSide === 'left' || e.maskownicaSide === 'right') && e.cabinetId) {
-                const memberCab = filtered.find((c) => c.id === e.cabinetId && c.groupIds?.includes(group.id));
-                if (memberCab) return computeMaskowanicaForCabinet(e, memberCab, filtered);
-              }
-              return e;
-            });
+            return recomputeGroups(filtered);
           }
         }
         return filtered;

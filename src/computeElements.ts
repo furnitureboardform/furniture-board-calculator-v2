@@ -222,8 +222,10 @@ export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxEle
   for (const cab of members) {
     const legs = allElements.find((e) => e.type === 'leg' && e.cabinetId === cab.id);
     const legH = legs ? legs.dimensions.height : 0;
-    const hasTop = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'top');
-    const hasBottom = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'bottom');
+    const hasTop = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'top')
+      || (cab.groupIds?.some((gid) => gid !== group.id && allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === gid && e.maskownicaSide === 'top')) ?? false);
+    const hasBottom = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'bottom')
+      || (cab.groupIds?.some((gid) => gid !== group.id && allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === gid && e.maskownicaSide === 'bottom')) ?? false);
     const topExt = hasTop ? PANEL_T : 0;
     const bottomExt = hasBottom ? PANEL_T : 0;
     minY = Math.min(minY, cab.position.y - legH - bottomExt);
@@ -252,6 +254,25 @@ export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxEle
       dimensions: { width: maxX - minX, height: PANEL_T, depth: totalDepth },
       position: { x: (minX + maxX) / 2, y: groupBottomY - PANEL_T, z: zPos },
     };
+  }
+  // Extend minY/maxY based on top/bottom maskowanice of adjacent groups/cabinets
+  const sideEdge = mask.maskownicaSide === 'left' ? minX : maxX;
+  for (const e of allElements) {
+    if (e.groupIds?.includes(group.id)) continue;
+    if (e.type !== 'cabinet' && e.type !== 'group') continue;
+    const eLX = e.position.x - e.dimensions.width / 2;
+    const eRX = e.position.x + e.dimensions.width / 2;
+    const touchEdge = mask.maskownicaSide === 'left' ? eRX : eLX;
+    if (Math.abs(touchEdge - sideEdge) > PANEL_T * 2) continue;
+    if (e.position.y + e.dimensions.height <= minY || e.position.y >= maxY) continue;
+    const adjTopMask = allElements.find(
+      (m) => m.type === 'maskowanica' && m.cabinetId === e.id && m.maskownicaSide === 'top'
+    );
+    const adjBottomMask = allElements.find(
+      (m) => m.type === 'maskowanica' && m.cabinetId === e.id && m.maskownicaSide === 'bottom'
+    );
+    if (adjTopMask) maxY = Math.max(maxY, e.position.y + e.dimensions.height + PANEL_T);
+    if (adjBottomMask) minY = Math.min(minY, e.position.y - PANEL_T);
   }
   const TOUCH_TOL = PANEL_T * 2;
   const sideEdgeX = mask.maskownicaSide === 'right' ? maxX : minX;
