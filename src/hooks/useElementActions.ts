@@ -6,6 +6,7 @@ import {
   computeHdfForCabinet,
   computeLegsForCabinet,
   computePlinthForCabinet,
+  computePlinthForGroup,
   computeBlendaForCabinet,
   computeBlendaForGroup,
   computeFrontForCabinet,
@@ -443,6 +444,32 @@ export function useElementActions({
         if (e.type === 'blenda' && e.blendaScope === 'group' && e.cabinetId && cabGroupIds.includes(e.cabinetId) && (e.blendaSide === 'left' || e.blendaSide === 'right')) {
           const group = withCabBlends.find((g) => g.id === e.cabinetId && g.type === 'group');
           if (group) return computeBlendaForGroup(e, group, withCabBlends);
+        }
+        return e;
+      });
+    });
+  }, [setElements, setSelectedId]);
+
+  const handleAddPlinthToGroup = useCallback((groupId: string) => {
+    setElements((prev) => {
+      const group = prev.find((e) => e.id === groupId && e.type === 'group');
+      if (!group) return prev;
+      if (prev.some((e) => e.type === 'plinth' && e.cabinetId === groupId)) return prev;
+      const plinth: BoxElement = computePlinthForGroup({
+        id: crypto.randomUUID(),
+        name: `Cokoł gr. ${counters.plinth++}`,
+        type: 'plinth',
+        cabinetId: groupId,
+        dimensions: { width: 0, height: 0.1, depth: 0 },
+        position: { x: 0, y: 0, z: 0 },
+        color: group.color,
+      }, group);
+      setSelectedId(groupId);
+      const withPlinth = [...prev, plinth];
+      return withPlinth.map((e) => {
+        if (e.type === 'blenda' && e.blendaScope === 'group' && e.cabinetId === groupId &&
+            (e.blendaSide === 'left' || e.blendaSide === 'right')) {
+          return computeBlendaForGroup(e, group, withPlinth);
         }
         return e;
       });
@@ -1065,6 +1092,7 @@ export function useElementActions({
     handleAddLegsToBoxKuchenny,
     handleAddHdfToCabinet,
     handleAddPlinthToCabinet,
+    handleAddPlinthToGroup,
     handleAddBlendaToCabinet,
     handleAddBlendaToGroup,
     handleAddMaskowanicaToCabinet,

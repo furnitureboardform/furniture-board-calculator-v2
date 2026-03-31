@@ -375,13 +375,19 @@ export function computeBlendaForGroup(blenda: BoxElement, group: BoxElement, all
   }
   const topBlenda = allElements.find((e) => e.type === 'blenda' && e.cabinetId === group.id && e.blendaSide === 'top' && e.blendaScope === 'group');
   const topH = topBlenda ? BLENDA_CAB_DEPTH : 0;
-  const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
-  const minY = members.length > 0 ? Math.min(...members.map((c) => c.position.y)) : group.position.y;
-  const bottomMembers = members.filter((c) => Math.abs(c.position.y - minY) < 0.001);
-  const plinthH = bottomMembers.reduce((max, cab) => {
-    const plinth = allElements.find((e) => e.type === 'plinth' && e.cabinetId === cab.id);
-    return Math.max(max, plinth ? plinth.dimensions.height : 0);
-  }, 0);
+  const groupPlinth = allElements.find((e) => e.type === 'plinth' && e.cabinetId === group.id);
+  let plinthH: number;
+  if (groupPlinth) {
+    plinthH = groupPlinth.dimensions.height;
+  } else {
+    const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
+    const minY = members.length > 0 ? Math.min(...members.map((c) => c.position.y)) : group.position.y;
+    const bottomMembers = members.filter((c) => Math.abs(c.position.y - minY) < 0.001);
+    plinthH = bottomMembers.reduce((max, cab) => {
+      const plinth = allElements.find((e) => e.type === 'plinth' && e.cabinetId === cab.id);
+      return Math.max(max, plinth ? plinth.dimensions.height : 0);
+    }, 0);
+  }
   const xPos = blenda.blendaSide === 'left'
     ? group.position.x - group.dimensions.width / 2 - BLENDA_CAB_DEPTH / 2
     : group.position.x + group.dimensions.width / 2 + BLENDA_CAB_DEPTH / 2;
@@ -389,6 +395,24 @@ export function computeBlendaForGroup(blenda: BoxElement, group: BoxElement, all
     ...blenda,
     dimensions: { width: BLENDA_CAB_DEPTH, height: group.dimensions.height + plinthH + topH, depth: PANEL_T },
     position: { x: xPos, y: group.position.y - plinthH, z: zFront },
+  };
+}
+
+/** Computes position/dimensions of the plinth (cokoł) for a group at floor level. */
+export function computePlinthForGroup(plinth: BoxElement, group: BoxElement): BoxElement {
+  const zFront = group.position.z + group.dimensions.depth / 2 + PANEL_T / 2;
+  return {
+    ...plinth,
+    dimensions: {
+      width: group.dimensions.width,
+      height: plinth.dimensions.height || 0.1,
+      depth: PANEL_T,
+    },
+    position: {
+      x: group.position.x,
+      y: group.position.y - (plinth.dimensions.height || 0.1),
+      z: zFront,
+    },
   };
 }
 
@@ -430,11 +454,18 @@ export function recomputeGroups(elements: BoxElement[]): BoxElement[] {
     return e;
   });
   const result4 = result3.map((e) => {
-    if (e.type === 'blenda' && e.blendaScope === 'group' && e.cabinetId) {
+    if (e.type === 'plinth' && e.cabinetId) {
       const linked = result3.find((g) => g.id === e.cabinetId);
-      if (linked?.type === 'group') return computeBlendaForGroup(e, linked, result3);
+      if (linked?.type === 'group') return computePlinthForGroup(e, linked);
     }
     return e;
   });
-  return result4;
+  const result5 = result4.map((e) => {
+    if (e.type === 'blenda' && e.blendaScope === 'group' && e.cabinetId) {
+      const linked = result4.find((g) => g.id === e.cabinetId);
+      if (linked?.type === 'group') return computeBlendaForGroup(e, linked, result4);
+    }
+    return e;
+  });
+  return result5;
 }

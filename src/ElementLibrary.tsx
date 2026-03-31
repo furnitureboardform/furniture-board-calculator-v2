@@ -82,6 +82,7 @@ interface Props {
   onAddLegsToBoxKuchenny: (boxId: string) => void;
   onAddHdfToCabinet: (cabinetId: string) => void;
   onAddPlinthToCabinet: (cabinetId: string) => void;
+  onAddPlinthToGroup: (groupId: string) => void;
   onAddBlendaToCabinet: (cabinetId: string, side: 'left' | 'right' | 'top') => void;
   onAddBlendaToGroup: (groupId: string, side: 'left' | 'right' | 'top') => void;
   onAddFrontToGroup: (groupId: string) => void;
@@ -111,7 +112,7 @@ const ElementLibrary: React.FC<Props> = ({
   onSelect, onMultiSelectToggle, onGroup, onAdd,
   onAddShelfToCabinet, onAddDrawerToCabinet, onAddDrawerboxToCabinet, onAddDividerToCabinet,
   onAddFrontToCabinet, onAddDoubleFrontToCabinet,
-  onAddRodToCabinet, onAddLegsToCabinet, onAddLegsToBoxKuchenny, onAddHdfToCabinet, onAddPlinthToCabinet, onAddBlendaToCabinet,
+  onAddRodToCabinet, onAddLegsToCabinet, onAddLegsToBoxKuchenny, onAddHdfToCabinet, onAddPlinthToCabinet, onAddPlinthToGroup, onAddBlendaToCabinet,
   onAddBlendaToGroup,
   onAddFrontToGroup, onAddDoubleFrontToGroup,
   onAddMaskowanicaToCabinet, onAddMaskowanicaToGroup,
@@ -631,16 +632,17 @@ const ElementLibrary: React.FC<Props> = ({
                     </>
                   )}
 
-                  {/* Section: Blenda grupy */}
+                  {/* Section: Blenda i cokół grupy */}
                   {(!elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'left') ||
                     !elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'right') ||
-                    !elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'top')) && (
+                    !elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'top') ||
+                    !elements.some((e) => e.type === 'plinth' && e.cabinetId === grp.id)) && (
                     <li className="element-item element-item--section">
                       <span className="element-section-line" />
-                      Blenda grupy
+                      Blenda i cokół grupy
                     </li>
                   )}
-                  {elements.filter((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group').map((b) => renderItem(b, true))}
+                  {elements.filter((e) => (e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group') || (e.type === 'plinth' && e.cabinetId === grp.id)).map((b) => renderItem(b, true))}
                   {!elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'left') && (
                     <li className="element-item element-item--add" onClick={() => onAddBlendaToGroup(grp.id, 'left')}>
                       <span className="element-indent-line" />
@@ -660,6 +662,13 @@ const ElementLibrary: React.FC<Props> = ({
                       <span className="element-indent-line" />
                       <span className="element-add-icon">＋</span>
                       <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę górną grupy</span>
+                    </li>
+                  )}
+                  {!elements.some((e) => e.type === 'plinth' && e.cabinetId === grp.id) && (
+                    <li className="element-item element-item--add" onClick={() => onAddPlinthToGroup(grp.id)}>
+                      <span className="element-indent-line" />
+                      <span className="element-add-icon">＋</span>
+                      <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cokoł grupy</span>
                     </li>
                   )}
 
