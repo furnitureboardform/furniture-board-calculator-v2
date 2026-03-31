@@ -231,6 +231,12 @@ export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxEle
     minY = Math.min(minY, cab.position.y - legH - bottomExt);
     maxY = Math.max(maxY, cab.position.y + cab.dimensions.height + topExt);
   }
+  // Extend for group-level top/bottom maskowanica (left/right cover must be taller)
+  const groupHasTop = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === group.id && e.maskownicaSide === 'top' && e.id !== mask.id);
+  const groupHasBottom = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === group.id && e.maskownicaSide === 'bottom' && e.id !== mask.id);
+  if (groupHasTop) maxY += PANEL_T;
+  if (groupHasBottom) minY -= PANEL_T;
+
   if (mask.maskownicaSide === 'top' || mask.maskownicaSide === 'bottom') {
     const totalDepth = mask.niepelna ? 0.08 : (maxFaceZ - minBackZ) + MASK_FRONT_EXT + MASK_BACK_EXT;
     const zPos = mask.niepelna
