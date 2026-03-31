@@ -429,7 +429,13 @@ export function useElementActions({
         color: cab.color,
       }, cab, prev);
       setSelectedId(cabinetId);
-      return [...prev, plinth];
+      const withPlinth = [...prev, plinth];
+      return withPlinth.map((e) =>
+        e.type === 'blenda' && e.cabinetId === cabinetId &&
+        (e.blendaSide === 'left' || e.blendaSide === 'right') && e.blendaScope === 'cabinet'
+          ? computeBlendaForCabinet(e, cab, withPlinth)
+          : e
+      );
     });
   }, [setElements, setSelectedId]);
 
@@ -449,9 +455,18 @@ export function useElementActions({
         dimensions: { width: 0, height: 0, depth: 0 },
         position: { x: 0, y: 0, z: 0 },
         color: cab.color,
-      }, cab);
+      }, cab, prev);
       setSelectedId(cabinetId);
-      return [...prev, blenda];
+      const withBlenda = [...prev, blenda];
+      if (side === 'top') {
+        return withBlenda.map((e) =>
+          e.type === 'blenda' && e.cabinetId === cabinetId &&
+          (e.blendaSide === 'left' || e.blendaSide === 'right') && e.blendaScope === 'cabinet'
+            ? computeBlendaForCabinet(e, cab, withBlenda)
+            : e
+        );
+      }
+      return withBlenda;
     });
   }, [setElements, setSelectedId]);
 
@@ -692,6 +707,28 @@ export function useElementActions({
           const group = filtered.find((e) => e.id === el.cabinetId && e.type === 'group');
           if (group) {
             return recomputeGroups(filtered);
+          }
+        }
+        if (el?.type === 'blenda' && el.blendaSide === 'top' && el.blendaScope === 'cabinet' && el.cabinetId) {
+          const cab = filtered.find((e) => e.id === el.cabinetId && e.type === 'cabinet');
+          if (cab) {
+            return filtered.map((e) =>
+              e.type === 'blenda' && e.cabinetId === cab.id &&
+              (e.blendaSide === 'left' || e.blendaSide === 'right') && e.blendaScope === 'cabinet'
+                ? computeBlendaForCabinet(e, cab, filtered)
+                : e
+            );
+          }
+        }
+        if (el?.type === 'plinth' && el.cabinetId) {
+          const cab = filtered.find((e) => e.id === el.cabinetId && e.type === 'cabinet');
+          if (cab) {
+            return filtered.map((e) =>
+              e.type === 'blenda' && e.cabinetId === cab.id &&
+              (e.blendaSide === 'left' || e.blendaSide === 'right') && e.blendaScope === 'cabinet'
+                ? computeBlendaForCabinet(e, cab, filtered)
+                : e
+            );
           }
         }
         return filtered;

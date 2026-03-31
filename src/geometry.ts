@@ -6,6 +6,7 @@ import {
   computePlinthForCabinet,
   computeFrontForCabinet,
   computeMaskowanicaForCabinet,
+  computeBlendaForCabinet,
   recomputeGroups,
 } from './computeElements';
 
@@ -231,6 +232,19 @@ export function recomputeAllY(elements: BoxElement[], roomH = Infinity, skipDivi
     if (el.type !== 'plinth' || !el.cabinetId) continue;
     const cab = allSettled5.find((e) => e.id === el.cabinetId);
     if (cab) resultMap.set(el.id, computePlinthForCabinet(el, cab, allSettled5));
+  }
+  // Recompute cabinet blenda positions (top first, then L/R which depend on plinth and top blenda)
+  const allSettledB1 = [...resultMap.values()];
+  for (const el of allSettledB1) {
+    if (el.type !== 'blenda' || el.blendaScope !== 'cabinet' || el.blendaSide !== 'top' || !el.cabinetId) continue;
+    const cab = allSettledB1.find((e) => e.id === el.cabinetId);
+    if (cab) resultMap.set(el.id, computeBlendaForCabinet(el, cab, allSettledB1));
+  }
+  const allSettledB2 = [...resultMap.values()];
+  for (const el of allSettledB2) {
+    if (el.type !== 'blenda' || el.blendaScope !== 'cabinet' || (el.blendaSide !== 'left' && el.blendaSide !== 'right') || !el.cabinetId) continue;
+    const cab = allSettledB2.find((e) => e.id === el.cabinetId);
+    if (cab) resultMap.set(el.id, computeBlendaForCabinet(el, cab, allSettledB2));
   }
   // Recompute maskowanica positions
   const allSettled6 = [...resultMap.values()];

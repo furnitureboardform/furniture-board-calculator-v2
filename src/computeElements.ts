@@ -57,22 +57,26 @@ export function computePlinthForCabinet(plinth: BoxElement, cab: BoxElement, all
 const BLENDA_CAB_DEPTH = 0.1; // 100 mm
 
 /** Computes position/dimensions of a standalone cabinet blenda (left/right/top). */
-export function computeBlendaForCabinet(blenda: BoxElement, cab: BoxElement): BoxElement {
-  const zPos = cab.position.z + cab.dimensions.depth / 2 - BLENDA_CAB_DEPTH / 2;
+export function computeBlendaForCabinet(blenda: BoxElement, cab: BoxElement, allElements: BoxElement[] = []): BoxElement {
+  const zFront = cab.position.z + cab.dimensions.depth / 2 + PANEL_T / 2;
   if (blenda.blendaSide === 'top') {
     return {
       ...blenda,
       dimensions: { width: cab.dimensions.width, height: BLENDA_CAB_DEPTH, depth: PANEL_T },
-      position: { x: cab.position.x, y: cab.position.y + cab.dimensions.height, z: cab.position.z + cab.dimensions.depth / 2 + PANEL_T / 2 },
+      position: { x: cab.position.x, y: cab.position.y + cab.dimensions.height, z: zFront },
     };
   }
+  const plinth = allElements.find((e) => e.type === 'plinth' && e.cabinetId === cab.id);
+  const topBlenda = allElements.find((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaSide === 'top' && e.blendaScope === 'cabinet');
+  const plinthH = plinth ? plinth.dimensions.height : 0;
+  const topH = topBlenda ? BLENDA_CAB_DEPTH : 0;
   const xPos = blenda.blendaSide === 'left'
     ? cab.position.x - cab.dimensions.width / 2 - BLENDA_CAB_DEPTH / 2
     : cab.position.x + cab.dimensions.width / 2 + BLENDA_CAB_DEPTH / 2;
   return {
     ...blenda,
-    dimensions: { width: BLENDA_CAB_DEPTH, height: cab.dimensions.height, depth: PANEL_T },
-    position: { x: xPos, y: cab.position.y, z: cab.position.z + cab.dimensions.depth / 2 + PANEL_T / 2 },
+    dimensions: { width: BLENDA_CAB_DEPTH, height: cab.dimensions.height + plinthH + topH, depth: PANEL_T },
+    position: { x: xPos, y: cab.position.y - plinthH, z: zFront },
   };
 }
 
