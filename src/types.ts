@@ -9,7 +9,7 @@ export interface BoxElement {
   name: string;
   type: 'cabinet' | 'shelf' | 'board' | 'drawer' | 'drawerbox' | 'divider' | 'front' | 'rod' | 'leg' | 'hdf' | 'blenda' | 'plinth' | 'group' | 'maskowanica' | 'boxkuchenny';
   cabinetId?: string; // if set, element is locked inside this cabinet (or group for groupFront)
-  groupId?: string;   // for cabinets: which group they belong to
+  groupIds?: string[];  // for cabinets: which groups they belong to (a cabinet can belong to multiple groups)
   frontSide?: 'left' | 'right'; // only for double-door fronts
   legCorner?: 'FL' | 'FR' | 'BL' | 'BR'; // only for legs: Front-Left, Front-Right, Back-Left, Back-Right
   blendaSide?: 'left' | 'right'; // only for blenda elements

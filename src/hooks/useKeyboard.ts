@@ -52,7 +52,7 @@ export function useKeyboard({ selectedId, multiSelectedIds, handleDelete, setEle
             ...src,
             id: newCabId,
             name: `${src.name} (kopia)`,
-            groupId: undefined,
+            groupIds: [],
             position: { ...src.position, x: src.position.x + src.dimensions.width + 0.02 },
           };
           const children = prev.filter((el) => el.cabinetId === src.id);

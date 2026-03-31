@@ -81,7 +81,7 @@ const ModelOverlay: React.FC<Props> = ({ elements, showCeilingGrid, onToggleCeil
   const [tab, setTab] = useState<Tab>('elements');
 
   const groups              = elements.filter((e) => e.type === 'group');
-  const standaloneCabs      = elements.filter((e) => e.type === 'cabinet' && !e.groupId);
+  const standaloneCabs      = elements.filter((e) => e.type === 'cabinet' && !e.groupIds?.length);
   const totalCabs           = elements.filter((e) => e.type === 'cabinet').length;
   const standaloneBoards    = elements.filter((e) => (e.type === 'board' || e.type === 'shelf') && !e.cabinetId);
 
@@ -311,7 +311,7 @@ const ModelOverlay: React.FC<Props> = ({ elements, showCeilingGrid, onToggleCeil
               <>
                 {groups.map((grp) => {
                   const members = elements.filter(
-                    (e) => e.groupId === grp.id && e.type === 'cabinet'
+                    (e) => e.groupIds?.includes(grp.id) && e.type === 'cabinet'
                   );
                   return (
                     <div key={grp.id} className="mo-group">

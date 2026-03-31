@@ -157,7 +157,7 @@ const ElementLibrary: React.FC<Props> = ({
     }
   };
   // Cabinets that don't belong to any group
-  const standaloneCabinets = elements.filter((e) => e.type === 'cabinet' && !e.groupId);
+  const standaloneCabinets = elements.filter((e) => e.type === 'cabinet' && !e.groupIds?.length);
   const groups = elements.filter((e) => e.type === 'group');
   const freeShelves = elements.filter((e) => (e.type === 'shelf' || e.type === 'board' || e.type === 'rod') && !e.cabinetId);
   const freeBoxesKuchenne = elements.filter((e) => e.type === 'boxkuchenny');
@@ -539,7 +539,7 @@ const ElementLibrary: React.FC<Props> = ({
       <ul className="element-list">
         {/* Groups */}
         {groups.map((grp) => {
-          const members = elements.filter((e) => e.groupId === grp.id && e.type === 'cabinet');
+          const members = elements.filter((e) => e.groupIds?.includes(grp.id) && e.type === 'cabinet');
           const groupFronts = elements.filter((e) => e.type === 'front' && e.cabinetId === grp.id);
           const groupMaskowanice = elements.filter((e) => e.type === 'maskowanica' && e.cabinetId === grp.id);
           const isSelected = grp.id === selectedId;

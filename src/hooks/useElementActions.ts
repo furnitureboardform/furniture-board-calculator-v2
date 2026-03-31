@@ -504,7 +504,7 @@ export function useElementActions({
       else if (maskRight > bw / 2) shift = bw / 2 - maskRight;
       if (shift !== 0) {
         const shifted = prev.map((e) => {
-          if (e.id === groupId || e.groupId === groupId || e.cabinetId === groupId)
+          if (e.id === groupId || e.groupIds?.includes(groupId) || e.cabinetId === groupId)
             return { ...e, position: { ...e.position, x: e.position.x + shift } };
           return e;
         });
@@ -574,7 +574,8 @@ export function useElementActions({
             if (e.type === 'maskowanica' && e.cabinetId === id) toRemove.add(e.id);
           }
           for (const e of prev) {
-            if (e.groupId === id) {
+            if (e.groupIds?.includes(id) && (e.groupIds.length === 1)) {
+              // only in this group — remove it and its children
               toRemove.add(e.id);
               for (const child of prev) {
                 if (child.cabinetId === e.id) toRemove.add(child.id);
@@ -608,6 +609,14 @@ export function useElementActions({
           detachedFromRef.current.delete(rid);
         });
         const filtered = prev.filter((e) => !toRemove.has(e.id));
+        if (el?.type === 'group') {
+          // Remove deleted group id from surviving cabinets that belonged to multiple groups
+          return filtered.map((e) =>
+            e.groupIds?.includes(id)
+              ? { ...e, groupIds: e.groupIds.filter((gid) => gid !== id) }
+              : e
+          );
+        }
         if (el?.type === 'front' && el.cabinetId) {
           const cab = filtered.find((e) => e.id === el.cabinetId);
           const dbox = filtered.find((e) => e.type === 'drawerbox' && e.cabinetId === el.cabinetId);
@@ -661,7 +670,7 @@ export function useElementActions({
           if (group) {
             return filtered.map((e) => {
               if (e.type === 'maskowanica' && (e.maskownicaSide === 'left' || e.maskownicaSide === 'right') && e.cabinetId) {
-                const memberCab = filtered.find((c) => c.id === e.cabinetId && c.groupId === group.id);
+                const memberCab = filtered.find((c) => c.id === e.cabinetId && c.groupIds?.includes(group.id));
                 if (memberCab) return computeMaskowanicaForCabinet(e, memberCab, filtered);
               }
               return e;
@@ -684,17 +693,16 @@ export function useElementActions({
       }
       return prev
         .filter((e) => !toRemove.has(e.id))
-        .map((e) => e.groupId === groupId ? { ...e, groupId: undefined } : e);
+        .map((e) => e.groupIds?.includes(groupId) ? { ...e, groupIds: e.groupIds.filter((gid) => gid !== groupId) } : e);
     });
     setSelectedId((prev) => (prev === groupId ? null : prev));
   }, [setElements, setSelectedId]);
 
-  const handleRemoveFromGroup = useCallback((cabinetId: string) => {
+  const handleRemoveFromGroup = useCallback((cabinetId: string, groupId: string) => {
     setElements((prev) => {
       const cab = prev.find((e) => e.id === cabinetId);
-      if (!cab?.groupId) return prev;
-      const groupId = cab.groupId;
-      const remaining = prev.filter((e) => e.groupId === groupId && e.id !== cabinetId);
+      if (!cab?.groupIds?.includes(groupId)) return prev;
+      const remaining = prev.filter((e) => e.groupIds?.includes(groupId) && e.id !== cabinetId);
       if (remaining.length < 2) {
         // dissolve group — same as ungroup
         const toRemove = new Set<string>([groupId]);
@@ -704,9 +712,9 @@ export function useElementActions({
         }
         return prev
           .filter((e) => !toRemove.has(e.id))
-          .map((e) => e.groupId === groupId ? { ...e, groupId: undefined } : e);
+          .map((e) => e.groupIds?.includes(groupId) ? { ...e, groupIds: e.groupIds.filter((gid) => gid !== groupId) } : e);
       }
-      const updated = prev.map((e) => e.id === cabinetId ? { ...e, groupId: undefined } : e);
+      const updated = prev.map((e) => e.id === cabinetId ? { ...e, groupIds: e.groupIds!.filter((gid) => gid !== groupId) } : e);
       return recomputeGroups(updated);
     });
   }, [setElements]);
@@ -715,7 +723,7 @@ export function useElementActions({
     setElements((prev) => {
       const validIds = ids.filter((id) => {
         const el = prev.find((e) => e.id === id);
-        return el?.type === 'cabinet' && !el.groupId;
+        return el?.type === 'cabinet';
       });
       if (validIds.length < 2) return prev;
       const groupId = crypto.randomUUID();
@@ -728,7 +736,7 @@ export function useElementActions({
         color: '#888888',
       };
       const withGroupIds = prev.map((e) =>
-        validIds.includes(e.id) ? { ...e, groupId } : e
+        validIds.includes(e.id) ? { ...e, groupIds: [...(e.groupIds ?? []), groupId] } : e
       );
       const withGroup = [...withGroupIds, groupEl];
       return recomputeGroups(withGroup);

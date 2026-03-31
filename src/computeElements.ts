@@ -89,7 +89,7 @@ export function computeFrontForCabinet(front: BoxElement, cab: BoxElement): BoxE
 export function computeFrontForGroup(front: BoxElement, allElements: BoxElement[]): BoxElement {
   const group = allElements.find((e) => e.id === front.cabinetId);
   if (!group) return front;
-  const members = allElements.filter((e) => e.groupId === group.id && e.type === 'cabinet');
+  const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
   if (members.length === 0) return front;
   const minX = Math.min(...members.map((c) => c.position.x - c.dimensions.width / 2));
   const maxX = Math.max(...members.map((c) => c.position.x + c.dimensions.width / 2));
@@ -149,9 +149,9 @@ export function computeMaskowanicaForCabinet(mask: BoxElement, cab: BoxElement, 
     };
   }
   const hasTop    = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'top'    && e.id !== mask.id)
-                 || (cab.groupId != null && allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.groupId && e.maskownicaSide === 'top'));
+                 || (cab.groupIds?.some((gid) => allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === gid && e.maskownicaSide === 'top')) ?? false);
   const hasBottom = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'bottom' && e.id !== mask.id)
-                 || (cab.groupId != null && allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.groupId && e.maskownicaSide === 'bottom'));
+                 || (cab.groupIds?.some((gid) => allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === gid && e.maskownicaSide === 'bottom')) ?? false);
   const topExt    = hasTop    ? PANEL_T : 0;
   const bottomExt = hasBottom ? PANEL_T : 0;
   const minY = cab.position.y - legH - bottomExt;
@@ -211,7 +211,7 @@ export function computeMaskowanicaForCabinet(mask: BoxElement, cab: BoxElement, 
 export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxElement[]): BoxElement {
   const group = allElements.find((e) => e.id === mask.cabinetId);
   if (!group) return mask;
-  const members = allElements.filter((e) => e.groupId === group.id && e.type === 'cabinet');
+  const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
   if (members.length === 0) return mask;
   const minX = Math.min(...members.map((c) => c.position.x - c.dimensions.width / 2));
   const maxX = Math.max(...members.map((c) => c.position.x + c.dimensions.width / 2));
@@ -256,7 +256,7 @@ export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxEle
   const TOUCH_TOL = PANEL_T * 2;
   const sideEdgeX = mask.maskownicaSide === 'right' ? maxX : minX;
   const adjBoxes = allElements.filter((e) => {
-    if (e.groupId === group.id) return false;
+    if (e.groupIds?.includes(group.id)) return false;
     if (e.type !== 'cabinet' && e.type !== 'group') return false;
     const eLX = e.position.x - e.dimensions.width / 2;
     const eRX = e.position.x + e.dimensions.width / 2;
@@ -312,7 +312,7 @@ export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxEle
 
 /** Recompute the bounds of a group element from its member cabinets. */
 export function computeGroupBounds(group: BoxElement, allElements: BoxElement[]): BoxElement {
-  const members = allElements.filter((e) => e.groupId === group.id && e.type === 'cabinet');
+  const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
   if (members.length === 0) return group;
   const minX = Math.min(...members.map((c) => c.position.x - c.dimensions.width / 2));
   const maxX = Math.max(...members.map((c) => c.position.x + c.dimensions.width / 2));
