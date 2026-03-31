@@ -678,6 +678,7 @@ export function useElementActions({
             if (e.type === 'front' && e.cabinetId === id) toRemove.add(e.id);
             if (e.type === 'maskowanica' && e.cabinetId === id) toRemove.add(e.id);
             if (e.type === 'blenda' && e.cabinetId === id && e.blendaScope === 'group') toRemove.add(e.id);
+            if (e.type === 'plinth' && e.cabinetId === id) toRemove.add(e.id);
           }
           for (const e of prev) {
             if (e.groupIds?.includes(id) && (e.groupIds.length === 1)) {
