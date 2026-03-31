@@ -82,6 +82,7 @@ interface Props {
   onAddLegsToBoxKuchenny: (boxId: string) => void;
   onAddHdfToCabinet: (cabinetId: string) => void;
   onAddPlinthToCabinet: (cabinetId: string) => void;
+  onAddBlendaToCabinet: (cabinetId: string, side: 'left' | 'right' | 'top') => void;
   onAddFrontToGroup: (groupId: string) => void;
   onAddDoubleFrontToGroup: (groupId: string) => void;
   onAddMaskowanicaToCabinet: (cabinetId: string, side: 'left' | 'right' | 'bottom' | 'top') => void;
@@ -109,7 +110,7 @@ const ElementLibrary: React.FC<Props> = ({
   onSelect, onMultiSelectToggle, onGroup, onAdd,
   onAddShelfToCabinet, onAddDrawerToCabinet, onAddDrawerboxToCabinet, onAddDividerToCabinet,
   onAddFrontToCabinet, onAddDoubleFrontToCabinet,
-  onAddRodToCabinet, onAddLegsToCabinet, onAddLegsToBoxKuchenny, onAddHdfToCabinet, onAddPlinthToCabinet,
+  onAddRodToCabinet, onAddLegsToCabinet, onAddLegsToBoxKuchenny, onAddHdfToCabinet, onAddPlinthToCabinet, onAddBlendaToCabinet,
   onAddFrontToGroup, onAddDoubleFrontToGroup,
   onAddMaskowanicaToCabinet, onAddMaskowanicaToGroup,
   onUngroup, onDelete, onClearAll,
@@ -325,12 +326,35 @@ const ElementLibrary: React.FC<Props> = ({
               </>
             )}
 
-            {/* Section: Maskowanie */}
+            {/* Section: Blenda i cokół */}
             {(!elements.some((e) => e.type === 'plinth' && e.cabinetId === cab.id) ||
-              !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id)) && (
+              !elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'left') ||
+              !elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'right') ||
+              !elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'top')) && (
               <li className="element-item element-item--section">
                 <span className="element-section-line" />
-                Maskowanie
+                Blenda i cokół
+              </li>
+            )}
+            {!elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'left') && (
+              <li className="element-item element-item--add" onClick={() => onAddBlendaToCabinet(cab.id, 'left')}>
+                <span className="element-indent-line" />
+                <span className="element-add-icon">＋</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę lewą</span>
+              </li>
+            )}
+            {!elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'right') && (
+              <li className="element-item element-item--add" onClick={() => onAddBlendaToCabinet(cab.id, 'right')}>
+                <span className="element-indent-line" />
+                <span className="element-add-icon">＋</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę prawą</span>
+              </li>
+            )}
+            {!elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'top') && (
+              <li className="element-item element-item--add" onClick={() => onAddBlendaToCabinet(cab.id, 'top')}>
+                <span className="element-indent-line" />
+                <span className="element-add-icon">＋</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę górną</span>
               </li>
             )}
             {!elements.some((e) => e.type === 'plinth' && e.cabinetId === cab.id) && (
@@ -338,6 +362,14 @@ const ElementLibrary: React.FC<Props> = ({
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
                 <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cokoł</span>
+              </li>
+            )}
+
+            {/* Section: Maskowanie */}
+            {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id) && (
+              <li className="element-item element-item--section">
+                <span className="element-section-line" />
+                Maskowanie
               </li>
             )}
             {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'left') && (

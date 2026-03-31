@@ -12,7 +12,8 @@ export interface BoxElement {
   groupIds?: string[];  // for cabinets: which groups they belong to (a cabinet can belong to multiple groups)
   frontSide?: 'left' | 'right'; // only for double-door fronts
   legCorner?: 'FL' | 'FR' | 'BL' | 'BR'; // only for legs: Front-Left, Front-Right, Back-Left, Back-Right
-  blendaSide?: 'left' | 'right'; // only for blenda elements
+  blendaSide?: 'left' | 'right' | 'top'; // only for blenda elements
+  blendaScope?: 'cabinet'; // set on standalone cabinet blendas (left/right/top), absent on drawerbox blendas
   maskownicaSide?: 'left' | 'right' | 'bottom' | 'top'; // only for maskowanica elements
   niepelna?: boolean; // only for maskowanica: depth forced to 80mm
   openFronts?: boolean; // only for cabinets: front panels shown open at 90°

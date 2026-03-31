@@ -47,6 +47,7 @@ const App: React.FC = () => {
     handleAddLegsToBoxKuchenny,
     handleAddHdfToCabinet,
     handleAddPlinthToCabinet,
+    handleAddBlendaToCabinet,
     handleAddMaskowanicaToCabinet,
     handleAddMaskowanicaToGroup,
     handleAddRodToCabinet,
@@ -115,6 +116,7 @@ const App: React.FC = () => {
           onAddLegsToBoxKuchenny={handleAddLegsToBoxKuchenny}
           onAddHdfToCabinet={handleAddHdfToCabinet}
           onAddPlinthToCabinet={handleAddPlinthToCabinet}
+          onAddBlendaToCabinet={handleAddBlendaToCabinet}
           onAddFrontToGroup={handleAddFrontToGroup}
           onAddDoubleFrontToGroup={handleAddDoubleFrontToGroup}
           onAddMaskowanicaToCabinet={handleAddMaskowanicaToCabinet}

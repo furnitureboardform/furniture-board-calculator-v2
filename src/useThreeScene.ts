@@ -388,7 +388,7 @@ export function useThreeScene(
       const isSelected = element.id === selectedId;
       const isMultiSelected = multiSelectedIds.includes(element.id);
 
-      const color = (element.type === 'front' || element.type === 'plinth' || element.type === 'maskowanica' || element.type === 'board')
+      const color = (element.type === 'front' || element.type === 'plinth' || element.type === 'blenda' || element.type === 'maskowanica' || element.type === 'board')
         ? PANEL_COLOR
         : BOARD_COLOR;
       const emissive = new THREE.Color(isSelected ? 0x224488 : isMultiSelected ? 0x442266 : 0x000000);

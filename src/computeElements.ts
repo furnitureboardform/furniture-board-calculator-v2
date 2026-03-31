@@ -54,6 +54,28 @@ export function computePlinthForCabinet(plinth: BoxElement, cab: BoxElement, all
   };
 }
 
+const BLENDA_CAB_DEPTH = 0.1; // 100 mm
+
+/** Computes position/dimensions of a standalone cabinet blenda (left/right/top). */
+export function computeBlendaForCabinet(blenda: BoxElement, cab: BoxElement): BoxElement {
+  const zPos = cab.position.z + cab.dimensions.depth / 2 - BLENDA_CAB_DEPTH / 2;
+  if (blenda.blendaSide === 'top') {
+    return {
+      ...blenda,
+      dimensions: { width: cab.dimensions.width, height: BLENDA_CAB_DEPTH, depth: PANEL_T },
+      position: { x: cab.position.x, y: cab.position.y + cab.dimensions.height, z: cab.position.z + cab.dimensions.depth / 2 + PANEL_T / 2 },
+    };
+  }
+  const xPos = blenda.blendaSide === 'left'
+    ? cab.position.x - cab.dimensions.width / 2 - BLENDA_CAB_DEPTH / 2
+    : cab.position.x + cab.dimensions.width / 2 + BLENDA_CAB_DEPTH / 2;
+  return {
+    ...blenda,
+    dimensions: { width: BLENDA_CAB_DEPTH, height: cab.dimensions.height, depth: PANEL_T },
+    position: { x: xPos, y: cab.position.y, z: cab.position.z + cab.dimensions.depth / 2 + PANEL_T / 2 },
+  };
+}
+
 /** Computes the position/dimensions of a front panel bound to its cabinet. */
 export function computeFrontForCabinet(front: BoxElement, cab: BoxElement): BoxElement {
   const z = cab.position.z + cab.dimensions.depth / 2 + PANEL_T / 2;

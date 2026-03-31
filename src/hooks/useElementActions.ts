@@ -6,6 +6,7 @@ import {
   computeHdfForCabinet,
   computeLegsForCabinet,
   computePlinthForCabinet,
+  computeBlendaForCabinet,
   computeFrontForCabinet,
   computeFrontForGroup,
   computeMaskowanicaForCabinet,
@@ -429,6 +430,28 @@ export function useElementActions({
       }, cab, prev);
       setSelectedId(cabinetId);
       return [...prev, plinth];
+    });
+  }, [setElements, setSelectedId]);
+
+  const handleAddBlendaToCabinet = useCallback((cabinetId: string, side: 'left' | 'right' | 'top') => {
+    setElements((prev) => {
+      const cab = prev.find((e) => e.id === cabinetId);
+      if (!cab) return prev;
+      if (prev.some((e) => e.type === 'blenda' && e.cabinetId === cabinetId && e.blendaSide === side && e.blendaScope === 'cabinet')) return prev;
+      const label = side === 'left' ? 'lewa' : side === 'right' ? 'prawa' : 'górna';
+      const blenda: BoxElement = computeBlendaForCabinet({
+        id: crypto.randomUUID(),
+        name: `Blenda ${label} ${counters.blenda++}`,
+        type: 'blenda',
+        cabinetId,
+        blendaSide: side,
+        blendaScope: 'cabinet',
+        dimensions: { width: 0, height: 0, depth: 0 },
+        position: { x: 0, y: 0, z: 0 },
+        color: cab.color,
+      }, cab);
+      setSelectedId(cabinetId);
+      return [...prev, blenda];
     });
   }, [setElements, setSelectedId]);
 
@@ -955,6 +978,7 @@ export function useElementActions({
     handleAddLegsToBoxKuchenny,
     handleAddHdfToCabinet,
     handleAddPlinthToCabinet,
+    handleAddBlendaToCabinet,
     handleAddMaskowanicaToCabinet,
     handleAddMaskowanicaToGroup,
     handleAddRodToCabinet,
