@@ -76,9 +76,9 @@
 }
 
 .properties > .prop-row:last-child {
-  margin-top: 4px;
-  padding-top: 12px;
-  border-top: 1px solid #3d3d3d;
+  margin-bottom: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #3d3d3d;
 }
 
 .prop-divider {

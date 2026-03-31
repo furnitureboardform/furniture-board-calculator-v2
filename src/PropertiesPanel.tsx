@@ -138,7 +138,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
     : (element.type === 'leg' || element.type === 'drawer' || element.type === 'drawerbox')
     ? { width: 'Szerokość', height: 'Wysokość', depth: 'Głębokość' }
     : { width: 'Szerokość (X)', height: 'Wysokość (Y)', depth: 'Głębokość (Z)' };
-  const colors: Record<DimKey, string> = { width: '#ff4444', height: '#44ff44', depth: '#4488ff' };
+  const colors: Record<DimKey, string> = { width: '#cccccc', height: '#cccccc', depth: '#cccccc' };
 
   return (
     <div className="properties">
