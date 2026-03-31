@@ -479,14 +479,15 @@ export function useElementActions({
     });
   }, [setElements, setSelectedId, boardSizeRef]);
 
-  const handleAddMaskowanicaToGroup = useCallback((groupId: string, side: 'left' | 'right') => {
+  const handleAddMaskowanicaToGroup = useCallback((groupId: string, side: 'left' | 'right' | 'top' | 'bottom') => {
     setElements((prev) => {
       const group = prev.find((e) => e.id === groupId && e.type === 'group');
       if (!group) return prev;
       if (prev.some((e) => e.type === 'maskowanica' && e.cabinetId === groupId && e.maskownicaSide === side)) return prev;
+      const sideLabel = side === 'left' ? 'L' : side === 'right' ? 'P' : side === 'top' ? 'G' : 'D';
       const mask: BoxElement = computeMaskowanicaForGroup({
         id: crypto.randomUUID(),
-        name: `Maskowanica gr. ${side === 'left' ? 'L' : 'P'}${counters.maskowanica++}`,
+        name: `Maskowanica gr. ${sideLabel}${counters.maskowanica++}`,
         type: 'maskowanica',
         cabinetId: groupId,
         maskownicaSide: side,
@@ -494,6 +495,7 @@ export function useElementActions({
         position: { x: 0, y: 0, z: 0 },
         color: group.color,
       }, prev);
+      if (side === 'top' || side === 'bottom') return [...prev, mask];
       const bw = boardSizeRef.current.width / 1000;
       const maskLeft = mask.position.x - mask.dimensions.width / 2;
       const maskRight = mask.position.x + mask.dimensions.width / 2;
@@ -646,7 +648,7 @@ export function useElementActions({
           el.cabinetId &&
           (el.maskownicaSide === 'top' || el.maskownicaSide === 'bottom')
         ) {
-          const cab = filtered.find((e) => e.id === el.cabinetId);
+          const cab = filtered.find((e) => e.id === el.cabinetId && e.type === 'cabinet');
           if (cab) {
             return filtered.map((e) =>
               e.type === 'maskowanica' && e.cabinetId === cab.id &&
@@ -654,6 +656,16 @@ export function useElementActions({
                 ? computeMaskowanicaForCabinet(e, cab, filtered)
                 : e
             );
+          }
+          const group = filtered.find((e) => e.id === el.cabinetId && e.type === 'group');
+          if (group) {
+            return filtered.map((e) => {
+              if (e.type === 'maskowanica' && (e.maskownicaSide === 'left' || e.maskownicaSide === 'right') && e.cabinetId) {
+                const memberCab = filtered.find((c) => c.id === e.cabinetId && c.groupId === group.id);
+                if (memberCab) return computeMaskowanicaForCabinet(e, memberCab, filtered);
+              }
+              return e;
+            });
           }
         }
         return filtered;

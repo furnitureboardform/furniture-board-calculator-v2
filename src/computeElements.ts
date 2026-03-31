@@ -148,8 +148,10 @@ export function computeMaskowanicaForCabinet(mask: BoxElement, cab: BoxElement, 
       position: { x: cab.position.x, y: cab.position.y + cab.dimensions.height, z: zPos },
     };
   }
-  const hasTop    = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'top'    && e.id !== mask.id);
-  const hasBottom = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'bottom' && e.id !== mask.id);
+  const hasTop    = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'top'    && e.id !== mask.id)
+                 || (cab.groupId != null && allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.groupId && e.maskownicaSide === 'top'));
+  const hasBottom = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'bottom' && e.id !== mask.id)
+                 || (cab.groupId != null && allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.groupId && e.maskownicaSide === 'bottom'));
   const topExt    = hasTop    ? PANEL_T : 0;
   const bottomExt = hasBottom ? PANEL_T : 0;
   const minY = cab.position.y - legH - bottomExt;
@@ -226,6 +228,30 @@ export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxEle
     const bottomExt = hasBottom ? PANEL_T : 0;
     minY = Math.min(minY, cab.position.y - legH - bottomExt);
     maxY = Math.max(maxY, cab.position.y + cab.dimensions.height + topExt);
+  }
+  if (mask.maskownicaSide === 'top' || mask.maskownicaSide === 'bottom') {
+    const totalDepth = mask.niepelna ? 0.08 : (maxFaceZ - minBackZ) + MASK_FRONT_EXT + MASK_BACK_EXT;
+    const zPos = mask.niepelna
+      ? maxFaceZ + MASK_FRONT_EXT - 0.04
+      : (maxFaceZ + MASK_FRONT_EXT + minBackZ - MASK_BACK_EXT) / 2;
+    if (mask.maskownicaSide === 'top') {
+      const groupTopY = Math.max(...members.map((c) => c.position.y + c.dimensions.height));
+      return {
+        ...mask,
+        dimensions: { width: maxX - minX, height: PANEL_T, depth: totalDepth },
+        position: { x: (minX + maxX) / 2, y: groupTopY, z: zPos },
+      };
+    }
+    // bottom
+    const groupBottomY = Math.min(...members.map((c) => {
+      const legs = allElements.find((e) => e.type === 'leg' && e.cabinetId === c.id);
+      return c.position.y - (legs ? legs.dimensions.height : 0);
+    }));
+    return {
+      ...mask,
+      dimensions: { width: maxX - minX, height: PANEL_T, depth: totalDepth },
+      position: { x: (minX + maxX) / 2, y: groupBottomY - PANEL_T, z: zPos },
+    };
   }
   const TOUCH_TOL = PANEL_T * 2;
   const sideEdgeX = mask.maskownicaSide === 'right' ? maxX : minX;
