@@ -336,6 +336,7 @@ const ElementLibrary: React.FC<Props> = ({
                 Blenda i cokół
               </li>
             )}
+            {children.filter((c) => c.type === 'blenda').map((blenda) => renderItem(blenda, true))}
             {!elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'left') && (
               <li className="element-item element-item--add" onClick={() => onAddBlendaToCabinet(cab.id, 'left')}>
                 <span className="element-indent-line" />
