@@ -375,13 +375,20 @@ export function computeBlendaForGroup(blenda: BoxElement, group: BoxElement, all
   }
   const topBlenda = allElements.find((e) => e.type === 'blenda' && e.cabinetId === group.id && e.blendaSide === 'top' && e.blendaScope === 'group');
   const topH = topBlenda ? BLENDA_CAB_DEPTH : 0;
+  const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
+  const minY = members.length > 0 ? Math.min(...members.map((c) => c.position.y)) : group.position.y;
+  const bottomMembers = members.filter((c) => Math.abs(c.position.y - minY) < 0.001);
+  const plinthH = bottomMembers.reduce((max, cab) => {
+    const plinth = allElements.find((e) => e.type === 'plinth' && e.cabinetId === cab.id);
+    return Math.max(max, plinth ? plinth.dimensions.height : 0);
+  }, 0);
   const xPos = blenda.blendaSide === 'left'
     ? group.position.x - group.dimensions.width / 2 - BLENDA_CAB_DEPTH / 2
     : group.position.x + group.dimensions.width / 2 + BLENDA_CAB_DEPTH / 2;
   return {
     ...blenda,
-    dimensions: { width: BLENDA_CAB_DEPTH, height: group.dimensions.height + topH, depth: PANEL_T },
-    position: { x: xPos, y: group.position.y, z: zFront },
+    dimensions: { width: BLENDA_CAB_DEPTH, height: group.dimensions.height + plinthH + topH, depth: PANEL_T },
+    position: { x: xPos, y: group.position.y - plinthH, z: zFront },
   };
 }
 

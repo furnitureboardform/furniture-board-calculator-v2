@@ -431,12 +431,21 @@ export function useElementActions({
       }, cab, prev);
       setSelectedId(cabinetId);
       const withPlinth = [...prev, plinth];
-      return withPlinth.map((e) =>
+      const withCabBlends = withPlinth.map((e) =>
         e.type === 'blenda' && e.cabinetId === cabinetId &&
         (e.blendaSide === 'left' || e.blendaSide === 'right') && e.blendaScope === 'cabinet'
           ? computeBlendaForCabinet(e, cab, withPlinth)
           : e
       );
+      const cabGroupIds = cab.groupIds ?? [];
+      if (cabGroupIds.length === 0) return withCabBlends;
+      return withCabBlends.map((e) => {
+        if (e.type === 'blenda' && e.blendaScope === 'group' && e.cabinetId && cabGroupIds.includes(e.cabinetId) && (e.blendaSide === 'left' || e.blendaSide === 'right')) {
+          const group = withCabBlends.find((g) => g.id === e.cabinetId && g.type === 'group');
+          if (group) return computeBlendaForGroup(e, group, withCabBlends);
+        }
+        return e;
+      });
     });
   }, [setElements, setSelectedId]);
 
@@ -755,12 +764,21 @@ export function useElementActions({
         if (el?.type === 'plinth' && el.cabinetId) {
           const cab = filtered.find((e) => e.id === el.cabinetId && e.type === 'cabinet');
           if (cab) {
-            return filtered.map((e) =>
+            const withCabBlends = filtered.map((e) =>
               e.type === 'blenda' && e.cabinetId === cab.id &&
               (e.blendaSide === 'left' || e.blendaSide === 'right') && e.blendaScope === 'cabinet'
                 ? computeBlendaForCabinet(e, cab, filtered)
                 : e
             );
+            const cabGroupIds = cab.groupIds ?? [];
+            if (cabGroupIds.length === 0) return withCabBlends;
+            return withCabBlends.map((e) => {
+              if (e.type === 'blenda' && e.blendaScope === 'group' && e.cabinetId && cabGroupIds.includes(e.cabinetId) && (e.blendaSide === 'left' || e.blendaSide === 'right')) {
+                const group = withCabBlends.find((g) => g.id === e.cabinetId && g.type === 'group');
+                if (group) return computeBlendaForGroup(e, group, withCabBlends);
+              }
+              return e;
+            });
           }
         }
         return filtered;
