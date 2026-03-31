@@ -369,6 +369,31 @@ export function useElementActions({
     });
   }, [setElements, setSelectedId]);
 
+  const handleAddLegsToBoxKuchenny = useCallback((boxId: string) => {
+    setElements((prev) => {
+      const box = prev.find((e) => e.id === boxId);
+      if (!box) return prev;
+      if (prev.some((e) => e.type === 'leg' && e.cabinetId === boxId)) return prev;
+      const h = 0.1;
+      const lifted = { ...box, position: { ...box.position, y: box.position.y + h } };
+      const updatedPrev = prev.map((e) => e.id === boxId ? lifted : e);
+      const legsEl = computeLegsForCabinet(
+        {
+          id: crypto.randomUUID(),
+          name: `Nóżki ${counters.leg++}`,
+          type: 'leg',
+          cabinetId: boxId,
+          dimensions: { width: 0, height: h, depth: 0 },
+          position: { x: 0, y: 0, z: 0 },
+          color: box.color,
+        },
+        lifted
+      );
+      setSelectedId(boxId);
+      return [...updatedPrev, legsEl];
+    });
+  }, [setElements, setSelectedId]);
+
   const handleAddHdfToCabinet = useCallback((cabinetId: string) => {
     setElements((prev) => {
       const cab = prev.find((e) => e.id === cabinetId);
@@ -913,6 +938,7 @@ export function useElementActions({
     handleAddFrontToCabinet,
     handleAddDoubleFrontToCabinet,
     handleAddLegsToCabinet,
+    handleAddLegsToBoxKuchenny,
     handleAddHdfToCabinet,
     handleAddPlinthToCabinet,
     handleAddMaskowanicaToCabinet,

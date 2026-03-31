@@ -79,6 +79,7 @@ interface Props {
   onAddDoubleFrontToCabinet: (cabinetId: string) => void;
   onAddRodToCabinet: (cabinetId: string) => void;
   onAddLegsToCabinet: (cabinetId: string) => void;
+  onAddLegsToBoxKuchenny: (boxId: string) => void;
   onAddHdfToCabinet: (cabinetId: string) => void;
   onAddPlinthToCabinet: (cabinetId: string) => void;
   onAddFrontToGroup: (groupId: string) => void;
@@ -108,7 +109,7 @@ const ElementLibrary: React.FC<Props> = ({
   onSelect, onMultiSelectToggle, onGroup, onAdd,
   onAddShelfToCabinet, onAddDrawerToCabinet, onAddDrawerboxToCabinet, onAddDividerToCabinet,
   onAddFrontToCabinet, onAddDoubleFrontToCabinet,
-  onAddRodToCabinet, onAddLegsToCabinet, onAddHdfToCabinet, onAddPlinthToCabinet,
+  onAddRodToCabinet, onAddLegsToCabinet, onAddLegsToBoxKuchenny, onAddHdfToCabinet, onAddPlinthToCabinet,
   onAddFrontToGroup, onAddDoubleFrontToGroup,
   onAddMaskowanicaToCabinet, onAddMaskowanicaToGroup,
   onUngroup, onDelete, onClearAll,
@@ -158,7 +159,8 @@ const ElementLibrary: React.FC<Props> = ({
   // Cabinets that don't belong to any group
   const standaloneCabinets = elements.filter((e) => e.type === 'cabinet' && !e.groupId);
   const groups = elements.filter((e) => e.type === 'group');
-  const freeShelves = elements.filter((e) => (e.type === 'shelf' || e.type === 'board' || e.type === 'rod' || e.type === 'boxkuchenny') && !e.cabinetId);
+  const freeShelves = elements.filter((e) => (e.type === 'shelf' || e.type === 'board' || e.type === 'rod') && !e.cabinetId);
+  const freeBoxesKuchenne = elements.filter((e) => e.type === 'boxkuchenny');
 
   const canGroup = multiSelectedIds.length >= 2;
 
@@ -405,6 +407,42 @@ const ElementLibrary: React.FC<Props> = ({
     );
   };
 
+  const renderBoxKuchenny = (box: BoxElement) => {
+    const legs = elements.filter((e) => e.type === 'leg' && e.cabinetId === box.id);
+    const isSelected = box.id === selectedId;
+    const isExpanded = isSelected || legs.some((l) => l.id === selectedId);
+    return (
+      <React.Fragment key={box.id}>
+        <li
+          className={`element-item ${isSelected ? 'selected' : ''}`}
+          onClick={() => onSelect(box.id)}
+        >
+          <span className="element-color" style={{ background: box.color }} />
+          <span className="element-name">{box.name}</span>
+          <button
+            className="btn-delete"
+            onClick={(ev) => { ev.stopPropagation(); onDelete(box.id); }}
+            title="Usuń"
+          >
+            ✕
+          </button>
+        </li>
+        {isExpanded && (
+          <>
+            {legs.map((leg) => renderItem(leg, true))}
+            {!legs.length && (
+              <li className="element-item element-item--add" onClick={() => onAddLegsToBoxKuchenny(box.id)}>
+                <span className="element-indent-line" />
+                <span className="element-add-icon">＋</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj nóżki</span>
+              </li>
+            )}
+          </>
+        )}
+      </React.Fragment>
+    );
+  };
+
   return (
     <div className="library">
       {/* Board size */}
@@ -576,6 +614,9 @@ const ElementLibrary: React.FC<Props> = ({
 
         {/* Free shelves / rods */}
         {freeShelves.map((el) => renderItem(el, false))}
+
+        {/* Boxes kuchenne */}
+        {freeBoxesKuchenne.map((box) => renderBoxKuchenny(box))}
 
         {elements.length === 0 && (
           <li className="element-empty">Brak dodanych elementów.</li>
