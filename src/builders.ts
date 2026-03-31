@@ -216,6 +216,35 @@ export function rebuildMaskowanica(parent: THREE.Mesh, element: BoxElement, colo
   parent.add(panel);
 }
 
+export function rebuildBoxKuchenny(parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) {
+  const { width, height, depth } = element.dimensions;
+  const t = PANEL_T;
+  const RAIL_D = 0.100;
+  clearChildren(parent);
+
+  const innerW = width - 2 * t;
+  const panels = [
+    { w: t,      h: height, d: depth,  px: -width / 2 + t / 2, py: 0,                   pz: 0 },
+    { w: t,      h: height, d: depth,  px:  width / 2 - t / 2, py: 0,                   pz: 0 },
+    { w: innerW, h: t,      d: depth,  px: 0,                   py: -height / 2 + t / 2, pz: 0 },
+    { w: innerW, h: t,      d: RAIL_D, px: 0,                   py:  height / 2 - t / 2, pz:  depth / 2 - RAIL_D / 2 },
+    { w: innerW, h: t,      d: RAIL_D, px: 0,                   py:  height / 2 - t / 2, pz: -depth / 2 + RAIL_D / 2 },
+  ];
+
+  for (const p of panels) {
+    const geo = new THREE.BoxGeometry(p.w, p.h, p.d);
+    const mat = new THREE.MeshStandardMaterial({
+      color, emissive, roughness: 0.5, metalness: 0.1, side: THREE.DoubleSide,
+    });
+    const panel = new THREE.Mesh(geo, mat);
+    panel.position.set(p.px, p.py, p.pz);
+    panel.castShadow = true;
+    panel.receiveShadow = true;
+    panel.userData = { elementId: element.id };
+    parent.add(panel);
+  }
+}
+
 export function rebuildLeg(parent: THREE.Mesh, element: BoxElement, _color: THREE.Color, _emissive: THREE.Color) {
   clearChildren(parent);
   const { width, height, depth } = element.dimensions;

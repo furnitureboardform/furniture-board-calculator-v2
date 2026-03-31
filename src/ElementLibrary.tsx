@@ -3,7 +3,7 @@ import type { BoxElement } from './types';
 import './ElementLibrary.css';
 
 interface CatalogItem {
-  type: 'cabinet' | 'shelf' | 'board';
+  type: 'cabinet' | 'shelf' | 'board' | 'boxkuchenny';
   label: string;
   icon: React.ReactNode;
 }
@@ -48,6 +48,17 @@ const CATALOG: CatalogItem[] = [
       </svg>
     ),
   },
+  {
+    type: 'boxkuchenny',
+    label: 'Box kuchenny',
+    icon: (
+      <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="catalog-icon">
+        <rect x="4" y="6" width="28" height="24" rx="1" fill="none" stroke="#569cd6" strokeWidth="1.5" strokeDasharray="3 2"/>
+        <rect x="4" y="6" width="28" height="4" rx="1" fill="#1a4a6e" stroke="#569cd6" strokeWidth="1.5"/>
+        <rect x="4" y="26" width="28" height="4" rx="1" fill="#1a4a6e" stroke="#569cd6" strokeWidth="1.5"/>
+      </svg>
+    ),
+  },
 ];
 
 interface Props {
@@ -59,7 +70,7 @@ interface Props {
   onSelect: (id: string) => void;
   onMultiSelectToggle: (id: string) => void;
   onGroup: (ids: string[]) => void;
-  onAdd: (type: 'cabinet' | 'shelf' | 'board') => void;
+  onAdd: (type: 'cabinet' | 'shelf' | 'board' | 'boxkuchenny') => void;
   onAddShelfToCabinet: (cabinetId: string) => void;
   onAddDrawerToCabinet: (cabinetId: string) => void;
   onAddDrawerboxToCabinet: (cabinetId: string) => void;
@@ -147,7 +158,7 @@ const ElementLibrary: React.FC<Props> = ({
   // Cabinets that don't belong to any group
   const standaloneCabinets = elements.filter((e) => e.type === 'cabinet' && !e.groupId);
   const groups = elements.filter((e) => e.type === 'group');
-  const freeShelves = elements.filter((e) => (e.type === 'shelf' || e.type === 'board' || e.type === 'rod') && !e.cabinetId);
+  const freeShelves = elements.filter((e) => (e.type === 'shelf' || e.type === 'board' || e.type === 'rod' || e.type === 'boxkuchenny') && !e.cabinetId);
 
   const canGroup = multiSelectedIds.length >= 2;
 

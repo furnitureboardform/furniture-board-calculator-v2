@@ -15,6 +15,7 @@ import {
   rebuildRod,
   rebuildLeg,
   rebuildMaskowanica,
+  rebuildBoxKuchenny,
 } from './builders';
 
 interface UseThreeSceneOptions {
@@ -232,6 +233,7 @@ export function useThreeScene(
       else if (element.type === 'rod') rebuildRod(mesh, element, color, emissive);
       else if (element.type === 'leg') rebuildLeg(mesh, element, color, emissive);
       else if (element.type === 'maskowanica') rebuildMaskowanica(mesh, element, color, emissive);
+      else if (element.type === 'boxkuchenny') rebuildBoxKuchenny(mesh, element, color, emissive);
       else rebuildPanels(mesh, element, color, emissive);
     },
     []
@@ -395,7 +397,7 @@ export function useThreeScene(
         const mesh = meshMapRef.current.get(element.id)!;
         mesh.geometry.dispose();
         mesh.geometry = new THREE.BoxGeometry(width, height, depth);
-        if (element.type === 'cabinet' || element.type === 'drawerbox') mesh.raycast = () => {};
+        if (element.type === 'cabinet' || element.type === 'drawerbox' || element.type === 'boxkuchenny') mesh.raycast = () => {};
         else mesh.raycast = THREE.Mesh.prototype.raycast.bind(mesh);
         mesh.position.set(element.position.x, element.position.y + height / 2, element.position.z);
         rebuildElement(mesh, element, color, emissive);
@@ -405,7 +407,7 @@ export function useThreeScene(
         const geo = new THREE.BoxGeometry(width, height, depth);
         const mat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0, depthWrite: false });
         const mesh = new THREE.Mesh(geo, mat);
-        if (element.type === 'cabinet' || element.type === 'drawerbox') {
+        if (element.type === 'cabinet' || element.type === 'drawerbox' || element.type === 'boxkuchenny') {
           mesh.raycast = () => {};
         }
         mesh.position.set(element.position.x, element.position.y + height / 2, element.position.z);
@@ -480,7 +482,7 @@ export function useThreeScene(
       const allHittable: THREE.Mesh[] = [];
       meshMapRef.current.forEach((mesh) => {
         const el = optionsRef.current.elements.find((e) => e.id === mesh.userData.elementId);
-        if (el?.type === 'cabinet' || el?.type === 'drawerbox') {
+        if (el?.type === 'cabinet' || el?.type === 'drawerbox' || el?.type === 'boxkuchenny') {
           mesh.children.forEach((c) => {
             if (c instanceof THREE.Mesh && !c.userData.isHandle) allHittable.push(c);
           });

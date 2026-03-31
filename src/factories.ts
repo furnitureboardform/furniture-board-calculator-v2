@@ -16,6 +16,7 @@ export let plinthCounter = 1;
 export let maskownicaCounter = 1;
 export let boardCounter = 1;
 export let groupCounter = 1;
+export let boxKuchennyCounter = 1;
 
 export function nextColor(): string {
   const color = COLORS[colorIndex % COLORS.length];
@@ -59,6 +60,18 @@ export function createShelf(): BoxElement {
     type: 'shelf',
     dimensions: { width: 0.8, height: 0.018, depth: 0.38 },
     position: { x: 0, y: 0.3, z: 0 },
+    color,
+  };
+}
+
+export function createBoxKuchenny(): BoxElement {
+  const color = nextColor();
+  return {
+    id: crypto.randomUUID(),
+    name: `Box kuchenny ${boxKuchennyCounter++}`,
+    type: 'boxkuchenny',
+    dimensions: { width: 1, height: 1, depth: 0.6 },
+    position: { x: 0, y: 0, z: 0 },
     color,
   };
 }
