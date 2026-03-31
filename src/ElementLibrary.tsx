@@ -575,8 +575,14 @@ const ElementLibrary: React.FC<Props> = ({
                   {groupFronts.map((f) => renderItem(f, true))}
                   {groupMaskowanice.map((m) => renderItem(m, true))}
                   {members.map((cab) => renderCabinet(cab, true))}
+
+                  {/* Section: Front */}
                   {!groupFronts.length && (
                     <>
+                      <li className="element-item element-item--section">
+                        <span className="element-section-line" />
+                        Front
+                      </li>
                       <li className="element-item element-item--add" onClick={() => onAddFrontToGroup(grp.id)}>
                         <span className="element-indent-line" />
                         <span className="element-add-icon">＋</span>
@@ -588,6 +594,17 @@ const ElementLibrary: React.FC<Props> = ({
                         <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj podwójny front grupy</span>
                       </li>
                     </>
+                  )}
+
+                  {/* Section: Maskowanie */}
+                  {(!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'left') ||
+                    !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'right') ||
+                    !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'top') ||
+                    !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'bottom')) && (
+                    <li className="element-item element-item--section">
+                      <span className="element-section-line" />
+                      Maskowanie
+                    </li>
                   )}
                   {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'left') && (
                     <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToGroup(grp.id, 'left')}>
