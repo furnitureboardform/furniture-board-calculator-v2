@@ -173,6 +173,16 @@ export function rebuildFront(parent: THREE.Mesh, element: BoxElement, color: THR
   const panel = new THREE.Mesh(geo, mat);
   panel.userData = { elementId: element.id };
   parent.add(panel);
+
+  if (!element.noHandle) {
+    const handleLength = Math.min(width * 0.4, 0.128);
+    const handleGeo = new THREE.BoxGeometry(handleLength, 0.012, 0.012);
+    const handleMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3, metalness: 0.8 });
+    const handle = new THREE.Mesh(handleGeo, handleMat);
+    handle.position.set(0, -height * 0.25, depth / 2 + 0.007);
+    handle.userData = { elementId: element.id };
+    parent.add(handle);
+  }
 }
 
 export function rebuildHdf(parent: THREE.Mesh, element: BoxElement, emissive: THREE.Color) {
