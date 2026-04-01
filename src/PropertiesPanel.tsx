@@ -20,6 +20,7 @@ interface Props {
   onDrawerPushToOpenChange?: (v: boolean) => void;
   onShelfSwitchBay?: (id: string) => void;
   onMaskownicaNiepelnaChange?: (v: boolean) => void;
+  onFrontNoHandleChange?: (v: boolean) => void;
 }
 
 type DimKey = keyof BoxDimensions;
@@ -28,7 +29,7 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onShelfSwitchBay, onMaskownicaNiepelnaChange }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onShelfSwitchBay, onMaskownicaNiepelnaChange, onFrontNoHandleChange }) => {
   // Local draft strings so the user can type freely
   const [drafts, setDrafts] = useState<Record<DimKey, string>>({ width: '', height: '', depth: '' });
   const [yDraft, setYDraft] = useState('');
@@ -276,6 +277,25 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
               />
               <span className="prop-toggle-track" />
               <span className="prop-toggle-text">{element.openFronts ? 'otwarte' : 'zamknięte'}</span>
+            </label>
+          </div>
+          <div className="prop-divider" />
+        </>
+      )}
+
+      {element.type === 'front' && onFrontNoHandleChange && (
+        <>
+          <div className="prop-divider" />
+          <div className="prop-front-state">
+            <span className="prop-label" style={{ color: '#c0c0e0' }}>Uchwyt</span>
+            <label className="prop-toggle">
+              <input
+                type="checkbox"
+                checked={!element.noHandle}
+                onChange={(e) => onFrontNoHandleChange(!e.target.checked)}
+              />
+              <span className="prop-toggle-track" />
+              <span className="prop-toggle-text">{element.noHandle ? 'brak' : 'tak'}</span>
             </label>
           </div>
           <div className="prop-divider" />

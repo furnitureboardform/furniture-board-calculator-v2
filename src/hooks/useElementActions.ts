@@ -1062,6 +1062,10 @@ export function useElementActions({
     });
   }, [setElements]);
 
+  const handleFrontNoHandleChange = useCallback((frontId: string, value: boolean) => {
+    setElements((prev) => prev.map((e) => e.id === frontId ? { ...e, noHandle: value } : e));
+  }, [setElements]);
+
   const handleShelfSwitchBay = useCallback((shelfId: string) => {
     setElements((prev) => {
       const shelf = prev.find((e) => e.id === shelfId);
@@ -1115,6 +1119,7 @@ export function useElementActions({
     handleDrawerFrontHeightChange,
     handleDrawerPushToOpenChange,
     handleMaskownicaNiepelnaChange,
+    handleFrontNoHandleChange,
     handleShelfSwitchBay,
     handleClearAll,
   };
