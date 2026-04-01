@@ -175,11 +175,12 @@ export function rebuildFront(parent: THREE.Mesh, element: BoxElement, color: THR
   parent.add(panel);
 
   if (!element.noHandle) {
-    const handleLength = Math.min(width * 0.4, 0.128);
-    const handleGeo = new THREE.BoxGeometry(handleLength, 0.012, 0.012);
+    const handleLength = Math.min(height * 0.4, 0.128);
+    const handleGeo = new THREE.BoxGeometry(0.012, handleLength, 0.012);
     const handleMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3, metalness: 0.8 });
     const handle = new THREE.Mesh(handleGeo, handleMat);
-    handle.position.set(0, -height * 0.25, depth / 2 + 0.007);
+    const handleX = element.frontSide === 'right' ? -(width / 2 - 0.05) : width / 2 - 0.05;
+    handle.position.set(handleX, 0, depth / 2 + 0.007);
     handle.userData = { elementId: element.id };
     parent.add(handle);
   }
