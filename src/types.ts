@@ -30,4 +30,5 @@ export interface BoxElement {
   dimensions: BoxDimensions;
   position: { x: number; y: number; z: number };
   color: string;
+  rotationY?: 0 | 90 | 180 | 270;
 }

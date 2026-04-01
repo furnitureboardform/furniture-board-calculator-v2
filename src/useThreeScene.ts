@@ -381,6 +381,23 @@ export function useThreeScene(
       }
     });
 
+    // Build a lookup: elementId → cabinet rotationY (for cabinet itself or its children)
+    const cabRotMap = new Map<string, number>();
+    elements.forEach((e) => {
+      if (e.type === 'cabinet' || e.type === 'boxkuchenny') {
+        cabRotMap.set(e.id, (e.rotationY ?? 0) * Math.PI / 180);
+      }
+    });
+    const getCabRotY = (element: BoxElement): number => {
+      if (element.type === 'cabinet' || element.type === 'boxkuchenny') return cabRotMap.get(element.id) ?? 0;
+      if (!element.cabinetId) return 0;
+      if (cabRotMap.has(element.cabinetId)) return cabRotMap.get(element.cabinetId)!;
+      // grandchild: look up parent's cabinetId
+      const parent = elements.find((e) => e.id === element.cabinetId);
+      if (parent?.cabinetId && cabRotMap.has(parent.cabinetId)) return cabRotMap.get(parent.cabinetId)!;
+      return 0;
+    };
+
     elements.forEach((element) => {
       if (element.type === 'group') return;
 
@@ -393,6 +410,8 @@ export function useThreeScene(
         : BOARD_COLOR;
       const emissive = new THREE.Color(isSelected ? 0x224488 : isMultiSelected ? 0x442266 : 0x000000);
 
+      const rotY = getCabRotY(element);
+
       if (meshMapRef.current.has(element.id)) {
         const mesh = meshMapRef.current.get(element.id)!;
         mesh.geometry.dispose();
@@ -400,6 +419,7 @@ export function useThreeScene(
         if (element.type === 'cabinet' || element.type === 'drawerbox' || element.type === 'boxkuchenny') mesh.raycast = () => {};
         else mesh.raycast = THREE.Mesh.prototype.raycast.bind(mesh);
         mesh.position.set(element.position.x, element.position.y + height / 2, element.position.z);
+        mesh.rotation.y = rotY;
         rebuildElement(mesh, element, color, emissive);
         if (isSelected) placeHandles(mesh, element);
         else mesh.children.slice().filter((c) => c.userData.isHandle).forEach((c) => mesh.remove(c));
@@ -411,6 +431,7 @@ export function useThreeScene(
           mesh.raycast = () => {};
         }
         mesh.position.set(element.position.x, element.position.y + height / 2, element.position.z);
+        mesh.rotation.y = rotY;
         mesh.userData = { elementId: element.id };
         scene.add(mesh);
         meshMapRef.current.set(element.id, mesh);
@@ -425,13 +446,13 @@ export function useThreeScene(
           if (cab?.openFronts) {
             const W = element.dimensions.width;
             const isRight = element.frontSide === 'right';
-            fmesh.rotation.y = isRight ? Math.PI / 2 : -Math.PI / 2;
+            fmesh.rotation.y = rotY + (isRight ? Math.PI / 2 : -Math.PI / 2);
             fmesh.position.x = isRight
               ? element.position.x + W / 2
               : element.position.x - W / 2;
             fmesh.position.z = element.position.z + W / 2;
           } else {
-            fmesh.rotation.y = 0;
+            fmesh.rotation.y = rotY;
           }
         }
       }

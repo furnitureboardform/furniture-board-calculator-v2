@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import type React from 'react';
 import type { BoxElement, BoxDimensions } from '../types';
-import { PANEL_T, DETACH_DIST, HYSTERESIS_DIST, DIVIDER_EDGE_SNAP, DIVIDER_DETACH_DIST } from '../constants';
+import { PANEL_T, DETACH_DIST, HYSTERESIS_DIST, DIVIDER_EDGE_SNAP, DIVIDER_DETACH_DIST, DRAWER_RAIL_CLEARANCE, FRONT_INSET } from '../constants';
 import {
   computeHdfForCabinet,
   computeLegsForCabinet,
@@ -17,7 +17,9 @@ import {
   fitCabinetToBelow,
   computeDividerBounds,
   fitShelfToBay,
+  fitDrawerToBay,
   computeDrawerYBounds,
+  computeStretchCollisionMax,
 } from '../geometry';
 import {
   findNearCabinetHysteresis,
@@ -25,6 +27,7 @@ import {
   snapShelfEdgeToCabinet,
   snapToNeighbors,
   pushOutCollisions,
+  clampYToCollisions,
 } from '../snapAttach';
 
 interface Params {
@@ -74,6 +77,7 @@ export function useDragHandlers({
                 ? roomH - el.position.y
                 : el.position.y + oldVal;
             }
+            maxAllowed = Math.min(maxAllowed, computeStretchCollisionMax(el, axis, dir, prev));
           }
 
           const newVal = Math.max(0.1, Math.min(maxAllowed, oldVal + delta));
@@ -235,8 +239,16 @@ export function useDragHandlers({
             const snapped = snapToNeighbors(movedAfter, afterMove);
             const shelfWithXZ = { ...movedAfter, position: { ...movedAfter.position, x: snapped.x, z: snapped.z } };
             const fittedShelf = fitShelfDepthToCabinet(shelfWithXZ, afterMove);
-            const clampedPos = clampToBoard(fittedShelf);
-            return afterMove.map((el) => el.id === id ? { ...fittedShelf, position: { ...fittedShelf.position, x: clampedPos.x, z: clampedPos.z } } : el);
+            const pushed = pushOutCollisions(fittedShelf, afterMove);
+            const pushedEl = { ...fittedShelf, position: { ...fittedShelf.position, x: pushed.x, z: pushed.z } };
+            const clampedPos = clampToBoard(pushedEl);
+            return afterMove.map((el) => el.id === id ? { ...pushedEl, position: { ...pushedEl.position, x: clampedPos.x, z: clampedPos.z } } : el);
+          }
+          if (movedEl.type === 'board') {
+            const pushed = pushOutCollisions(movedAfter, afterMove);
+            const pushedEl = { ...movedAfter, position: { ...movedAfter.position, x: pushed.x, z: pushed.z } };
+            const clampedPos = clampToBoard(pushedEl);
+            return afterMove.map((el) => el.id === id ? { ...pushedEl, position: { ...pushedEl.position, x: clampedPos.x, z: clampedPos.z } } : el);
           }
           return afterMove;
         }
@@ -334,18 +346,24 @@ export function useDragHandlers({
           newY = Math.min(newY, Math.max(0, roomH - el.dimensions.height));
         }
         let finalEl: BoxElement = { ...el, position: { ...el.position, y: newY } };
-        if ((el.type === 'shelf' || el.type === 'rod') && el.cabinetId) {
-          const dividers = prev.filter((e) => e.cabinetId === el.cabinetId && e.type === 'divider');
-          if (dividers.length > 0) {
-            const cab = prev.find((e) => e.id === el.cabinetId)!;
-            const overlapsDivider = dividers.some((d) =>
-              newY < d.position.y + d.dimensions.height && newY + el.dimensions.height > d.position.y
-            );
-            if (overlapsDivider) {
-              finalEl = fitShelfToBay(finalEl, prev);
-            } else {
-              const innerWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T);
-              finalEl = { ...finalEl, dimensions: { ...finalEl.dimensions, width: innerWidth }, position: { ...finalEl.position, x: cab.position.x } };
+        if ((el.type === 'shelf' || el.type === 'rod' || el.type === 'drawer') && el.cabinetId) {
+          const cab = prev.find((e) => e.id === el.cabinetId);
+          if (cab?.type === 'cabinet' || cab?.type === 'boxkuchenny') {
+            const dividers = prev.filter((e) => e.cabinetId === el.cabinetId && e.type === 'divider');
+            if (dividers.length > 0) {
+              const overlapsDivider = dividers.some((d) =>
+                newY < d.position.y + d.dimensions.height && newY + el.dimensions.height > d.position.y
+              );
+              if (overlapsDivider) {
+                finalEl = el.type === 'drawer' ? fitDrawerToBay(finalEl, prev) : fitShelfToBay(finalEl, prev);
+              } else if (el.type === 'drawer') {
+                const innerWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T - 2 * DRAWER_RAIL_CLEARANCE);
+                const frontWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T - 2 * FRONT_INSET);
+                finalEl = { ...finalEl, dimensions: { ...finalEl.dimensions, width: innerWidth }, adjustedFrontWidth: frontWidth, position: { ...finalEl.position, x: cab.position.x } };
+              } else {
+                const innerWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T);
+                finalEl = { ...finalEl, dimensions: { ...finalEl.dimensions, width: innerWidth }, position: { ...finalEl.position, x: cab.position.x } };
+              }
             }
           }
         }
@@ -428,6 +446,7 @@ export function useDragHandlers({
         } else {
           const roomH = boardSizeRef.current.height / 1000;
           newY = Math.min(newY, Math.max(0, roomH - el.dimensions.height));
+          newY = clampYToCollisions(el, newY, dy, prev);
         }
         if (el.type === 'cabinet') {
           const actualDy = newY - el.position.y;
@@ -444,18 +463,24 @@ export function useDragHandlers({
           }));
         }
         let finalElY: BoxElement = { ...el, position: { ...el.position, y: newY } };
-        if ((el.type === 'shelf' || el.type === 'rod') && el.cabinetId) {
-          const dividers = prev.filter((e) => e.cabinetId === el.cabinetId && e.type === 'divider');
-          if (dividers.length > 0) {
-            const cab = prev.find((e) => e.id === el.cabinetId)!;
-            const overlapsDivider = dividers.some((d) =>
-              newY < d.position.y + d.dimensions.height && newY + el.dimensions.height > d.position.y
-            );
-            if (overlapsDivider) {
-              finalElY = fitShelfToBay(finalElY, prev);
-            } else {
-              const innerWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T);
-              finalElY = { ...finalElY, dimensions: { ...finalElY.dimensions, width: innerWidth }, position: { ...finalElY.position, x: cab.position.x } };
+        if ((el.type === 'shelf' || el.type === 'rod' || el.type === 'drawer') && el.cabinetId) {
+          const cab = prev.find((e) => e.id === el.cabinetId);
+          if (cab?.type === 'cabinet' || cab?.type === 'boxkuchenny') {
+            const dividers = prev.filter((e) => e.cabinetId === el.cabinetId && e.type === 'divider');
+            if (dividers.length > 0) {
+              const overlapsDivider = dividers.some((d) =>
+                newY < d.position.y + d.dimensions.height && newY + el.dimensions.height > d.position.y
+              );
+              if (overlapsDivider) {
+                finalElY = el.type === 'drawer' ? fitDrawerToBay(finalElY, prev) : fitShelfToBay(finalElY, prev);
+              } else if (el.type === 'drawer') {
+                const innerWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T - 2 * DRAWER_RAIL_CLEARANCE);
+                const frontWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T - 2 * FRONT_INSET);
+                finalElY = { ...finalElY, dimensions: { ...finalElY.dimensions, width: innerWidth }, adjustedFrontWidth: frontWidth, position: { ...finalElY.position, x: cab.position.x } };
+              } else {
+                const innerWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T);
+                finalElY = { ...finalElY, dimensions: { ...finalElY.dimensions, width: innerWidth }, position: { ...finalElY.position, x: cab.position.x } };
+              }
             }
           }
         }

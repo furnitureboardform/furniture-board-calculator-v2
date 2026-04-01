@@ -15,7 +15,7 @@ import {
   computeMaskowanicaForGroup,
   recomputeGroups,
 } from '../computeElements';
-import { computeDividerBounds, computeYForBox, switchShelfToNextBay } from '../geometry';
+import { computeDividerBounds, computeYForBox, switchShelfToNextBay, switchDrawerToNextBay, switchDividerToNextSlot } from '../geometry';
 import { createBox, createShelf, createBoard, createBoxKuchenny } from '../factories';
 import { counters } from '../elementCounters';
 
@@ -1069,9 +1069,61 @@ export function useElementActions({
   const handleShelfSwitchBay = useCallback((shelfId: string) => {
     setElements((prev) => {
       const shelf = prev.find((e) => e.id === shelfId);
-      if (!shelf || (shelf.type !== 'shelf' && shelf.type !== 'rod')) return prev;
+      if (!shelf) return prev;
+      if (shelf.type === 'drawer') {
+        const switched = switchDrawerToNextBay(shelf, prev);
+        return prev.map((e) => (e.id === shelfId ? switched : e));
+      }
+      if (shelf.type !== 'shelf' && shelf.type !== 'rod') return prev;
       const switched = switchShelfToNextBay(shelf, prev);
       return prev.map((e) => (e.id === shelfId ? switched : e));
+    });
+  }, [setElements]);
+
+  const handleDividerSwitchSlot = useCallback((dividerId: string) => {
+    setElements((prev) => {
+      const divider = prev.find((e) => e.id === dividerId);
+      if (!divider || divider.type !== 'divider') return prev;
+      const switched = switchDividerToNextSlot(divider, prev);
+      return prev.map((e) => (e.id === dividerId ? switched : e));
+    });
+  }, [setElements]);
+
+  const handleRotateCabinet = useCallback((cabinetId: string) => {
+    setElements((prev) => {
+      const cab = prev.find((e) => e.id === cabinetId);
+      if (!cab || (cab.type !== 'cabinet' && cab.type !== 'boxkuchenny')) return prev;
+
+      const newRotationY = (((cab.rotationY ?? 0) + 90) % 360) as 0 | 90 | 180 | 270;
+
+      // Collect IDs of direct children and grandchildren (e.g. drawers inside drawerboxes)
+      const directChildIds = new Set(prev.filter((e) => e.cabinetId === cabinetId).map((e) => e.id));
+
+      return prev.map((e) => {
+        if (e.id === cabinetId) return { ...e, rotationY: newRotationY };
+
+        // Determine relative position of child/grandchild to cabinet center
+        let rx: number, rz: number;
+        if (e.cabinetId === cabinetId) {
+          rx = e.position.x - cab.position.x;
+          rz = e.position.z - cab.position.z;
+        } else if (e.cabinetId && directChildIds.has(e.cabinetId)) {
+          rx = e.position.x - cab.position.x;
+          rz = e.position.z - cab.position.z;
+        } else {
+          return e;
+        }
+
+        // 90° CW rotation (from above): new_rx = rz, new_rz = -rx
+        return {
+          ...e,
+          position: {
+            ...e.position,
+            x: cab.position.x + rz,
+            z: cab.position.z - rx,
+          },
+        };
+      });
     });
   }, [setElements]);
 
@@ -1121,6 +1173,8 @@ export function useElementActions({
     handleMaskownicaNiepelnaChange,
     handleFrontNoHandleChange,
     handleShelfSwitchBay,
+    handleDividerSwitchSlot,
+    handleRotateCabinet,
     handleClearAll,
   };
 }

@@ -15,13 +15,19 @@ interface Params {
   setElements: React.Dispatch<React.SetStateAction<BoxElement[]>>;
   undo: () => void;
   redo: () => void;
+  handleDividerSwitchSlot?: (id: string) => void;
 }
 
-export function useKeyboard({ selectedId, multiSelectedIds, handleDelete, setElements, undo, redo }: Params) {
+export function useKeyboard({ selectedId, multiSelectedIds, handleDelete, setElements, undo, redo, handleDividerSwitchSlot }: Params) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      if (e.key === 'Control' && selectedId && handleDividerSwitchSlot) {
+        handleDividerSwitchSlot(selectedId);
+        return;
+      }
 
       if (e.key === 'Delete') {
         if (multiSelectedIds.length > 0) {

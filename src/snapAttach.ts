@@ -165,34 +165,106 @@ export function snapToNeighbors(box: BoxElement, allElements: BoxElement[]): { x
   return { x, z };
 }
 
-/** Pushes box out of XZ overlaps with same-level cabinets. */
+const MOVE_BLOCKER_TYPES = new Set<BoxElement['type']>(['cabinet', 'shelf', 'board', 'boxkuchenny']);
+const SOLID_CHILD_TYPES = new Set<BoxElement['type']>(['maskowanica', 'blenda', 'plinth']);
+
+/** Returns the effective AABB of el including its solid children (maskowanica, blenda, plinth). */
+function getBlockerAABB(
+  el: BoxElement,
+  allElements: BoxElement[]
+): { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number } {
+  let minX = el.position.x - el.dimensions.width / 2;
+  let maxX = el.position.x + el.dimensions.width / 2;
+  let minY = el.position.y;
+  let maxY = el.position.y + el.dimensions.height;
+  let minZ = el.position.z - el.dimensions.depth / 2;
+  let maxZ = el.position.z + el.dimensions.depth / 2;
+  for (const child of allElements) {
+    if (child.cabinetId !== el.id) continue;
+    if (!SOLID_CHILD_TYPES.has(child.type)) continue;
+    minX = Math.min(minX, child.position.x - child.dimensions.width / 2);
+    maxX = Math.max(maxX, child.position.x + child.dimensions.width / 2);
+    minY = Math.min(minY, child.position.y);
+    maxY = Math.max(maxY, child.position.y + child.dimensions.height);
+    minZ = Math.min(minZ, child.position.z - child.dimensions.depth / 2);
+    maxZ = Math.max(maxZ, child.position.z + child.dimensions.depth / 2);
+  }
+  return { minX, maxX, minY, maxY, minZ, maxZ };
+}
+
+/**
+ * Clamps newY so that el doesn't vertically overlap free-standing elements.
+ * Uses XZ overlap (including blocker's effective AABB with maskowanica/blenda/plinth children).
+ * dy indicates movement direction (<=0 = down, >0 = up).
+ */
+export function clampYToCollisions(
+  el: BoxElement,
+  newY: number,
+  dy: number,
+  allElements: BoxElement[]
+): number {
+  const elHW = el.dimensions.width / 2;
+  const elHD = el.dimensions.depth / 2;
+
+  for (const other of allElements) {
+    if (other.id === el.id) continue;
+    if (other.cabinetId) continue;
+    if (!MOVE_BLOCKER_TYPES.has(other.type)) continue;
+
+    const aabb = getBlockerAABB(other, allElements);
+
+    const xOverlap = el.position.x + elHW > aabb.minX && el.position.x - elHW < aabb.maxX;
+    const zOverlap = el.position.z + elHD > aabb.minZ && el.position.z - elHD < aabb.maxZ;
+    if (!xOverlap || !zOverlap) continue;
+
+    if (dy <= 0) {
+      // Moving down: stop at top of blocker
+      if (aabb.maxY <= el.position.y + 0.001)
+        newY = Math.max(newY, aabb.maxY);
+    } else {
+      // Moving up: stop at bottom of blocker
+      const currentTop = el.position.y + el.dimensions.height;
+      if (aabb.minY >= currentTop - 0.001)
+        newY = Math.min(newY, aabb.minY - el.dimensions.height);
+    }
+  }
+
+  return newY;
+}
+
+/** Pushes box out of XZ overlaps with all free-standing solid elements (cabinets, shelves, boards, boxkuchenny), accounting for maskowanica/blenda/plinth children of blockers. */
 export function pushOutCollisions(box: BoxElement, allElements: BoxElement[]): { x: number; z: number } {
   let x = box.position.x;
   let z = box.position.z;
   const hw = box.dimensions.width / 2;
   const hd = box.dimensions.depth / 2;
+  const boxMinY = box.position.y;
+  const boxMaxY = box.position.y + box.dimensions.height;
 
   for (const other of allElements) {
     if (other.id === box.id) continue;
-    if (other.type !== 'cabinet') continue;
-    const ohw = other.dimensions.width / 2;
-    const ohd = other.dimensions.depth / 2;
+    if (other.cabinetId) continue;
+    if (!MOVE_BLOCKER_TYPES.has(other.type)) continue;
 
-    const yOverlap =
-      box.position.y < other.position.y + other.dimensions.height &&
-      box.position.y + box.dimensions.height > other.position.y;
+    const aabb = getBlockerAABB(other, allElements);
+    const yOverlap = boxMinY < aabb.maxY && boxMaxY > aabb.minY;
     if (!yOverlap) continue;
 
-    const overlapX = (hw + ohw) - Math.abs(x - other.position.x);
-    const overlapZ = (hd + ohd) - Math.abs(z - other.position.z);
+    const otherHW = (aabb.maxX - aabb.minX) / 2;
+    const otherHD = (aabb.maxZ - aabb.minZ) / 2;
+    const otherCX = (aabb.maxX + aabb.minX) / 2;
+    const otherCZ = (aabb.maxZ + aabb.minZ) / 2;
+
+    const overlapX = (hw + otherHW) - Math.abs(x - otherCX);
+    const overlapZ = (hd + otherHD) - Math.abs(z - otherCZ);
     if (overlapX <= 0 || overlapZ <= 0) continue;
 
     if (overlapX > STACK_OVERLAP && overlapZ > STACK_OVERLAP) continue;
 
     if (overlapX <= overlapZ) {
-      x += overlapX * (x >= other.position.x ? 1 : -1);
+      x += overlapX * (x >= otherCX ? 1 : -1);
     } else {
-      z += overlapZ * (z >= other.position.z ? 1 : -1);
+      z += overlapZ * (z >= otherCZ ? 1 : -1);
     }
   }
   return { x, z };

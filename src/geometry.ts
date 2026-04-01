@@ -1,5 +1,5 @@
 import type { BoxElement } from './types';
-import { PANEL_T, STACK_OVERLAP } from './constants';
+import { PANEL_T, STACK_OVERLAP, DRAWER_RAIL_CLEARANCE, FRONT_INSET } from './constants';
 import {
   computeHdfForCabinet,
   computeLegsForCabinet,
@@ -30,7 +30,8 @@ export function computeYForBox(box: BoxElement, allElements: BoxElement[], roomH
   let maxTop = 0;
   for (const other of allElements) {
     if (other.id === box.id) continue;
-    if (other.type === 'shelf' || other.type === 'board' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'plinth' || other.type === 'maskowanica') continue;
+    if (other.type === 'group' || other.type === 'shelf' || other.type === 'board' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'plinth' || other.type === 'maskowanica') continue;
+    if (box.groupIds?.length && other.groupIds?.some((g) => box.groupIds!.includes(g))) continue;
     if (getBoxStackOverlap(box, other)) {
       const wouldFitBelow = box.position.y + box.dimensions.height <= other.position.y;
       if (!wouldFitBelow) {
@@ -122,6 +123,34 @@ export function fitShelfToBay(shelf: BoxElement, allElements: BoxElement[]): Box
   };
 }
 
+/**
+ * Like fitShelfToBay but for drawers directly in a cabinet.
+ * Sets dimensions.width = bayWidth - 2*DRAWER_RAIL_CLEARANCE and
+ * adjustedFrontWidth = bayWidth - 2*FRONT_INSET.
+ */
+export function fitDrawerToBay(drawer: BoxElement, allElements: BoxElement[]): BoxElement {
+  if (!drawer.cabinetId) return drawer;
+  const cab = allElements.find((e) => e.id === drawer.cabinetId && e.type === 'cabinet');
+  if (!cab) return drawer;
+  const dividers = allElements.filter((e) => e.cabinetId === drawer.cabinetId && e.type === 'divider');
+  if (dividers.length === 0) return drawer;
+  const bays = _getBays(cab, dividers);
+  if (bays.length === 0) return drawer;
+  let best = bays[0];
+  let bestDist = Math.abs((best.left + best.right) / 2 - drawer.position.x);
+  for (const bay of bays) {
+    const d = Math.abs((bay.left + bay.right) / 2 - drawer.position.x);
+    if (d < bestDist) { bestDist = d; best = bay; }
+  }
+  const bayWidth = best.right - best.left;
+  return {
+    ...drawer,
+    dimensions: { ...drawer.dimensions, width: Math.max(0.01, bayWidth - 2 * DRAWER_RAIL_CLEARANCE) },
+    adjustedFrontWidth: Math.max(0.01, bayWidth - 2 * FRONT_INSET),
+    position: { ...drawer.position, x: (best.left + best.right) / 2 },
+  };
+}
+
 /** Moves shelf to the next bay (cycles through all bays). */
 export function switchShelfToNextBay(shelf: BoxElement, allElements: BoxElement[]): BoxElement {
   if (!shelf.cabinetId) return shelf;
@@ -145,19 +174,193 @@ export function switchShelfToNextBay(shelf: BoxElement, allElements: BoxElement[
   };
 }
 
-/** Returns the Y bottom and height for a divider spanning the full interior of the cabinet. */
+/** Like switchShelfToNextBay but for drawers: also updates adjustedFrontWidth. */
+export function switchDrawerToNextBay(drawer: BoxElement, allElements: BoxElement[]): BoxElement {
+  if (!drawer.cabinetId) return drawer;
+  const cab = allElements.find((e) => e.id === drawer.cabinetId && e.type === 'cabinet');
+  if (!cab) return drawer;
+  const dividers = allElements.filter((e) => e.cabinetId === drawer.cabinetId && e.type === 'divider');
+  if (dividers.length === 0) return drawer;
+  const bays = _getBays(cab, dividers);
+  if (bays.length <= 1) return drawer;
+  let curIdx = 0;
+  let bestDist = Infinity;
+  for (let i = 0; i < bays.length; i++) {
+    const d = Math.abs((bays[i].left + bays[i].right) / 2 - drawer.position.x);
+    if (d < bestDist) { bestDist = d; curIdx = i; }
+  }
+  const next = bays[(curIdx + 1) % bays.length];
+  const bayWidth = next.right - next.left;
+  return {
+    ...drawer,
+    dimensions: { ...drawer.dimensions, width: Math.max(0.01, bayWidth - 2 * DRAWER_RAIL_CLEARANCE) },
+    adjustedFrontWidth: Math.max(0.01, bayWidth - 2 * FRONT_INSET),
+    position: { ...drawer.position, x: (next.left + next.right) / 2 },
+  };
+}
+
+/**
+ * Builds sorted list of slot-boundary Y values for a cabinet:
+ * cabinet bottom/top panels + top/bottom edges of all shelves and rods.
+ */
+function _getDividerSlotBoundaries(cab: BoxElement, allElements: BoxElement[]): number[] {
+  const cabBottom = cab.position.y + PANEL_T;
+  const cabTop = cab.position.y + cab.dimensions.height - PANEL_T;
+  const set = new Set<number>([cabBottom, cabTop]);
+  for (const e of allElements) {
+    if (e.cabinetId !== cab.id) continue;
+    if (e.type !== 'shelf' && e.type !== 'rod') continue;
+    set.add(e.position.y);
+    set.add(e.position.y + e.dimensions.height);
+  }
+  return [...set].sort((a, b) => a - b);
+}
+
+/**
+ * Returns the Y bottom and height for a divider.
+ * Finds the free vertical slot (between shelves/rods/walls) whose midpoint is
+ * closest to dividerY, so the divider auto-fits between the nearest obstacles.
+ */
 export function computeDividerBounds(
   cabinetId: string,
-  _dividerY: number,
+  dividerY: number,
   allElements: BoxElement[]
 ): { y: number; height: number } {
   const cab = allElements.find((e) => e.id === cabinetId);
   if (!cab) return { y: 0, height: PANEL_T };
 
-  const cabBottom = cab.position.y + PANEL_T;
-  const cabTop = cab.position.y + cab.dimensions.height - PANEL_T;
+  const boundaries = _getDividerSlotBoundaries(cab, allElements);
 
-  return { y: cabBottom, height: Math.max(PANEL_T, cabTop - cabBottom) };
+  let bestY = boundaries[0];
+  let bestH = Math.max(PANEL_T, boundaries[1] - boundaries[0]);
+  let bestDist = Infinity;
+
+  for (let i = 0; i < boundaries.length - 1; i++) {
+    const slotY = boundaries[i];
+    const slotH = boundaries[i + 1] - boundaries[i];
+    const slotMid = slotY + slotH / 2;
+    const dist = Math.abs(slotMid - dividerY);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestY = slotY;
+      bestH = Math.max(PANEL_T, slotH);
+    }
+  }
+
+  return { y: bestY, height: bestH };
+}
+
+/** Moves a divider to the next free vertical slot (cycles upward through slots). */
+export function switchDividerToNextSlot(divider: BoxElement, allElements: BoxElement[]): BoxElement {
+  if (!divider.cabinetId) return divider;
+  const cab = allElements.find((e) => e.id === divider.cabinetId && (e.type === 'cabinet' || e.type === 'boxkuchenny'));
+  if (!cab) return divider;
+
+  const boundaries = _getDividerSlotBoundaries(cab, allElements);
+
+  // Build slots (gaps between consecutive boundaries that are taller than a panel)
+  const slots: { y: number; height: number }[] = [];
+  for (let i = 0; i < boundaries.length - 1; i++) {
+    const h = boundaries[i + 1] - boundaries[i];
+    if (h > PANEL_T + 0.001) slots.push({ y: boundaries[i], height: h });
+  }
+  if (slots.length <= 1) return divider;
+
+  // Find current slot by closest midpoint
+  const curMid = divider.position.y + divider.dimensions.height / 2;
+  let curIdx = 0;
+  let bestDist = Infinity;
+  for (let i = 0; i < slots.length; i++) {
+    const d = Math.abs(slots[i].y + slots[i].height / 2 - curMid);
+    if (d < bestDist) { bestDist = d; curIdx = i; }
+  }
+
+  const next = slots[(curIdx + 1) % slots.length];
+  return {
+    ...divider,
+    position: { ...divider.position, y: next.y },
+    dimensions: { ...divider.dimensions, height: next.height },
+  };
+}
+
+const STRETCH_BLOCKER_TYPES = new Set<BoxElement['type']>(['cabinet', 'shelf', 'board', 'boxkuchenny']);
+
+/**
+ * Returns the maximum allowed dimension when stretching `el` along `axis` in direction `dir`,
+ * limited by nearest free-standing element in that direction.
+ * position.x / position.z are centers; position.y is bottom edge.
+ */
+export function computeStretchCollisionMax(
+  el: BoxElement,
+  axis: 'width' | 'height' | 'depth',
+  dir: number,
+  elements: BoxElement[]
+): number {
+  let max = Infinity;
+  const EPS = 0.001;
+
+  for (const other of elements) {
+    if (other.id === el.id) continue;
+    if (other.cabinetId) continue;
+    if (!STRETCH_BLOCKER_TYPES.has(other.type)) continue;
+
+    if (axis === 'width') {
+      const yOverlap =
+        el.position.y < other.position.y + other.dimensions.height - EPS &&
+        el.position.y + el.dimensions.height > other.position.y + EPS;
+      const zOverlap =
+        Math.abs(el.position.z - other.position.z) <
+        (el.dimensions.depth + other.dimensions.depth) / 2 - EPS;
+      if (!yOverlap || !zOverlap) continue;
+      const fixedEdge = el.position.x - dir * el.dimensions.width / 2;
+      if (dir > 0) {
+        const otherLeft = other.position.x - other.dimensions.width / 2;
+        if (otherLeft >= el.position.x + el.dimensions.width / 2 - EPS)
+          max = Math.min(max, otherLeft - fixedEdge);
+      } else {
+        const otherRight = other.position.x + other.dimensions.width / 2;
+        if (otherRight <= el.position.x - el.dimensions.width / 2 + EPS)
+          max = Math.min(max, fixedEdge - otherRight);
+      }
+    } else if (axis === 'height') {
+      const xOverlap =
+        Math.abs(el.position.x - other.position.x) <
+        (el.dimensions.width + other.dimensions.width) / 2 - EPS;
+      const zOverlap =
+        Math.abs(el.position.z - other.position.z) <
+        (el.dimensions.depth + other.dimensions.depth) / 2 - EPS;
+      if (!xOverlap || !zOverlap) continue;
+      if (dir > 0) {
+        const currentTop = el.position.y + el.dimensions.height;
+        if (other.position.y >= currentTop - EPS)
+          max = Math.min(max, other.position.y - el.position.y);
+      } else {
+        const otherTop = other.position.y + other.dimensions.height;
+        if (otherTop <= el.position.y + EPS)
+          max = Math.min(max, el.position.y + el.dimensions.height - otherTop);
+      }
+    } else {
+      const yOverlap =
+        el.position.y < other.position.y + other.dimensions.height - EPS &&
+        el.position.y + el.dimensions.height > other.position.y + EPS;
+      const xOverlap =
+        Math.abs(el.position.x - other.position.x) <
+        (el.dimensions.width + other.dimensions.width) / 2 - EPS;
+      if (!yOverlap || !xOverlap) continue;
+      const fixedEdge = el.position.z - dir * el.dimensions.depth / 2;
+      if (dir > 0) {
+        const otherNear = other.position.z - other.dimensions.depth / 2;
+        if (otherNear >= el.position.z + el.dimensions.depth / 2 - EPS)
+          max = Math.min(max, otherNear - fixedEdge);
+      } else {
+        const otherFar = other.position.z + other.dimensions.depth / 2;
+        if (otherFar <= el.position.z - el.dimensions.depth / 2 + EPS)
+          max = Math.min(max, fixedEdge - otherFar);
+      }
+    }
+  }
+
+  return max;
 }
 
 /** Recomputes Y for all boxes bottom-up (used after dimension changes). */
@@ -171,12 +374,13 @@ export function recomputeAllY(elements: BoxElement[], roomH = Infinity, skipDivi
   );
   for (const el of ordered) {
     const box = resultMap.get(el.id)!;
-    if (box.type === 'shelf' || box.type === 'board' || box.type === 'drawer' || box.type === 'drawerbox' || box.type === 'blenda' || box.type === 'divider' || box.type === 'front' || box.type === 'rod' || box.type === 'leg' || box.type === 'hdf' || box.type === 'maskowanica') continue;
+    if (box.type === 'group' || box.type === 'shelf' || box.type === 'board' || box.type === 'drawer' || box.type === 'drawerbox' || box.type === 'blenda' || box.type === 'divider' || box.type === 'front' || box.type === 'rod' || box.type === 'leg' || box.type === 'hdf' || box.type === 'maskowanica') continue;
     const elOriginalY = originalY.get(el.id) ?? 0;
     let maxTop = 0;
     for (const [id, other] of resultMap) {
       if (id === box.id) continue;
-      if (other.type === 'shelf' || other.type === 'board' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'plinth' || other.type === 'maskowanica') continue;
+      if (other.type === 'group' || other.type === 'shelf' || other.type === 'board' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'plinth' || other.type === 'maskowanica') continue;
+      if (box.groupIds?.length && other.groupIds?.some((g) => box.groupIds!.includes(g))) continue;
       if ((originalY.get(id) ?? 0) <= elOriginalY + 0.001) {
         if (getBoxStackOverlap(box, other)) {
           maxTop = Math.max(maxTop, other.position.y + other.dimensions.height);

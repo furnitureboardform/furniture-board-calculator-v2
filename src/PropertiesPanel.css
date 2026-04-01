@@ -87,6 +87,30 @@
   margin: 8px 0 4px;
 }
 
+.prop-rotate-btn {
+  flex: 1;
+  background: #1e3a2f;
+  border: 1px solid #2e6b4f;
+  border-radius: 6px;
+  color: #4ec994;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  text-align: center;
+}
+
+.prop-rotate-btn:hover {
+  background: #2a5040;
+  border-color: #4ec994;
+  color: #7ddbb0;
+}
+
+.prop-rotate-btn:active {
+  background: #1a4535;
+}
+
 .prop-switch-bay-btn {
   flex: 1;
   background: #2d2d30;

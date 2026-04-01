@@ -19,8 +19,10 @@ interface Props {
   onDrawerFrontHeightChange?: (h: number) => void;
   onDrawerPushToOpenChange?: (v: boolean) => void;
   onShelfSwitchBay?: (id: string) => void;
+  onDividerSwitchSlot?: (id: string) => void;
   onMaskownicaNiepelnaChange?: (v: boolean) => void;
   onFrontNoHandleChange?: (v: boolean) => void;
+  onRotate?: (id: string) => void;
 }
 
 type DimKey = keyof BoxDimensions;
@@ -29,7 +31,7 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onShelfSwitchBay, onMaskownicaNiepelnaChange, onFrontNoHandleChange }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onFrontNoHandleChange, onRotate }) => {
   // Local draft strings so the user can type freely
   const [drafts, setDrafts] = useState<Record<DimKey, string>>({ width: '', height: '', depth: '' });
   const [yDraft, setYDraft] = useState('');
@@ -205,6 +207,19 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
               <span className="prop-unit">mm</span>
             </div>
             <div className="prop-divider" />
+            {onDividerSwitchSlot && (() => {
+              const hasMultipleSlots = elements?.some(
+                (e) => e.cabinetId === element.cabinetId && (e.type === 'shelf' || e.type === 'rod')
+              );
+              if (!hasMultipleSlots) return null;
+              return (
+                <div className="prop-row">
+                  <button className="prop-switch-bay-btn" onClick={() => onDividerSwitchSlot(element.id)}>
+                    ↕ Przesuń do kolejnej przestrzeni
+                  </button>
+                </div>
+              );
+            })()}
           </>
         );
       })()}
@@ -321,6 +336,18 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
         </>
       )}
 
+      {(element.type === 'cabinet' || element.type === 'boxkuchenny') && onRotate && (
+        <>
+          <div className="prop-divider" />
+          <div className="prop-row">
+            <button className="prop-rotate-btn" onClick={() => onRotate(element.id)}>
+              ↻ Obróć o 90°
+            </button>
+          </div>
+          <div className="prop-divider" />
+        </>
+      )}
+
       {(['width', 'height', 'depth'] as const).filter((axis) => element.type !== 'leg' || axis === 'height').map((axis) => (
         <div className="prop-row" key={axis}>
           <label className="prop-label" style={{ color: colors[axis] }}>{labels[axis]}</label>
@@ -416,7 +443,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
           </div>
         </>
       )}
-      {(element.type === 'shelf' || element.type === 'rod') && element.cabinetId && onShelfSwitchBay && (() => {
+      {(element.type === 'shelf' || element.type === 'rod' || element.type === 'drawer') && element.cabinetId && onShelfSwitchBay && (() => {
         const hasOverlappingDivider = elements?.some(
           (e) => e.cabinetId === element.cabinetId && e.type === 'divider' &&
             element.position.y < e.position.y + e.dimensions.height &&

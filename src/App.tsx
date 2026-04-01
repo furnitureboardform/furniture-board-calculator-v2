@@ -1,4 +1,4 @@
-﻿import React, { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useThreeScene } from './useThreeScene';
 import { useHistory } from './hooks/useHistory';
 import { useDragHandlers } from './hooks/useDragHandlers';
@@ -70,10 +70,12 @@ const App: React.FC = () => {
     handleMaskownicaNiepelnaChange,
     handleFrontNoHandleChange,
     handleShelfSwitchBay,
+    handleDividerSwitchSlot,
+    handleRotateCabinet,
     handleClearAll,
   } = useElementActions({ setElements, setSelectedId, setMultiSelectedIds, boardSizeRef, dividerYHintRef, dragDeltaRef, detachedFromRef });
 
-  useKeyboard({ selectedId, multiSelectedIds, handleDelete, setElements, undo, redo });
+  useKeyboard({ selectedId, multiSelectedIds, handleDelete, setElements, undo, redo, handleDividerSwitchSlot });
 
   useThreeScene(containerRef, {
     elements,
@@ -170,6 +172,8 @@ const App: React.FC = () => {
           onMaskownicaNiepelnaChange={(v) => selectedElement && handleMaskownicaNiepelnaChange(selectedElement.id, v)}
           onFrontNoHandleChange={(v) => selectedElement && handleFrontNoHandleChange(selectedElement.id, v)}
           onShelfSwitchBay={handleShelfSwitchBay}
+          onDividerSwitchSlot={handleDividerSwitchSlot}
+          onRotate={(id) => handleRotateCabinet(id)}
         />
       </aside>
     </div>
