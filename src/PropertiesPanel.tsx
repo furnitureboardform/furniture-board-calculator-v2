@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { BoxElement, BoxDimensions } from './types';
 import { PANEL_T } from './constants';
 import { useFinishes } from './hooks/useFinishes';
@@ -35,6 +35,8 @@ const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
 const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onFrontNoHandleChange, onRotate, onFinishChange }) => {
   const finishes = useFinishes();
+  const [finishOpen, setFinishOpen] = useState(false);
+  const finishRef = useRef<HTMLDivElement>(null);
   // Local draft strings so the user can type freely
   const [drafts, setDrafts] = useState<Record<DimKey, string>>({ width: '', height: '', depth: '' });
   const [yDraft, setYDraft] = useState('');
@@ -472,19 +474,41 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
             <div className="prop-divider" />
             <div className="prop-finish-section">
               <span className="prop-label">Okleina</span>
-              <div className="prop-finish-row">
-                {sel?.imageBase64 && (
-                  <img src={sel.imageBase64} alt={sel.label} className="prop-finish-thumb" />
-                )}
-                <select
-                  className="prop-finish-select"
-                  value={element.finishId ?? ''}
-                  onChange={(e) => onFinishChange(element.id, e.target.value || undefined)}
+              <div
+                className="prop-finish-dropdown"
+                ref={finishRef}
+                onBlur={(e) => { if (!finishRef.current?.contains(e.relatedTarget as Node)) setFinishOpen(false); }}
+                tabIndex={-1}
+              >
+                <button
+                  className="prop-finish-trigger"
+                  onClick={() => setFinishOpen((o) => !o)}
+                  type="button"
                 >
-                  {finishes.map((f) => (
-                    <option key={f.id} value={f.id}>{f.label} · {f.brand}</option>
-                  ))}
-                </select>
+                  {sel?.imageBase64
+                    ? <img src={sel.imageBase64} alt="" className="prop-finish-thumb" />
+                    : <span className="prop-finish-no-img" />
+                  }
+                  <span className="prop-finish-trigger-label">{sel ? `${sel.label} · ${sel.brand}` : 'korpusowy'}</span>
+                  <span className="prop-finish-arrow">{finishOpen ? '▲' : '▼'}</span>
+                </button>
+                {finishOpen && (
+                  <ul className="prop-finish-list">
+                    {finishes.map((f) => (
+                      <li
+                        key={f.id}
+                        className={`prop-finish-item${element.finishId === f.id ? ' prop-finish-item--active' : ''}`}
+                        onClick={() => { onFinishChange(element.id, f.id); setFinishOpen(false); }}
+                      >
+                        {f.imageBase64
+                          ? <img src={f.imageBase64} alt="" className="prop-finish-thumb" />
+                          : <span className="prop-finish-no-img" />
+                        }
+                        <span>{f.label} · {f.brand}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           </>
