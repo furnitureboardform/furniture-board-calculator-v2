@@ -18,6 +18,7 @@ React + TypeScript app for calculating furniture board cuts and generating order
 8. **Parallel tool calls** — run independent reads/searches simultaneously.
 9. **Skip confirmations for local reversible edits** — just do it.
 10. **Polish language** — respond in Polish unless code/commands require English.
+11. **No Co-Authored-By** — never add `Co-Authored-By: Claude` or any Claude/Anthropic attribution to commit messages.
 
 ## Code Conventions
 - Components in `src/` with matching `.css` files
