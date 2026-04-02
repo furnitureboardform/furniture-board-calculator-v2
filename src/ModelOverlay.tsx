@@ -91,7 +91,7 @@ const ModelOverlay: React.FC<Props> = ({ elements, showCeilingGrid, onToggleCeil
     const d = toMm(cab.dimensions.depth);
 
     const all         = elements.filter((e) => e.cabinetId === cab.id && e.type !== 'blenda' && e.type !== 'maskowanica' && e.type !== 'drawer');
-    const hdfItems    = all.filter((e) => e.type === 'hdf');
+    const hdfItems    = all.filter((e) => e.type === 'hdf' || e.type === 'rearboard');
     const boardItems  = all.filter((e) => e.type === 'shelf' || e.type === 'divider');
     const additionals = all.filter((e) => e.type === 'leg' || e.type === 'rod' || e.type === 'plinth');
     const maskowanice = elements.filter((e) => e.cabinetId === cab.id && e.type === 'maskowanica');

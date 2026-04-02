@@ -256,6 +256,18 @@ export function rebuildBoxKuchenny(parent: THREE.Mesh, element: BoxElement, colo
   }
 }
 
+export function rebuildRearboard(parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) {
+  clearChildren(parent);
+  const { width, height, depth } = element.dimensions;
+  const geo = new THREE.BoxGeometry(width, height, depth);
+  const mat = new THREE.MeshStandardMaterial({ color, emissive, roughness: 0.5, metalness: 0.1, side: THREE.DoubleSide });
+  const panel = new THREE.Mesh(geo, mat);
+  panel.castShadow = true;
+  panel.receiveShadow = true;
+  panel.userData = { elementId: element.id };
+  parent.add(panel);
+}
+
 export function rebuildLeg(parent: THREE.Mesh, element: BoxElement, _color: THREE.Color, _emissive: THREE.Color) {
   clearChildren(parent);
   const { width, height, depth } = element.dimensions;

@@ -4,6 +4,7 @@ import type { BoxElement } from '../types';
 import { PANEL_T, DRAWER_RAIL_CLEARANCE, FRONT_INSET } from '../constants';
 import {
   computeHdfForCabinet,
+  computeRearboardForCabinet,
   computeLegsForCabinet,
   computePlinthForCabinet,
   computePlinthForGroup,
@@ -347,6 +348,7 @@ export function useElementActions({
         if (e.cabinetId !== cabinetId) return e;
         if (e.type === 'front') return computeFrontForCabinet(e, liftedCab);
         if (e.type === 'hdf') return computeHdfForCabinet(e, liftedCab);
+        if (e.type === 'rearboard') return computeRearboardForCabinet(e, liftedCab);
         if (e.type === 'plinth') return computePlinthForCabinet(e, liftedCab, prev);
         return { ...e, position: { ...e.position, y: e.position.y + h } };
       });
@@ -751,6 +753,7 @@ export function useElementActions({
                 const lowered = { ...e, position: { ...e.position, y: e.position.y - h } };
                 if (e.type === 'front') return computeFrontForCabinet(lowered, loweredCab);
                 if (e.type === 'hdf') return computeHdfForCabinet(lowered, loweredCab);
+                if (e.type === 'rearboard') return computeRearboardForCabinet(lowered, loweredCab);
                 if (e.type === 'plinth') return computePlinthForCabinet(lowered, loweredCab, filtered);
                 if (e.type === 'maskowanica') return computeMaskowanicaForCabinet(e, loweredCab, filtered);
                 return lowered;
@@ -1044,6 +1047,25 @@ export function useElementActions({
     setElements((prev) => prev.map((e) => e.id === drawerboxId ? { ...e, hasRearHdf: has } : e));
   }, [setElements]);
 
+  const handleAddRearboardToCabinet = useCallback((cabinetId: string) => {
+    setElements((prev) => {
+      const cab = prev.find((e) => e.id === cabinetId);
+      if (!cab) return prev;
+      if (prev.some((e) => e.type === 'rearboard' && e.cabinetId === cabinetId)) return prev;
+      const rb: BoxElement = computeRearboardForCabinet({
+        id: crypto.randomUUID(),
+        name: `Płyta tylna ${counters.hdf++}`,
+        type: 'rearboard',
+        cabinetId,
+        dimensions: { width: 0, height: 0, depth: 0 },
+        position: { x: 0, y: 0, z: 0 },
+        color: cab.color,
+      }, cab);
+      setSelectedId(cabinetId);
+      return [...prev, rb];
+    });
+  }, [setElements, setSelectedId]);
+
   const handleHasBottomPanelChange = useCallback((drawerboxId: string, has: boolean) => {
     setElements((prev) => prev.map((e) => e.id === drawerboxId ? { ...e, hasBottomPanel: has } : e));
   }, [setElements]);
@@ -1165,6 +1187,7 @@ export function useElementActions({
     handleOpenFrontsChange,
     handleHasBottomPanelChange,
     handleHasRearHdfChange,
+    handleAddRearboardToCabinet,
     handleHasTopRailsChange,
     handleHasSidePanelsChange,
     handleDrawerAdjustFrontChange,

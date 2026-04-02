@@ -239,6 +239,8 @@ function useOrderData(elements: BoxElement[]) {
         obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'maskowanica' });
       } else if (el.type === 'hdf') {
         hdfPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'hdf' });
+      } else if (el.type === 'rearboard') {
+        korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'cabinet_top' });
       }
     }
 

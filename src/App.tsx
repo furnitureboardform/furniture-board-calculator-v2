@@ -62,6 +62,7 @@ const App: React.FC = () => {
     handleOpenFrontsChange,
     handleHasBottomPanelChange,
     handleHasRearHdfChange,
+    handleAddRearboardToCabinet,
     handleHasTopRailsChange,
     handleHasSidePanelsChange,
     handleDrawerAdjustFrontChange,
@@ -132,6 +133,7 @@ const App: React.FC = () => {
           onAddDoubleFrontToGroup={handleAddDoubleFrontToGroup}
           onAddMaskowanicaToCabinet={handleAddMaskowanicaToCabinet}
           onAddMaskowanicaToGroup={handleAddMaskowanicaToGroup}
+          onAddRearboardToCabinet={handleAddRearboardToCabinet}
           onUngroup={handleUngroup}
           onDelete={handleDelete}
           onClearAll={handleClearAll}

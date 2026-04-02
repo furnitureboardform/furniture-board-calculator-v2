@@ -18,6 +18,23 @@ export function computeHdfForCabinet(hdf: BoxElement, cab: BoxElement): BoxEleme
   };
 }
 
+/** Computes position/dimensions of a rear 18mm board bound to its cabinet. */
+export function computeRearboardForCabinet(rb: BoxElement, cab: BoxElement): BoxElement {
+  return {
+    ...rb,
+    dimensions: {
+      width: cab.dimensions.width,
+      height: cab.dimensions.height,
+      depth: PANEL_T,
+    },
+    position: {
+      x: cab.position.x,
+      y: cab.position.y,
+      z: cab.position.z - cab.dimensions.depth / 2 - PANEL_T / 2,
+    },
+  };
+}
+
 /** Computes position/dimensions of the single legs element (all 4 legs combined) for a cabinet. */
 export function computeLegsForCabinet(legs: BoxElement, cab: BoxElement): BoxElement {
   return {

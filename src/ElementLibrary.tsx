@@ -89,6 +89,7 @@ interface Props {
   onAddDoubleFrontToGroup: (groupId: string) => void;
   onAddMaskowanicaToCabinet: (cabinetId: string, side: 'left' | 'right' | 'bottom' | 'top') => void;
   onAddMaskowanicaToGroup: (groupId: string, side: 'left' | 'right' | 'top' | 'bottom') => void;
+  onAddRearboardToCabinet: (cabinetId: string) => void;
   onUngroup: (groupId: string) => void;
   onDelete: (id: string) => void;
   onClearAll: () => void;
@@ -116,6 +117,7 @@ const ElementLibrary: React.FC<Props> = ({
   onAddBlendaToGroup,
   onAddFrontToGroup, onAddDoubleFrontToGroup,
   onAddMaskowanicaToCabinet, onAddMaskowanicaToGroup,
+  onAddRearboardToCabinet,
   onUngroup, onDelete, onClearAll,
 }) => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -405,19 +407,24 @@ const ElementLibrary: React.FC<Props> = ({
               </li>
             )}
 
-            {/* Section: HDF */}
+            {/* Section: Płyta tylna */}
+            <li className="element-item element-item--section">
+              <span className="element-section-line" />
+              Płyta tylna
+            </li>
             {!elements.some((e) => e.type === 'hdf' && e.cabinetId === cab.id) && (
-              <>
-                <li className="element-item element-item--section">
-                  <span className="element-section-line" />
-                  HDF
-                </li>
-                <li className="element-item element-item--add" onClick={() => onAddHdfToCabinet(cab.id)}>
-                  <span className="element-indent-line" />
-                  <span className="element-add-icon">＋</span>
-                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj płytę HDF</span>
-                </li>
-              </>
+              <li className="element-item element-item--add" onClick={() => onAddHdfToCabinet(cab.id)}>
+                <span className="element-indent-line" />
+                <span className="element-add-icon">＋</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj płytę HDF</span>
+              </li>
+            )}
+            {!elements.some((e) => e.type === 'rearboard' && e.cabinetId === cab.id) && (
+              <li className="element-item element-item--add" onClick={() => onAddRearboardToCabinet(cab.id)}>
+                <span className="element-indent-line" />
+                <span className="element-add-icon">＋</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj płytę tylną 18mm</span>
+              </li>
             )}
 
             {/* Section: Dodatki */}

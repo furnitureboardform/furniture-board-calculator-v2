@@ -4,6 +4,7 @@ import type { BoxElement, BoxDimensions } from '../types';
 import { PANEL_T, DETACH_DIST, HYSTERESIS_DIST, DIVIDER_EDGE_SNAP, DIVIDER_DETACH_DIST, DRAWER_RAIL_CLEARANCE, FRONT_INSET } from '../constants';
 import {
   computeHdfForCabinet,
+  computeRearboardForCabinet,
   computeLegsForCabinet,
   computePlinthForCabinet,
   computeFrontForCabinet,
@@ -174,7 +175,7 @@ export function useDragHandlers({
         const movedAfter = afterMove.find((e) => e.id === id)!;
 
         // Fronts, HDF and cabinet-bound rods/legs are always locked in XZ
-        if (movedEl.type === 'front' || movedEl.type === 'hdf' || (movedEl.type === 'rod' && movedEl.cabinetId) || (movedEl.type === 'leg' && movedEl.cabinetId) || (movedEl.type === 'plinth' && movedEl.cabinetId) || (movedEl.type === 'maskowanica' && movedEl.cabinetId)) return prev;
+        if (movedEl.type === 'front' || movedEl.type === 'hdf' || movedEl.type === 'rearboard' || (movedEl.type === 'rod' && movedEl.cabinetId) || (movedEl.type === 'leg' && movedEl.cabinetId) || (movedEl.type === 'plinth' && movedEl.cabinetId) || (movedEl.type === 'maskowanica' && movedEl.cabinetId)) return prev;
 
         if (movedEl.type === 'shelf' || movedEl.type === 'board' || movedEl.type === 'divider') {
           if (movedEl.cabinetId) {
@@ -280,6 +281,7 @@ export function useDragHandlers({
               if (el.cabinetId !== id) return el;
               if (el.type === 'front') return computeFrontForCabinet(el, fitted);
               if (el.type === 'hdf') return computeHdfForCabinet(el, fitted);
+              if (el.type === 'rearboard') return computeRearboardForCabinet(el, fitted);
               if (el.type === 'leg') return computeLegsForCabinet(el, fitted);
               if (el.type === 'maskowanica') return computeMaskowanicaForCabinet(el, fitted, withFitted);
               return { ...el, position: { x: el.position.x + adx, y: el.position.y + ady, z: el.position.z + adz } };
@@ -302,6 +304,7 @@ export function useDragHandlers({
           if (el.cabinetId !== id) return el;
           if (el.type === 'front') return computeFrontForCabinet(el, movedFinal2);
           if (el.type === 'hdf') return computeHdfForCabinet(el, movedFinal2);
+          if (el.type === 'rearboard') return computeRearboardForCabinet(el, movedFinal2);
           if (el.type === 'leg') return computeLegsForCabinet(el, movedFinal2);
           if (el.type === 'plinth') return computePlinthForCabinet(el, movedFinal2, withCollision);
           if (el.type === 'maskowanica') return computeMaskowanicaForCabinet(el, movedFinal2, withCollision);
@@ -456,6 +459,7 @@ export function useDragHandlers({
             if (e.cabinetId !== id) return e;
             if (e.type === 'front') return computeFrontForCabinet(e, movedCab);
             if (e.type === 'hdf') return computeHdfForCabinet(e, movedCab);
+            if (e.type === 'rearboard') return computeRearboardForCabinet(e, movedCab);
             if (e.type === 'leg') return computeLegsForCabinet(e, movedCab);
             if (e.type === 'plinth') return computePlinthForCabinet(e, movedCab, prev);
             if (e.type === 'maskowanica') return computeMaskowanicaForCabinet(e, movedCab, prev);
@@ -509,7 +513,7 @@ export function useDragHandlers({
         let minDx = -Infinity, maxDx = Infinity, minDz = -Infinity, maxDz = Infinity;
         prev.forEach((el) => {
           if (!idSet.has(el.id)) return;
-          if (el.type === 'front' || el.type === 'hdf' || (el.cabinetId && !idSet.has(el.cabinetId))) return;
+          if (el.type === 'front' || el.type === 'hdf' || el.type === 'rearboard' || (el.cabinetId && !idSet.has(el.cabinetId))) return;
           const hw = el.dimensions.width / 2;
           const hd = el.dimensions.depth / 2;
           minDx = Math.max(minDx, -bw / 2 + hw - el.position.x);
@@ -522,7 +526,7 @@ export function useDragHandlers({
         // First pass: move top-level selected elements
         let updated = prev.map((el) => {
           if (!idSet.has(el.id)) return el;
-          if (el.type === 'front' || el.type === 'hdf' || (el.cabinetId && !idSet.has(el.cabinetId))) return el;
+          if (el.type === 'front' || el.type === 'hdf' || el.type === 'rearboard' || (el.cabinetId && !idSet.has(el.cabinetId))) return el;
           return { ...el, position: { ...el.position, x: el.position.x + cdx, z: el.position.z + cdz } };
         });
         // Second pass: recompute children of moved cabinets
@@ -532,6 +536,7 @@ export function useDragHandlers({
           if (!parent || !idSet.has(parent.id)) return el;
           if (el.type === 'front') return computeFrontForCabinet(el, parent);
           if (el.type === 'hdf') return computeHdfForCabinet(el, parent);
+          if (el.type === 'rearboard') return computeRearboardForCabinet(el, parent);
           if (el.type === 'leg') return computeLegsForCabinet(el, parent);
           if (el.type === 'plinth') return computePlinthForCabinet(el, parent, updated);
           if (el.type === 'maskowanica') return computeMaskowanicaForCabinet(el, parent, updated);

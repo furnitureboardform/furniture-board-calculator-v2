@@ -12,6 +12,7 @@ import {
   rebuildDivider,
   rebuildFront,
   rebuildHdf,
+  rebuildRearboard,
   rebuildRod,
   rebuildLeg,
   rebuildMaskowanica,
@@ -230,6 +231,7 @@ export function useThreeScene(
       else if (element.type === 'divider') rebuildDivider(mesh, element, color, emissive);
       else if (element.type === 'front') rebuildFront(mesh, element, color, emissive);
       else if (element.type === 'hdf') rebuildHdf(mesh, element, emissive);
+      else if (element.type === 'rearboard') rebuildRearboard(mesh, element, color, emissive);
       else if (element.type === 'rod') rebuildRod(mesh, element, color, emissive);
       else if (element.type === 'leg') rebuildLeg(mesh, element, color, emissive);
       else if (element.type === 'maskowanica') rebuildMaskowanica(mesh, element, color, emissive);
