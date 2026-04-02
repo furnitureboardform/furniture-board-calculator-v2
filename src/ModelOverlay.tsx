@@ -102,6 +102,7 @@ const ModelOverlay: React.FC<Props> = ({
   const [saving, setSaving] = useState(false);
   const [overwritingId, setOverwritingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmOverwriteId, setConfirmOverwriteId] = useState<string | null>(null);
 
   const groups              = elements.filter((e) => e.type === 'group');
   const standaloneCabs      = elements.filter((e) => e.type === 'cabinet' && !e.groupIds?.length);
@@ -391,7 +392,7 @@ const ModelOverlay: React.FC<Props> = ({
                   </button>
                   <button
                     className="mo-model-btn mo-model-btn--overwrite"
-                    onClick={() => handleOverwrite(m.id)}
+                    onClick={() => setConfirmOverwriteId(m.id)}
                     disabled={overwritingId === m.id}
                     title="Nadpisz model aktualnym stanem"
                   >
@@ -410,6 +411,23 @@ const ModelOverlay: React.FC<Props> = ({
           </div>
         </div>
       )}
+
+      {confirmOverwriteId && (() => {
+        const model = savedModels.find((m) => m.id === confirmOverwriteId);
+        return createPortal(
+          <div className="clear-all-overlay" onClick={() => setConfirmOverwriteId(null)}>
+            <div className="clear-all-dialog" onClick={(e) => e.stopPropagation()}>
+              <p>Nadpisać model „{model?.name}" aktualnym stanem?</p>
+              <div className="clear-all-actions">
+                <button className="clear-all-cancel" onClick={() => setConfirmOverwriteId(null)}>Anuluj</button>
+                <button className="clear-all-confirm" style={{ background: '#1a2d25', borderColor: '#4ec9b0', color: '#4ec9b0' }}
+                  onClick={() => { handleOverwrite(confirmOverwriteId); setConfirmOverwriteId(null); }}>Nadpisz</button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        );
+      })()}
 
       {confirmDeleteId && (() => {
         const model = savedModels.find((m) => m.id === confirmDeleteId);
