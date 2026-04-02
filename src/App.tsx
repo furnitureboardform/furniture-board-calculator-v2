@@ -5,6 +5,7 @@ import { useHistory } from './hooks/useHistory';
 import { useDragHandlers } from './hooks/useDragHandlers';
 import { useElementActions } from './hooks/useElementActions';
 import { useKeyboard } from './hooks/useKeyboard';
+import { useSavedModels } from './hooks/useSavedModels';
 import ElementLibrary from './ElementLibrary';
 import PropertiesPanel from './PropertiesPanel';
 import ModelOverlay from './ModelOverlay';
@@ -25,6 +26,10 @@ const App: React.FC = () => {
   const detachedFromRef = useRef<Map<string, string>>(new Map());
   const finishes = useFinishes();
   const finishColorMap = useMemo(() => new Map(finishes.filter(f => f.colorHex).map(f => [f.id, f.colorHex!])), [finishes]);
+  const { savedModels, loading: modelsLoading, saveModel, deleteModel, overwriteModel } = useSavedModels();
+  const handleSaveModel = async (name: string) => { await saveModel(name, elements); };
+  const handleLoadModel = (model: { elements: typeof elements }) => { setElements(model.elements); };
+  const handleOverwriteModel = async (id: string) => { await overwriteModel(id, elements); };
 
   const {
     handleDimensionDrag,
@@ -145,7 +150,17 @@ const App: React.FC = () => {
       </aside>
 
       <main className="viewport" ref={containerRef}>
-        <ModelOverlay elements={elements} showCeilingGrid={showCeilingGrid} onToggleCeilingGrid={setShowCeilingGrid} />
+        <ModelOverlay
+          elements={elements}
+          showCeilingGrid={showCeilingGrid}
+          onToggleCeilingGrid={setShowCeilingGrid}
+          savedModels={savedModels}
+          modelsLoading={modelsLoading}
+          onSaveModel={handleSaveModel}
+          onLoadModel={handleLoadModel}
+          onDeleteModel={deleteModel}
+          onOverwriteModel={handleOverwriteModel}
+        />
         <OrderModal elements={elements} />
         <div className="undo-redo-fab">
           <button
