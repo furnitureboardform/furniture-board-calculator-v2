@@ -531,7 +531,7 @@ export function useDragHandlers({
         });
         // Second pass: recompute children of moved cabinets
         updated = updated.map((el) => {
-          if (!el.cabinetId || idSet.has(el.id)) return el;
+          if (!el.cabinetId) return el;
           const parent = updated.find((e) => e.id === el.cabinetId);
           if (!parent || !idSet.has(parent.id)) return el;
           if (el.type === 'front') return computeFrontForCabinet(el, parent);

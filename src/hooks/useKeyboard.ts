@@ -12,17 +12,25 @@ interface Params {
   selectedId: string | null;
   multiSelectedIds: string[];
   handleDelete: (id: string) => void;
+  elements: BoxElement[];
   setElements: React.Dispatch<React.SetStateAction<BoxElement[]>>;
+  setMultiSelectedIds: React.Dispatch<React.SetStateAction<string[]>>;
   undo: () => void;
   redo: () => void;
   handleDividerSwitchSlot?: (id: string) => void;
 }
 
-export function useKeyboard({ selectedId, multiSelectedIds, handleDelete, setElements, undo, redo, handleDividerSwitchSlot }: Params) {
+export function useKeyboard({ selectedId, multiSelectedIds, handleDelete, elements, setElements, setMultiSelectedIds, undo, redo, handleDividerSwitchSlot }: Params) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setMultiSelectedIds(elements.map((el) => el.id));
+        return;
+      }
 
       if (e.key === 'Control' && selectedId && handleDividerSwitchSlot) {
         handleDividerSwitchSlot(selectedId);
@@ -88,5 +96,5 @@ export function useKeyboard({ selectedId, multiSelectedIds, handleDelete, setEle
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectedId, multiSelectedIds, handleDelete, setElements, undo, redo]);
+  }, [selectedId, multiSelectedIds, handleDelete, elements, setElements, setMultiSelectedIds, undo, redo]);
 }

@@ -84,7 +84,7 @@ const App: React.FC = () => {
     handleClearAll,
   } = useElementActions({ setElements, setSelectedId, setMultiSelectedIds, boardSizeRef, dividerYHintRef, dragDeltaRef, detachedFromRef });
 
-  useKeyboard({ selectedId, multiSelectedIds, handleDelete, setElements, undo, redo, handleDividerSwitchSlot });
+  useKeyboard({ selectedId, multiSelectedIds, handleDelete, elements, setElements, setMultiSelectedIds, undo, redo, handleDividerSwitchSlot });
 
   useThreeScene(containerRef, {
     elements,
