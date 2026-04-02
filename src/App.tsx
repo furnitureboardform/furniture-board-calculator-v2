@@ -91,6 +91,10 @@ const App: React.FC = () => {
     onDragStart: handleDragStart,
   }, showCeilingGrid);
 
+  const handleFinishChange = (id: string, finishId: string | undefined) => {
+    setElements((prev) => prev.map((e) => e.id === id ? { ...e, finishId } : e));
+  };
+
   const selectedElement = elements.find((e) => e.id === selectedId) ?? null;
   const selectedCabHasFront = selectedElement?.type === 'cabinet' &&
     elements.some((e) => e.type === 'front' && e.cabinetId === selectedElement.id);
@@ -174,6 +178,7 @@ const App: React.FC = () => {
           onShelfSwitchBay={handleShelfSwitchBay}
           onDividerSwitchSlot={handleDividerSwitchSlot}
           onRotate={(id) => handleRotateCabinet(id)}
+          onFinishChange={handleFinishChange}
         />
       </aside>
     </div>

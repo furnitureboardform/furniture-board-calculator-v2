@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { BoxElement, BoxDimensions } from './types';
 import { PANEL_T } from './constants';
+import { useFinishes } from './hooks/useFinishes';
 import './PropertiesPanel.css';
 
 interface Props {
@@ -23,6 +24,7 @@ interface Props {
   onMaskownicaNiepelnaChange?: (v: boolean) => void;
   onFrontNoHandleChange?: (v: boolean) => void;
   onRotate?: (id: string) => void;
+  onFinishChange?: (id: string, finishId: string | undefined) => void;
 }
 
 type DimKey = keyof BoxDimensions;
@@ -31,7 +33,8 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onFrontNoHandleChange, onRotate }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onFrontNoHandleChange, onRotate, onFinishChange }) => {
+  const finishes = useFinishes();
   // Local draft strings so the user can type freely
   const [drafts, setDrafts] = useState<Record<DimKey, string>>({ width: '', height: '', depth: '' });
   const [yDraft, setYDraft] = useState('');
@@ -457,6 +460,32 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
               <button className="prop-switch-bay-btn" onClick={() => onShelfSwitchBay(element.id)}>
                 ⇄ Przesuń na drugą stronę
               </button>
+            </div>
+          </>
+        );
+      })()}
+
+      {onFinishChange && finishes.length > 0 && (() => {
+        const sel = finishes.find((f) => f.id === element.finishId);
+        return (
+          <>
+            <div className="prop-divider" />
+            <div className="prop-finish-section">
+              <span className="prop-label">Okleina</span>
+              <div className="prop-finish-row">
+                {sel?.imageBase64 && (
+                  <img src={sel.imageBase64} alt={sel.label} className="prop-finish-thumb" />
+                )}
+                <select
+                  className="prop-finish-select"
+                  value={element.finishId ?? ''}
+                  onChange={(e) => onFinishChange(element.id, e.target.value || undefined)}
+                >
+                  {finishes.map((f) => (
+                    <option key={f.id} value={f.id}>{f.label} · {f.brand}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </>
         );

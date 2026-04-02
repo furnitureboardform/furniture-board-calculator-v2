@@ -185,3 +185,41 @@
   color: #cccccc;
   min-width: 62px;
 }
+
+/* Finish/veneer selector */
+.prop-finish-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.prop-finish-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prop-finish-thumb {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid #3a3a4a;
+}
+
+.prop-finish-select {
+  flex: 1;
+  background: #1e1e2e;
+  color: #cccccc;
+  border: 1px solid #3a3a4a;
+  border-radius: 4px;
+  padding: 5px 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.prop-finish-select:focus {
+  outline: none;
+  border-color: #1a8ad4;
+}

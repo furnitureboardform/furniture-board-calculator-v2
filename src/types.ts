@@ -27,6 +27,7 @@ export interface BoxElement {
   frontHeight?: number;         // only for drawer: manual front height override
   parentIsDrawerbox?: boolean;  // only for drawer: true when parent is a drawerbox
   pushToOpen?: boolean;         // only for drawer: push-to-open mechanism
+  finishId?: string;            // optional: selected finish/veneer from Firebase
   dimensions: BoxDimensions;
   position: { x: number; y: number; z: number };
   color: string;

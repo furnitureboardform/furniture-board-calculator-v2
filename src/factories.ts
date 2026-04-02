@@ -1,6 +1,8 @@
 import type { BoxElement } from './types';
 import { COLORS } from './constants';
 
+const DEFAULT_FINISH_ID = 'A2T61OgxOb5IpWNoMzsW';
+
 let colorIndex = 0;
 export let boxCounter = 1;
 export let shelfCounter = 1;
@@ -37,6 +39,7 @@ export function createBox(): BoxElement {
     dimensions: { width: 1, height: 1, depth: 1 },
     position: { x: 0, y: 0, z: 0 },
     color,
+    finishId: DEFAULT_FINISH_ID,
   };
 }
 
@@ -49,6 +52,7 @@ export function createBoard(): BoxElement {
     dimensions: { width: 0.6, height: 0.6, depth: 0.018 },
     position: { x: 0, y: 0.3, z: 0 },
     color,
+    finishId: DEFAULT_FINISH_ID,
   };
 }
 
@@ -61,6 +65,7 @@ export function createShelf(): BoxElement {
     dimensions: { width: 0.8, height: 0.018, depth: 0.38 },
     position: { x: 0, y: 0.3, z: 0 },
     color,
+    finishId: DEFAULT_FINISH_ID,
   };
 }
 
@@ -73,5 +78,6 @@ export function createBoxKuchenny(): BoxElement {
     dimensions: { width: 1, height: 1, depth: 0.6 },
     position: { x: 0, y: 0, z: 0 },
     color,
+    finishId: DEFAULT_FINISH_ID,
   };
 }
