@@ -302,8 +302,9 @@ export function computeStretchCollisionMax(
 
   for (const other of elements) {
     if (other.id === el.id) continue;
-    if (other.cabinetId) continue;
-    if (!STRETCH_BLOCKER_TYPES.has(other.type)) continue;
+    const isMaskowanica = other.type === 'maskowanica';
+    if (other.cabinetId && !isMaskowanica) continue;
+    if (!isMaskowanica && !STRETCH_BLOCKER_TYPES.has(other.type)) continue;
 
     if (axis === 'width') {
       const yOverlap =
