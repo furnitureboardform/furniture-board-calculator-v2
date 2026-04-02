@@ -1,5 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { useThreeScene } from './useThreeScene';
+import { useFinishes } from './hooks/useFinishes';
 import { useHistory } from './hooks/useHistory';
 import { useDragHandlers } from './hooks/useDragHandlers';
 import { useElementActions } from './hooks/useElementActions';
@@ -22,6 +23,8 @@ const App: React.FC = () => {
   const dividerYHintRef = useRef<Map<string, number>>(new Map());
   const dragDeltaRef = useRef<Map<string, { dx: number; dz: number }>>(new Map());
   const detachedFromRef = useRef<Map<string, string>>(new Map());
+  const finishes = useFinishes();
+  const finishColorMap = useMemo(() => new Map(finishes.filter(f => f.colorHex).map(f => [f.id, f.colorHex!])), [finishes]);
 
   const {
     handleDimensionDrag,
@@ -83,6 +86,7 @@ const App: React.FC = () => {
     selectedId,
     multiSelectedIds,
     boardSize: { width: boardSize.width / 1000, depth: boardSize.depth / 1000, height: boardSize.height / 1000 },
+    finishColorMap,
     onSelect: handleSelect,
     onMultiSelectToggle: handleMultiSelectToggle,
     onDimensionChange: handleDimensionDrag,

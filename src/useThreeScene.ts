@@ -24,6 +24,7 @@ interface UseThreeSceneOptions {
   selectedId: string | null;
   multiSelectedIds: string[];
   boardSize: { width: number; depth: number; height: number };
+  finishColorMap?: Map<string, string>;
   onSelect: (id: string | null) => void;
   onMultiSelectToggle: (id: string) => void;
   onDimensionChange: (id: string, axis: 'width' | 'height' | 'depth', delta: number, dir: number) => void;
@@ -407,9 +408,9 @@ export function useThreeScene(
       const isSelected = element.id === selectedId;
       const isMultiSelected = multiSelectedIds.includes(element.id);
 
-      const color = (element.type === 'front' || element.type === 'plinth' || element.type === 'blenda' || element.type === 'maskowanica' || element.type === 'board')
-        ? PANEL_COLOR
-        : BOARD_COLOR;
+      const isPanelType = element.type === 'front' || element.type === 'plinth' || element.type === 'blenda' || element.type === 'maskowanica' || element.type === 'board';
+      const finishHex = element.finishId ? optionsRef.current.finishColorMap?.get(element.finishId) : undefined;
+      const color = finishHex ? new THREE.Color(finishHex) : (isPanelType ? PANEL_COLOR : BOARD_COLOR);
       const emissive = new THREE.Color(isSelected ? 0x224488 : isMultiSelected ? 0x442266 : 0x000000);
 
       const rotY = getCabRotY(element);
