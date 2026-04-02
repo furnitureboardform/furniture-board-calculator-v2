@@ -49,6 +49,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
   // Sync drafts when element changes (different selection or external update)
   useEffect(() => {
     if (!element) return;
+    setFinishOpen(false);
     setDrafts({
       width: toMm(element.dimensions.width),
       height: toMm(element.dimensions.height),
