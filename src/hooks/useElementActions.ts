@@ -16,6 +16,7 @@ import {
   computeMaskowanicaForCabinet,
   computeMaskowanicaForGroup,
   computeMaskowanicasHorizForGroup,
+  recomputeHorizMaskGeometry,
   recomputeGroups,
 } from '../computeElements';
 import { computeDividerBounds, computeYForBox, switchShelfToNextBay, switchDrawerToNextBay, switchDividerToNextSlot } from '../geometry';
@@ -787,7 +788,12 @@ export function useElementActions({
           }
           const group = filtered.find((e) => e.id === el.cabinetId && e.type === 'group');
           if (group) {
-            return recomputeGroups(filtered);
+            return filtered.map((e) => {
+              if (e.type !== 'maskowanica' || e.cabinetId !== group.id) return e;
+              if (e.maskownicaSide === 'left' || e.maskownicaSide === 'right') return computeMaskowanicaForGroup(e, filtered);
+              if (e.maskownicaSide === el.maskownicaSide) return recomputeHorizMaskGeometry(e, filtered);
+              return e;
+            });
           }
         }
         if (el?.type === 'blenda' && el.blendaSide === 'top' && el.blendaScope === 'cabinet' && el.cabinetId) {

@@ -515,6 +515,45 @@ export function computeBlendaTopForGroup(
   return mapSegments(template, segments, group.position.y + group.dimensions.height, zFront, BLENDA_CAB_DEPTH, PANEL_T);
 }
 
+function computeHorizMaskYZDepth(
+  template: BoxElement,
+  members: BoxElement[],
+  allElements: BoxElement[],
+): { yPos: number; zPos: number; totalDepth: number } {
+  const maxFaceZ = Math.max(...members.map((c) => c.position.z + c.dimensions.depth / 2));
+  const minBackZ = Math.min(...members.map((c) => c.position.z - c.dimensions.depth / 2));
+  const totalDepth = template.niepelna ? 0.08 : (maxFaceZ - minBackZ) + MASK_FRONT_EXT + MASK_BACK_EXT;
+  const zPos = template.niepelna
+    ? maxFaceZ + MASK_FRONT_EXT - 0.04
+    : (maxFaceZ + MASK_FRONT_EXT + minBackZ - MASK_BACK_EXT) / 2;
+  let yPos: number;
+  if (template.maskownicaSide === 'top') {
+    yPos = Math.max(...members.map((c) => c.position.y + c.dimensions.height));
+  } else {
+    yPos = Math.min(...members.map((c) => {
+      const legs = allElements.find((e) => e.type === 'leg' && e.cabinetId === c.id);
+      return c.position.y - (legs ? legs.dimensions.height : 0);
+    })) - PANEL_T;
+  }
+  return { yPos, zPos, totalDepth };
+}
+
+export function recomputeHorizMaskGeometry(
+  seg: BoxElement,
+  allElements: BoxElement[],
+): BoxElement {
+  const group = allElements.find((e) => e.id === seg.cabinetId);
+  if (!group) return seg;
+  const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
+  if (members.length === 0) return seg;
+  const { yPos, zPos, totalDepth } = computeHorizMaskYZDepth(seg, members, allElements);
+  return {
+    ...seg,
+    dimensions: { ...seg.dimensions, depth: totalDepth },
+    position: { ...seg.position, y: yPos, z: zPos },
+  };
+}
+
 export function computeMaskowanicasHorizForGroup(
   template: BoxElement,
   allElements: BoxElement[],
@@ -526,23 +565,7 @@ export function computeMaskowanicasHorizForGroup(
 
   const minX = Math.min(...members.map((c) => c.position.x - c.dimensions.width / 2));
   const maxX = Math.max(...members.map((c) => c.position.x + c.dimensions.width / 2));
-  const maxFaceZ = Math.max(...members.map((c) => c.position.z + c.dimensions.depth / 2));
-  const minBackZ = Math.min(...members.map((c) => c.position.z - c.dimensions.depth / 2));
-  const totalDepth = template.niepelna ? 0.08 : (maxFaceZ - minBackZ) + MASK_FRONT_EXT + MASK_BACK_EXT;
-  const zPos = template.niepelna
-    ? maxFaceZ + MASK_FRONT_EXT - 0.04
-    : (maxFaceZ + MASK_FRONT_EXT + minBackZ - MASK_BACK_EXT) / 2;
-
-  let yPos: number;
-  if (template.maskownicaSide === 'top') {
-    yPos = Math.max(...members.map((c) => c.position.y + c.dimensions.height));
-  } else {
-    yPos = Math.min(...members.map((c) => {
-      const legs = allElements.find((e) => e.type === 'leg' && e.cabinetId === c.id);
-      return c.position.y - (legs ? legs.dimensions.height : 0);
-    })) - PANEL_T;
-  }
-
+  const { yPos, zPos, totalDepth } = computeHorizMaskYZDepth(template, members, allElements);
   const segments = splitAtJoints(minX, maxX, getGroupJoints(group, members));
   return mapSegments(template, segments, yPos, zPos, PANEL_T, totalDepth);
 }
@@ -627,7 +650,23 @@ export function recomputeGroups(elements: BoxElement[]): BoxElement[] {
         const key = `${linked.id}:${e.maskownicaSide}`;
         if (groupsWithHorizMasks.has(key)) continue;
         groupsWithHorizMasks.add(key);
-        result6.push(...computeMaskowanicasHorizForGroup(e, result5));
+        const existing = result5.filter(
+          (s) => s.type === 'maskowanica' && s.cabinetId === linked.id && s.maskownicaSide === e.maskownicaSide
+        );
+        const members = result5.filter((s) => s.groupIds?.includes(linked.id) && s.type === 'cabinet');
+        const { yPos, zPos, totalDepth } = computeHorizMaskYZDepth(e, members, result5);
+        const minX = Math.min(...members.map((c) => c.position.x - c.dimensions.width / 2));
+        const maxX = Math.max(...members.map((c) => c.position.x + c.dimensions.width / 2));
+        const targetSegments = splitAtJoints(minX, maxX, getGroupJoints(linked, members));
+        if (existing.length === targetSegments.length) {
+          result6.push(...mapSegments(e, targetSegments, yPos, zPos, PANEL_T, totalDepth).map((seg, i) => ({ ...seg, id: existing[i].id })));
+        } else {
+          result6.push(...existing.map((seg) => ({
+            ...seg,
+            dimensions: { ...seg.dimensions, depth: totalDepth },
+            position: { ...seg.position, y: yPos, z: zPos },
+          })));
+        }
         continue;
       }
     }
