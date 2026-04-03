@@ -1087,11 +1087,18 @@ export function useElementActions({
 
   const handleMaskownicaNiepelnaChange = useCallback((maskId: string, value: boolean) => {
     setElements((prev) => {
+      const mask = prev.find((e) => e.id === maskId);
+      if (!mask || mask.type !== 'maskowanica' || !mask.cabinetId) return prev;
+      const parent = prev.find((p) => p.id === mask.cabinetId);
+      if (!parent) return prev;
+      if (parent.type === 'group' && (mask.maskownicaSide === 'top' || mask.maskownicaSide === 'bottom')) {
+        const isSibling = (e: BoxElement) => e.type === 'maskowanica' && e.cabinetId === mask.cabinetId && e.maskownicaSide === mask.maskownicaSide;
+        const updated = prev.map((e) => isSibling(e) ? { ...e, niepelna: value } : e);
+        return updated.map((e) => isSibling(e) ? recomputeHorizMaskGeometry(e, updated) : e);
+      }
       const updated = prev.map((e) => e.id === maskId ? { ...e, niepelna: value } : e);
       return updated.map((e) => {
         if (e.id !== maskId || e.type !== 'maskowanica' || !e.cabinetId) return e;
-        const parent = updated.find((p) => p.id === e.cabinetId);
-        if (!parent) return e;
         if (parent.type === 'cabinet') return computeMaskowanicaForCabinet(e, parent, updated);
         if (parent.type === 'group') return computeMaskowanicaForGroup(e, updated);
         return e;
