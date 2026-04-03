@@ -7,7 +7,7 @@ import {
   computeRearboardForCabinet,
   computeLegsForCabinet,
   computePlinthForCabinet,
-  computePlinthForGroup,
+  computePlinthsForGroup,
   computeBlendaForCabinet,
   computeBlendaForGroup,
   computeFrontForCabinet,
@@ -457,7 +457,7 @@ export function useElementActions({
       const group = prev.find((e) => e.id === groupId && e.type === 'group');
       if (!group) return prev;
       if (prev.some((e) => e.type === 'plinth' && e.cabinetId === groupId)) return prev;
-      const plinth: BoxElement = computePlinthForGroup({
+      const template: BoxElement = {
         id: crypto.randomUUID(),
         name: `Cokoł gr. ${counters.plinth++}`,
         type: 'plinth',
@@ -465,9 +465,10 @@ export function useElementActions({
         dimensions: { width: 0, height: 0.1, depth: 0 },
         position: { x: 0, y: 0, z: 0 },
         color: group.color,
-      }, group);
+      };
+      const plinths = computePlinthsForGroup(template, group, prev);
       setSelectedId(groupId);
-      const withPlinth = [...prev, plinth];
+      const withPlinth = [...prev, ...plinths];
       return withPlinth.map((e) => {
         if (e.type === 'blenda' && e.blendaScope === 'group' && e.cabinetId === groupId &&
             (e.blendaSide === 'left' || e.blendaSide === 'right')) {

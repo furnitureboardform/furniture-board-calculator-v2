@@ -433,6 +433,63 @@ export function computePlinthForGroup(plinth: BoxElement, group: BoxElement): Bo
   };
 }
 
+const MAX_PLINTH_LENGTH = 2.8; // 2800 mm
+
+/**
+ * Computes one or more plinth segments for a group, splitting at cabinet joints
+ * whenever a segment would exceed MAX_PLINTH_LENGTH (2800 mm).
+ * All returned elements share the same cabinetId (groupId).
+ */
+export function computePlinthsForGroup(
+  template: BoxElement,
+  group: BoxElement,
+  allElements: BoxElement[],
+): BoxElement[] {
+  const height = template.dimensions.height || 0.1;
+  const zFront = group.position.z + group.dimensions.depth / 2 + PANEL_T / 2;
+  const yPos = group.position.y - height;
+
+  const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
+  const groupLeft = group.position.x - group.dimensions.width / 2;
+  const groupRight = group.position.x + group.dimensions.width / 2;
+
+  const joints = members
+    .map((c) => c.position.x + c.dimensions.width / 2)
+    .filter((x) => x > groupLeft + 0.001 && x < groupRight - 0.001)
+    .sort((a, b) => a - b);
+
+  const segments: Array<{ xLeft: number; xRight: number }> = [];
+  let segStart = groupLeft;
+  let lastJoint = groupLeft;
+
+  for (const joint of joints) {
+    if (joint - segStart > MAX_PLINTH_LENGTH) {
+      segments.push({ xLeft: segStart, xRight: lastJoint });
+      segStart = lastJoint;
+    }
+    lastJoint = joint;
+  }
+  // lastJoint > segStart guards against no-joints case (lastJoint stays === groupLeft)
+  if (groupRight - segStart > MAX_PLINTH_LENGTH && lastJoint > segStart) {
+    segments.push({ xLeft: segStart, xRight: lastJoint });
+    segStart = lastJoint;
+  }
+  segments.push({ xLeft: segStart, xRight: groupRight });
+
+  return segments.map((seg, i) => {
+    const w = seg.xRight - seg.xLeft;
+    const xCenter = (seg.xLeft + seg.xRight) / 2;
+    const suffix = segments.length > 1 ? ` cz.${i + 1}` : '';
+    return {
+      ...template,
+      id: i === 0 ? template.id : crypto.randomUUID(),
+      name: template.name + suffix,
+      dimensions: { width: w, height, depth: PANEL_T },
+      position: { x: xCenter, y: yPos, z: zFront },
+    };
+  });
+}
+
 /** Recompute the bounds of a group element from its member cabinets. */
 export function computeGroupBounds(group: BoxElement, allElements: BoxElement[]): BoxElement {
   const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
@@ -470,13 +527,21 @@ export function recomputeGroups(elements: BoxElement[]): BoxElement[] {
     }
     return e;
   });
-  const result4 = result3.map((e) => {
+  const groupsWithPlinths = new Set<string>();
+  const result4: BoxElement[] = [];
+  for (const e of result3) {
     if (e.type === 'plinth' && e.cabinetId) {
       const linked = result3.find((g) => g.id === e.cabinetId);
-      if (linked?.type === 'group') return computePlinthForGroup(e, linked);
+      if (linked?.type === 'group') {
+        if (groupsWithPlinths.has(linked.id)) continue;
+        groupsWithPlinths.add(linked.id);
+        const newSegments = computePlinthsForGroup(e, linked, result3);
+        result4.push(...newSegments);
+        continue;
+      }
     }
-    return e;
-  });
+    result4.push(e);
+  }
   const result5 = result4.map((e) => {
     if (e.type === 'blenda' && e.blendaScope === 'group' && e.cabinetId) {
       const linked = result4.find((g) => g.id === e.cabinetId);
