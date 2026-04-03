@@ -721,6 +721,24 @@ export function useElementActions({
               if (e.type === 'blenda' && e.cabinetId === el.cabinetId) toRemove.add(e.id);
             }
           }
+          if (
+            el?.type === 'maskowanica' &&
+            el.cabinetId &&
+            (el.maskownicaSide === 'top' || el.maskownicaSide === 'bottom')
+          ) {
+            const parentIsGroup = prev.some((e) => e.id === el.cabinetId && e.type === 'group');
+            if (parentIsGroup) {
+              for (const e of prev) {
+                if (
+                  e.type === 'maskowanica' &&
+                  e.cabinetId === el.cabinetId &&
+                  e.maskownicaSide === el.maskownicaSide
+                ) {
+                  toRemove.add(e.id);
+                }
+              }
+            }
+          }
         }
         toRemove.forEach((rid) => {
           dividerYHintRef.current.delete(rid);
@@ -789,9 +807,12 @@ export function useElementActions({
           const group = filtered.find((e) => e.id === el.cabinetId && e.type === 'group');
           if (group) {
             return filtered.map((e) => {
-              if (e.type !== 'maskowanica' || e.cabinetId !== group.id) return e;
-              if (e.maskownicaSide === 'left' || e.maskownicaSide === 'right') return computeMaskowanicaForGroup(e, filtered);
-              if (e.maskownicaSide === el.maskownicaSide) return recomputeHorizMaskGeometry(e, filtered);
+              if (e.type !== 'maskowanica') return e;
+              if (e.maskownicaSide !== 'left' && e.maskownicaSide !== 'right') return e;
+              const parentCab = filtered.find((c) => c.id === e.cabinetId && c.type === 'cabinet');
+              if (parentCab) return computeMaskowanicaForCabinet(e, parentCab, filtered);
+              const parentGroup = filtered.find((c) => c.id === e.cabinetId && c.type === 'group');
+              if (parentGroup) return computeMaskowanicaForGroup(e, filtered);
               return e;
             });
           }
