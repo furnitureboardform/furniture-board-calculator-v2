@@ -475,12 +475,13 @@ function mapSegments(
   segHeight: number,
   segDepth: number,
 ): BoxElement[] {
+  const baseName = segments.length > 1 ? template.name.replace(/ cz\.\d+$/, '') : template.name;
   return segments.map((seg, i) => {
     const suffix = segments.length > 1 ? ` cz.${i + 1}` : '';
     return {
       ...template,
       id: i === 0 ? template.id : crypto.randomUUID(),
-      name: template.name + suffix,
+      name: baseName + suffix,
       dimensions: { width: seg.xRight - seg.xLeft, height: segHeight, depth: segDepth },
       position: { x: (seg.xLeft + seg.xRight) / 2, y: yPos, z: zPos },
     };
