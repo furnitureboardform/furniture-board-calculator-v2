@@ -1,5 +1,5 @@
 import type { BoxElement } from './types';
-import { PANEL_T, STACK_OVERLAP, DRAWER_RAIL_CLEARANCE, FRONT_INSET } from './constants';
+import { PANEL_T, STACK_OVERLAP, SNAP_DIST, DRAWER_RAIL_CLEARANCE, FRONT_INSET } from './constants';
 import {
   computeHdfForCabinet,
   computeRearboardForCabinet,
@@ -53,7 +53,8 @@ export function fitCabinetToBelow(cabinet: BoxElement, allElements: BoxElement[]
     if (other.id === cabinet.id || other.type !== 'cabinet') continue;
     const otherTop = other.position.y + other.dimensions.height;
     if (Math.abs(cabinet.position.y - otherTop) > 0.001) continue;
-    if (!getBoxOverlap(cabinet, other)) continue;
+    if (Math.abs(cabinet.position.x - other.position.x) > SNAP_DIST) continue;
+    if (Math.abs(cabinet.position.z - other.position.z) > SNAP_DIST) continue;
     return {
       ...cabinet,
       dimensions: { ...cabinet.dimensions, width: other.dimensions.width, depth: other.dimensions.depth },
