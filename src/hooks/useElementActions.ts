@@ -10,10 +10,12 @@ import {
   computePlinthsForGroup,
   computeBlendaForCabinet,
   computeBlendaForGroup,
+  computeBlendaTopForGroup,
   computeFrontForCabinet,
   computeFrontForGroup,
   computeMaskowanicaForCabinet,
   computeMaskowanicaForGroup,
+  computeMaskowanicasHorizForGroup,
   recomputeGroups,
 } from '../computeElements';
 import { computeDividerBounds, computeYForBox, switchShelfToNextBay, switchDrawerToNextBay, switchDividerToNextSlot } from '../geometry';
@@ -516,7 +518,7 @@ export function useElementActions({
       if (!group) return prev;
       if (prev.some((e) => e.type === 'blenda' && e.cabinetId === groupId && e.blendaSide === side && e.blendaScope === 'group')) return prev;
       const label = side === 'left' ? 'lewa' : side === 'right' ? 'prawa' : 'górna';
-      const blenda: BoxElement = computeBlendaForGroup({
+      const template: BoxElement = {
         id: crypto.randomUUID(),
         name: `Blenda gr. ${label} ${counters.blenda++}`,
         type: 'blenda',
@@ -526,17 +528,19 @@ export function useElementActions({
         dimensions: { width: 0, height: 0, depth: 0 },
         position: { x: 0, y: 0, z: 0 },
         color: group.color,
-      }, group, prev);
-      const withBlenda = [...prev, blenda];
+      };
       if (side === 'top') {
-        return withBlenda.map((e) =>
+        const blendas = computeBlendaTopForGroup(template, group, prev);
+        const withBlendas = [...prev, ...blendas];
+        return withBlendas.map((e) =>
           e.type === 'blenda' && e.cabinetId === groupId &&
           (e.blendaSide === 'left' || e.blendaSide === 'right') && e.blendaScope === 'group'
-            ? computeBlendaForGroup(e, group, withBlenda)
+            ? computeBlendaForGroup(e, group, withBlendas)
             : e
         );
       }
-      return withBlenda;
+      const blenda = computeBlendaForGroup(template, group, prev);
+      return [...prev, blenda];
     });
   }, [setElements]);
 
@@ -593,7 +597,7 @@ export function useElementActions({
       if (!group) return prev;
       if (prev.some((e) => e.type === 'maskowanica' && e.cabinetId === groupId && e.maskownicaSide === side)) return prev;
       const sideLabel = side === 'left' ? 'L' : side === 'right' ? 'P' : side === 'top' ? 'G' : 'D';
-      const mask: BoxElement = computeMaskowanicaForGroup({
+      const template: BoxElement = {
         id: crypto.randomUUID(),
         name: `Maskowanica gr. ${sideLabel}${counters.maskowanica++}`,
         type: 'maskowanica',
@@ -602,8 +606,12 @@ export function useElementActions({
         dimensions: { width: 0, height: 0, depth: 0 },
         position: { x: 0, y: 0, z: 0 },
         color: group.color,
-      }, prev);
-      if (side === 'top' || side === 'bottom') return recomputeGroups([...prev, mask]);
+      };
+      if (side === 'top' || side === 'bottom') {
+        const masks = computeMaskowanicasHorizForGroup(template, prev);
+        return recomputeGroups([...prev, ...masks]);
+      }
+      const mask = computeMaskowanicaForGroup(template, prev);
       const bw = boardSizeRef.current.width / 1000;
       const maskLeft = mask.position.x - mask.dimensions.width / 2;
       const maskRight = mask.position.x + mask.dimensions.width / 2;

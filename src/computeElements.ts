@@ -433,61 +433,117 @@ export function computePlinthForGroup(plinth: BoxElement, group: BoxElement): Bo
   };
 }
 
-const MAX_PLINTH_LENGTH = 2.8; // 2800 mm
+const MAX_BOARD_LENGTH = 2.8; // 2800 mm
 
-/**
- * Computes one or more plinth segments for a group, splitting at cabinet joints
- * whenever a segment would exceed MAX_PLINTH_LENGTH (2800 mm).
- * All returned elements share the same cabinetId (groupId).
- */
-export function computePlinthsForGroup(
-  template: BoxElement,
-  group: BoxElement,
-  allElements: BoxElement[],
-): BoxElement[] {
-  const height = template.dimensions.height || 0.1;
-  const zFront = group.position.z + group.dimensions.depth / 2 + PANEL_T / 2;
-  const yPos = group.position.y - height;
-
-  const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
-  const groupLeft = group.position.x - group.dimensions.width / 2;
-  const groupRight = group.position.x + group.dimensions.width / 2;
-
-  const joints = members
-    .map((c) => c.position.x + c.dimensions.width / 2)
-    .filter((x) => x > groupLeft + 0.001 && x < groupRight - 0.001)
-    .sort((a, b) => a - b);
-
+/** Splits [groupLeft, groupRight] into segments ≤ MAX_BOARD_LENGTH, breaking only at joint X positions. */
+function splitAtJoints(groupLeft: number, groupRight: number, joints: number[]): Array<{ xLeft: number; xRight: number }> {
   const segments: Array<{ xLeft: number; xRight: number }> = [];
   let segStart = groupLeft;
   let lastJoint = groupLeft;
 
   for (const joint of joints) {
-    if (joint - segStart > MAX_PLINTH_LENGTH) {
+    if (joint - segStart > MAX_BOARD_LENGTH) {
       segments.push({ xLeft: segStart, xRight: lastJoint });
       segStart = lastJoint;
     }
     lastJoint = joint;
   }
   // lastJoint > segStart guards against no-joints case (lastJoint stays === groupLeft)
-  if (groupRight - segStart > MAX_PLINTH_LENGTH && lastJoint > segStart) {
+  if (groupRight - segStart > MAX_BOARD_LENGTH && lastJoint > segStart) {
     segments.push({ xLeft: segStart, xRight: lastJoint });
     segStart = lastJoint;
   }
   segments.push({ xLeft: segStart, xRight: groupRight });
+  return segments;
+}
 
+/** Returns sorted X positions of cabinet joints within the group (right edges, excluding group edges). */
+function getGroupJoints(group: BoxElement, members: BoxElement[]): number[] {
+  const groupLeft = group.position.x - group.dimensions.width / 2;
+  const groupRight = group.position.x + group.dimensions.width / 2;
+  return members
+    .map((c) => c.position.x + c.dimensions.width / 2)
+    .filter((x) => x > groupLeft + 0.001 && x < groupRight - 0.001)
+    .sort((a, b) => a - b);
+}
+
+function mapSegments(
+  template: BoxElement,
+  segments: Array<{ xLeft: number; xRight: number }>,
+  yPos: number,
+  zPos: number,
+  segHeight: number,
+  segDepth: number,
+): BoxElement[] {
   return segments.map((seg, i) => {
-    const w = seg.xRight - seg.xLeft;
-    const xCenter = (seg.xLeft + seg.xRight) / 2;
     const suffix = segments.length > 1 ? ` cz.${i + 1}` : '';
     return {
       ...template,
       id: i === 0 ? template.id : crypto.randomUUID(),
       name: template.name + suffix,
-      dimensions: { width: w, height, depth: PANEL_T },
-      position: { x: xCenter, y: yPos, z: zFront },
+      dimensions: { width: seg.xRight - seg.xLeft, height: segHeight, depth: segDepth },
+      position: { x: (seg.xLeft + seg.xRight) / 2, y: yPos, z: zPos },
     };
   });
+}
+
+export function computePlinthsForGroup(
+  template: BoxElement,
+  group: BoxElement,
+  allElements: BoxElement[],
+): BoxElement[] {
+  const height = template.dimensions.height || 0.1;
+  const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
+  const groupLeft = group.position.x - group.dimensions.width / 2;
+  const groupRight = group.position.x + group.dimensions.width / 2;
+  const segments = splitAtJoints(groupLeft, groupRight, getGroupJoints(group, members));
+  const zFront = group.position.z + group.dimensions.depth / 2 + PANEL_T / 2;
+  return mapSegments(template, segments, group.position.y - height, zFront, height, PANEL_T);
+}
+
+export function computeBlendaTopForGroup(
+  template: BoxElement,
+  group: BoxElement,
+  allElements: BoxElement[],
+): BoxElement[] {
+  const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
+  const groupLeft = group.position.x - group.dimensions.width / 2;
+  const groupRight = group.position.x + group.dimensions.width / 2;
+  const segments = splitAtJoints(groupLeft, groupRight, getGroupJoints(group, members));
+  const zFront = group.position.z + group.dimensions.depth / 2 + PANEL_T / 2;
+  return mapSegments(template, segments, group.position.y + group.dimensions.height, zFront, BLENDA_CAB_DEPTH, PANEL_T);
+}
+
+export function computeMaskowanicasHorizForGroup(
+  template: BoxElement,
+  allElements: BoxElement[],
+): BoxElement[] {
+  const group = allElements.find((e) => e.id === template.cabinetId);
+  if (!group) return [computeMaskowanicaForGroup(template, allElements)];
+  const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
+  if (members.length === 0) return [computeMaskowanicaForGroup(template, allElements)];
+
+  const minX = Math.min(...members.map((c) => c.position.x - c.dimensions.width / 2));
+  const maxX = Math.max(...members.map((c) => c.position.x + c.dimensions.width / 2));
+  const maxFaceZ = Math.max(...members.map((c) => c.position.z + c.dimensions.depth / 2));
+  const minBackZ = Math.min(...members.map((c) => c.position.z - c.dimensions.depth / 2));
+  const totalDepth = template.niepelna ? 0.08 : (maxFaceZ - minBackZ) + MASK_FRONT_EXT + MASK_BACK_EXT;
+  const zPos = template.niepelna
+    ? maxFaceZ + MASK_FRONT_EXT - 0.04
+    : (maxFaceZ + MASK_FRONT_EXT + minBackZ - MASK_BACK_EXT) / 2;
+
+  let yPos: number;
+  if (template.maskownicaSide === 'top') {
+    yPos = Math.max(...members.map((c) => c.position.y + c.dimensions.height));
+  } else {
+    yPos = Math.min(...members.map((c) => {
+      const legs = allElements.find((e) => e.type === 'leg' && e.cabinetId === c.id);
+      return c.position.y - (legs ? legs.dimensions.height : 0);
+    })) - PANEL_T;
+  }
+
+  const segments = splitAtJoints(minX, maxX, getGroupJoints(group, members));
+  return mapSegments(template, segments, yPos, zPos, PANEL_T, totalDepth);
 }
 
 /** Recompute the bounds of a group element from its member cabinets. */
@@ -542,12 +598,40 @@ export function recomputeGroups(elements: BoxElement[]): BoxElement[] {
     }
     result4.push(e);
   }
-  const result5 = result4.map((e) => {
+  const groupsWithTopBlendas = new Set<string>();
+  const result5: BoxElement[] = [];
+  for (const e of result4) {
     if (e.type === 'blenda' && e.blendaScope === 'group' && e.cabinetId) {
       const linked = result4.find((g) => g.id === e.cabinetId);
-      if (linked?.type === 'group') return computeBlendaForGroup(e, linked, result4);
+      if (linked?.type === 'group') {
+        if (e.blendaSide === 'top') {
+          if (groupsWithTopBlendas.has(linked.id)) continue;
+          groupsWithTopBlendas.add(linked.id);
+          result5.push(...computeBlendaTopForGroup(e, linked, result4));
+          continue;
+        }
+        result5.push(computeBlendaForGroup(e, linked, result4));
+        continue;
+      }
     }
-    return e;
-  });
-  return result5;
+    result5.push(e);
+  }
+
+  const groupsWithHorizMasks = new Set<string>();
+  const result6: BoxElement[] = [];
+  for (const e of result5) {
+    if (e.type === 'maskowanica' && e.cabinetId) {
+      const linked = result5.find((g) => g.id === e.cabinetId);
+      if (linked?.type === 'group' && (e.maskownicaSide === 'top' || e.maskownicaSide === 'bottom')) {
+        const key = `${linked.id}:${e.maskownicaSide}`;
+        if (groupsWithHorizMasks.has(key)) continue;
+        groupsWithHorizMasks.add(key);
+        result6.push(...computeMaskowanicasHorizForGroup(e, result5));
+        continue;
+      }
+    }
+    result6.push(e);
+  }
+
+  return result6;
 }
