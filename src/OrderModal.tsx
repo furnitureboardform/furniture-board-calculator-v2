@@ -342,7 +342,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
 
 // ── Summary tab sub-components ─────────────────────────────────────────────────
 
-const GroupedSection: React.FC<{ title: string; panels: GroupedPanel[] }> = ({ title, panels }) => (
+const GroupedSection: React.FC<{ title: string; panels: GroupedPanel[]; showEdge?: boolean }> = ({ title, panels, showEdge = true }) => (
   <div className="om-section">
     <div className="om-section-title">{title}</div>
     {panels.length === 0 ? (
@@ -352,13 +352,13 @@ const GroupedSection: React.FC<{ title: string; panels: GroupedPanel[] }> = ({ t
         <div className="om-grouped-header">
           <span>Wymiary (mm)</span>
           <span>Ilość</span>
-          <span>Obrzeże</span>
+          {showEdge && <span>Obrzeże</span>}
         </div>
         {panels.map(g => (
           <div key={g.key} className="om-grouped-row">
             <span className="om-grouped-dims">{g.fa} × {g.fb}</span>
             <span className="om-grouped-qty">{g.count} szt.</span>
-            <span className="om-grouped-edge">{g.edgeBanding}</span>
+            {showEdge && <span className="om-grouped-edge">{g.edgeBanding}</span>}
           </div>
         ))}
       </>
@@ -381,7 +381,7 @@ function groupPanelsByFinish(panels: GroupedPanel[]): Map<string | undefined, Gr
   return map;
 }
 
-const FinishGroupedSections: React.FC<{ baseTitle: string; panels: GroupedPanel[]; finishes: FinishOption[] }> = ({ baseTitle, panels, finishes }) => {
+const FinishGroupedSections: React.FC<{ baseTitle: string; panels: GroupedPanel[]; finishes: FinishOption[]; showEdge?: boolean }> = ({ baseTitle, panels, finishes, showEdge = true }) => {
   const byFinish = groupPanelsByFinish(panels);
   return (
     <>
@@ -390,6 +390,7 @@ const FinishGroupedSections: React.FC<{ baseTitle: string; panels: GroupedPanel[
           key={fid ?? 'none'}
           title={`${baseTitle} · ${finishLabel(fid, finishes)}`}
           panels={fps}
+          showEdge={showEdge}
         />
       ))}
     </>
@@ -432,7 +433,7 @@ const SummaryTab: React.FC<{ data: ReturnType<typeof useOrderData>; finishes: Fi
   <div className="om-tab-content">
     <FinishGroupedSections baseTitle="Płyty obicie" panels={data.obicieGrouped} finishes={finishes} />
     <FinishGroupedSections baseTitle="Płyty korpus" panels={data.korpusGrouped} finishes={finishes} />
-    <FinishGroupedSections baseTitle="Płyta HDF"   panels={data.hdfGrouped}    finishes={finishes} />
+    <FinishGroupedSections baseTitle="Płyta HDF"   panels={data.hdfGrouped}    finishes={finishes} showEdge={false} />
     <AdditionalSection
       rodCount={data.rodCount}
       hingeCount={data.hingeCount}
