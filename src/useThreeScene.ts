@@ -231,7 +231,7 @@ export function useThreeScene(
       else if (element.type === 'plinth') rebuildPlinth(mesh, element, color, emissive);
       else if (element.type === 'divider') rebuildDivider(mesh, element, color, emissive);
       else if (element.type === 'front') rebuildFront(mesh, element, color, emissive);
-      else if (element.type === 'hdf') rebuildHdf(mesh, element, new THREE.Color(element.color), emissive);
+      else if (element.type === 'hdf') rebuildHdf(mesh, element, color, emissive);
       else if (element.type === 'rearboard') rebuildRearboard(mesh, element, color, emissive);
       else if (element.type === 'rod') rebuildRod(mesh, element, color, emissive);
       else if (element.type === 'leg') rebuildLeg(mesh, element, color, emissive);
