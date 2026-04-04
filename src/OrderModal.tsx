@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { BoxElement } from './types';
+import { useFinishes } from './hooks/useFinishes';
+import type { FinishOption } from './hooks/useFinishes';
 import { PANEL_T, HDF_T } from './constants';
 import './OrderModal.css';
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -55,6 +57,7 @@ interface PanelEntry {
   h: number;
   d: number;
   elemType: PanelElemType;
+  finishId?: string;
 }
 
 interface GroupedPanel {
@@ -63,6 +66,7 @@ interface GroupedPanel {
   fb: number; // smaller face dim in mm
   count: number;
   edgeBanding: string;
+  finishId?: string;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -150,15 +154,16 @@ function getDrawerPanels(drawer: BoxElement): { korpus: PanelEntry[]; hdf: Panel
   const hBack       = DRAWER_H_BACK        + extraH;
   const hFrontInner = DRAWER_H_FRONT_INNER + extraH;
   const sideD = drawer.parentIsDrawerbox !== false ? D - 0.010 : D;
+  const fid = drawer.finishId;
   return {
     korpus: [
-      { id: drawer.id + '_sl', w: T,       h: hSide,       d: sideD,     elemType: 'drawer_side'   },
-      { id: drawer.id + '_sr', w: T,       h: hSide,       d: sideD,     elemType: 'drawer_side'   },
-      { id: drawer.id + '_bk', w: W - 2*T, h: hBack,       d: T,         elemType: 'drawer_back'   },
-      { id: drawer.id + '_fi', w: W - 2*T, h: hFrontInner, d: T,         elemType: 'drawer_back'   },
+      { id: drawer.id + '_sl', w: T,       h: hSide,       d: sideD,     elemType: 'drawer_side', finishId: fid },
+      { id: drawer.id + '_sr', w: T,       h: hSide,       d: sideD,     elemType: 'drawer_side', finishId: fid },
+      { id: drawer.id + '_bk', w: W - 2*T, h: hBack,       d: T,         elemType: 'drawer_back', finishId: fid },
+      { id: drawer.id + '_fi', w: W - 2*T, h: hFrontInner, d: T,         elemType: 'drawer_back', finishId: fid },
     ],
-    hdf:  { id: drawer.id + '_b',  w: W - 0.004, h: HDF_T,               d: sideD - 0.004, elemType: 'drawer_bottom' },
-    face: { id: drawer.id + '_ff', w: faceW, h: faceH, d: T, elemType: 'drawer_face' },
+    hdf:  { id: drawer.id + '_b',  w: W - 0.004, h: HDF_T, d: sideD - 0.004, elemType: 'drawer_bottom', finishId: fid },
+    face: { id: drawer.id + '_ff', w: faceW, h: faceH, d: T, elemType: 'drawer_face', finishId: fid },
   };
 }
 function getCabinetStructPanels(cab: BoxElement): PanelEntry[] {
@@ -166,22 +171,23 @@ function getCabinetStructPanels(cab: BoxElement): PanelEntry[] {
   const H = cab.dimensions.height;
   const D = cab.dimensions.depth;
   const inner = W - 2 * T;
+  const fid = cab.finishId;
   return [
-    { id: cab.id + '_sl', w: T,     h: H, d: D, elemType: 'cabinet_side' },
-    { id: cab.id + '_sr', w: T,     h: H, d: D, elemType: 'cabinet_side' },
-    { id: cab.id + '_t',  w: inner, h: T, d: D, elemType: 'cabinet_top'  },
-    { id: cab.id + '_b',  w: inner, h: T, d: D, elemType: 'cabinet_top'  },
+    { id: cab.id + '_sl', w: T,     h: H, d: D, elemType: 'cabinet_side', finishId: fid },
+    { id: cab.id + '_sr', w: T,     h: H, d: D, elemType: 'cabinet_side', finishId: fid },
+    { id: cab.id + '_t',  w: inner, h: T, d: D, elemType: 'cabinet_top',  finishId: fid },
+    { id: cab.id + '_b',  w: inner, h: T, d: D, elemType: 'cabinet_top',  finishId: fid },
   ];
 }
 
-// ── Group panels by face dimensions ───────────────────────────────────────────
+// ── Group panels by finish + face dimensions ──────────────────────────────────
 function groupPanels(panels: PanelEntry[]): GroupedPanel[] {
   const map = new Map<string, GroupedPanel>();
   for (const p of panels) {
     const [fa, fb] = faceDims(p.w, p.h, p.d);
-    const key = `${mmV(fa)}x${mmV(fb)}`;
+    const key = `${p.finishId ?? ''}|${mmV(fa)}x${mmV(fb)}`;
     if (!map.has(key)) {
-      map.set(key, { key, fa: mmV(fa), fb: mmV(fb), count: 0, edgeBanding: getEdgeBanding(p) });
+      map.set(key, { key, fa: mmV(fa), fb: mmV(fb), count: 0, edgeBanding: getEdgeBanding(p), finishId: p.finishId });
     }
     map.get(key)!.count++;
   }
@@ -205,24 +211,25 @@ function useOrderData(elements: BoxElement[]) {
       if (el.type === 'cabinet') {
         korpusPanels.push(...getCabinetStructPanels(el));
       } else if (el.type === 'board') {
-        korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'board' });
+        korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'board', finishId: el.finishId });
       } else if (el.type === 'shelf') {
-        korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'shelf' });
+        korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'shelf', finishId: el.finishId });
       } else if (el.type === 'divider') {
-        korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'divider' });
+        korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'divider', finishId: el.finishId });
       } else if (el.type === 'drawerbox') {
         const W = el.dimensions.width;
         const H = el.dimensions.height;
         const D = el.dimensions.depth;
-        korpusPanels.push({ id: el.id + '_sl', w: T, h: H, d: D, elemType: 'cabinet_side' });
-        korpusPanels.push({ id: el.id + '_sr', w: T, h: H, d: D, elemType: 'cabinet_side' });
+        const fid = el.finishId;
+        korpusPanels.push({ id: el.id + '_sl', w: T, h: H, d: D, elemType: 'cabinet_side', finishId: fid });
+        korpusPanels.push({ id: el.id + '_sr', w: T, h: H, d: D, elemType: 'cabinet_side', finishId: fid });
         if (el.hasBottomPanel) {
-          korpusPanels.push({ id: el.id + '_bot', w: W - 2 * T, h: T, d: D, elemType: 'cabinet_top' });
+          korpusPanels.push({ id: el.id + '_bot', w: W - 2 * T, h: T, d: D, elemType: 'cabinet_top', finishId: fid });
         }
         if (el.hasTopRails) {
           const railW = W - 2 * T;
-          korpusPanels.push({ id: el.id + '_rF', w: railW, h: T, d: 0.100, elemType: 'drawerbox_rail' });
-          korpusPanels.push({ id: el.id + '_rB', w: railW, h: T, d: 0.100, elemType: 'drawerbox_rail' });
+          korpusPanels.push({ id: el.id + '_rF', w: railW, h: T, d: 0.100, elemType: 'drawerbox_rail', finishId: fid });
+          korpusPanels.push({ id: el.id + '_rB', w: railW, h: T, d: 0.100, elemType: 'drawerbox_rail', finishId: fid });
         }
       } else if (el.type === 'drawer') {
         const { korpus, hdf, face } = getDrawerPanels(el);
@@ -230,17 +237,17 @@ function useOrderData(elements: BoxElement[]) {
         hdfPanels.push({ ...hdf, elemType: 'hdf' });
         obiciePanels.push(face);
       } else if (el.type === 'front') {
-        obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'front' });
+        obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'front', finishId: el.finishId });
       } else if (el.type === 'plinth') {
-        obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'plinth' });
+        obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'plinth', finishId: el.finishId });
       } else if (el.type === 'blenda') {
-        obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'blenda' });
+        obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'blenda', finishId: el.finishId });
       } else if (el.type === 'maskowanica') {
-        obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'maskowanica' });
+        obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'maskowanica', finishId: el.finishId });
       } else if (el.type === 'hdf') {
-        hdfPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'hdf' });
+        hdfPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'hdf', finishId: el.finishId });
       } else if (el.type === 'rearboard') {
-        korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'cabinet_top' });
+        korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'cabinet_top', finishId: el.finishId });
       }
     }
 
@@ -336,6 +343,37 @@ const GroupedSection: React.FC<{ title: string; panels: GroupedPanel[] }> = ({ t
   </div>
 );
 
+function finishLabel(finishId: string | undefined, finishes: FinishOption[]): string {
+  const f = finishes.find(x => x.id === finishId);
+  return f ? `${f.label} · ${f.brand}` : 'Nieznana okleina';
+}
+
+function groupPanelsByFinish(panels: GroupedPanel[]): Map<string | undefined, GroupedPanel[]> {
+  const map = new Map<string | undefined, GroupedPanel[]>();
+  for (const p of panels) {
+    const key = p.finishId;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(p);
+  }
+  return map;
+}
+
+const FinishGroupedSections: React.FC<{ baseTitle: string; panels: GroupedPanel[]; finishes: FinishOption[] }> = ({ baseTitle, panels, finishes }) => {
+  const byFinish = groupPanelsByFinish(panels);
+  const multi = byFinish.size > 1;
+  return (
+    <>
+      {Array.from(byFinish.entries()).map(([fid, fps]) => (
+        <GroupedSection
+          key={fid ?? 'none'}
+          title={multi ? `${baseTitle} · ${finishLabel(fid, finishes)}` : baseTitle}
+          panels={fps}
+        />
+      ))}
+    </>
+  );
+};
+
 const AdditionalSection: React.FC<{
   rodCount: number; hingeCount: number; slideCount: number; ptoSlideCount: number;
   couplingCount: number; handleCount: number; legCount: number;
@@ -368,11 +406,11 @@ const AdditionalSection: React.FC<{
   );
 };
 
-const SummaryTab: React.FC<{ data: ReturnType<typeof useOrderData> }> = ({ data }) => (
+const SummaryTab: React.FC<{ data: ReturnType<typeof useOrderData>; finishes: FinishOption[] }> = ({ data, finishes }) => (
   <div className="om-tab-content">
-    <GroupedSection title="Płyty obicie" panels={data.obicieGrouped} />
-    <GroupedSection title="Płyty korpus" panels={data.korpusGrouped} />
-    <GroupedSection title="Płyta HDF"   panels={data.hdfGrouped} />
+    <FinishGroupedSections baseTitle="Płyty obicie" panels={data.obicieGrouped} finishes={finishes} />
+    <FinishGroupedSections baseTitle="Płyty korpus" panels={data.korpusGrouped} finishes={finishes} />
+    <FinishGroupedSections baseTitle="Płyta HDF"   panels={data.hdfGrouped}    finishes={finishes} />
     <AdditionalSection
       rodCount={data.rodCount}
       hingeCount={data.hingeCount}
@@ -555,7 +593,7 @@ const CostTab: React.FC<{
 
 // ── PDF generation ─────────────────────────────────────────────────────────────
 
-function generatePdf(data: ReturnType<typeof useOrderData>) {
+function generatePdf(data: ReturnType<typeof useOrderData>, finishes: FinishOption[]) {
   const headerRow = (text: string) => ({
     text, bold: true, fontSize: 11, margin: [0, 12, 0, 2] as [number,number,number,number],
   });
@@ -585,6 +623,18 @@ function generatePdf(data: ReturnType<typeof useOrderData>) {
     };
   };
 
+  const panelSections = (baseTitle: string, panels: GroupedPanel[]) => {
+    const byFinish = groupPanelsByFinish(panels);
+    const multi = byFinish.size > 1;
+    const result: object[] = [];
+    for (const [fid, fps] of byFinish.entries()) {
+      const title = multi ? `${baseTitle} · ${finishLabel(fid, finishes)}` : baseTitle;
+      result.push(headerRow(title), panelTable(fps));
+    }
+    if (panels.length === 0) result.push(headerRow(baseTitle), panelTable([]));
+    return result;
+  };
+
   const addonRows: string[][] = [];
   if (data.rodCount > 0)       addonRows.push(['Drążki',                   `${data.rodCount} szt.`,      '']);
   if (data.hingeCount > 0)     addonRows.push(['Zawiasy',                  `${data.hingeCount} szt.`,    'na drzwi (wg wysokości drzwi)']);
@@ -611,12 +661,9 @@ function generatePdf(data: ReturnType<typeof useOrderData>) {
     pageMargins: [30, 30, 30, 30],
     defaultStyle: { font: 'Roboto', fontSize: 10 },
     content: [
-headerRow('Płyty obicie'),
-      panelTable(data.obicieGrouped),
-      headerRow('Płyty korpus'),
-      panelTable(data.korpusGrouped),
-      headerRow('Płyta HDF'),
-      panelTable(data.hdfGrouped),
+      ...panelSections('Płyty obicie', data.obicieGrouped),
+      ...panelSections('Płyty korpus', data.korpusGrouped),
+      ...panelSections('Płyta HDF',   data.hdfGrouped),
       headerRow('Dodatki'),
       addonsContent,
     ],
@@ -631,6 +678,7 @@ const OrderModal: React.FC<Props> = ({ elements }) => {
   const [open, setOpen] = useState(false);
   const [tab, setTab]   = useState<ModalTab>('summary');
   const data            = useOrderData(elements);
+  const finishes        = useFinishes();
 
   const [fin, setFin] = useState<FinancialState>({
     transport: 0,
@@ -667,7 +715,7 @@ const OrderModal: React.FC<Props> = ({ elements }) => {
               <span className="om-modal-title">Zamówienia</span>
               <div className="om-modal-header-actions">
                 {tab === 'summary' && hasCabinets && (
-                  <button className="om-pdf-btn" onClick={() => generatePdf(data)} title="Generuj PDF">PDF</button>
+                  <button className="om-pdf-btn" onClick={() => generatePdf(data, finishes)} title="Generuj PDF">PDF</button>
                 )}
                 <button className="om-modal-close" onClick={() => setOpen(false)} title="Zamknij">✕</button>
               </div>
@@ -692,7 +740,7 @@ const OrderModal: React.FC<Props> = ({ elements }) => {
               {!hasCabinets ? (
                 <div className="om-no-data">Brak elementów na scenie.</div>
               ) : tab === 'summary' ? (
-                <SummaryTab data={data} />
+                <SummaryTab data={data} finishes={finishes} />
               ) : (
                 <CostTab data={data} fin={fin} setFin={setFin} />
               )}
