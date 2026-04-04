@@ -360,13 +360,12 @@ function groupPanelsByFinish(panels: GroupedPanel[]): Map<string | undefined, Gr
 
 const FinishGroupedSections: React.FC<{ baseTitle: string; panels: GroupedPanel[]; finishes: FinishOption[] }> = ({ baseTitle, panels, finishes }) => {
   const byFinish = groupPanelsByFinish(panels);
-  const multi = byFinish.size > 1;
   return (
     <>
       {Array.from(byFinish.entries()).map(([fid, fps]) => (
         <GroupedSection
           key={fid ?? 'none'}
-          title={multi ? `${baseTitle} · ${finishLabel(fid, finishes)}` : baseTitle}
+          title={`${baseTitle} · ${finishLabel(fid, finishes)}`}
           panels={fps}
         />
       ))}
