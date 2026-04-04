@@ -20,8 +20,7 @@ const PRICE_HDF_M2      = 11.04;
 const PRICE_OBICIE_M2   = 46.05;
 const PRICE_CUT_M       = 6.00;
 const PRICE_EDGE_SVC_M  = 6.00;
-const PRICE_OKLEINA_K_M = 0.95;
-const PRICE_OKLEINA_O_M = 1.35;
+const PRICE_OKLEINA_M   = 1.00;
 const PRICE_ROD         = 15.00;
 const PRICE_HINGE       = 13.00;
 const PRICE_SLIDE       = 104.00;
@@ -306,8 +305,8 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const costCutHdf        = totalHdfCut     * PRICE_CUT_M;
     const costEdgeSvcKorpus = totalKorpusEdge * PRICE_EDGE_SVC_M;
     const costEdgeSvcObicie = totalObicieEdge * PRICE_EDGE_SVC_M;
-    const costOkleinaK      = totalKorpusEdge * PRICE_OKLEINA_K_M;
-    const costOkleinaO      = totalObicieEdge * PRICE_OKLEINA_O_M;
+    const costOkleinaK      = totalKorpusEdge * PRICE_OKLEINA_M;
+    const costOkleinaO      = totalObicieEdge * PRICE_OKLEINA_M;
     const costRods          = rodCount      * PRICE_ROD;
     const costHinges        = hingeCount    * PRICE_HINGE;
     const costSlides        = slideCount    * PRICE_SLIDE;
@@ -448,12 +447,12 @@ const SummaryTab: React.FC<{ data: ReturnType<typeof useOrderData>; finishes: Fi
 
 // ── Cost tab sub-components ────────────────────────────────────────────────────
 
-interface CostRowProps { label: string; qty: number; unit: string; price?: number; cost: number; }
+interface CostRowProps { label: string; qty: number; unit: string; price: number; cost: number; }
 const CostRow: React.FC<CostRowProps> = ({ label, qty, unit, price, cost }) => (
   <div className="om-cost-row">
     <span className="om-cost-label">{label}</span>
     <span className="om-cost-qty">{fmtQty(qty, unit)} {unit}</span>
-    <span className="om-cost-price">{price != null ? `${price.toFixed(2)} zł/${unit}` : '—'}</span>
+    <span className="om-cost-price">{price.toFixed(2)} zł/{unit}</span>
     <span className="om-cost-total">{fmtPLN(cost)}</span>
   </div>
 );
@@ -612,7 +611,7 @@ const CostTab: React.FC<{
         subtotal={data.costEdgeSvcKorpus + data.costEdgeSvcObicie + data.costOkleinaK + data.costOkleinaO}
       >
         <CostRow label="Oklejanie płyt"          qty={data.totalKorpusEdge + data.totalObicieEdge} unit="m" price={PRICE_EDGE_SVC_M}  cost={data.costEdgeSvcKorpus + data.costEdgeSvcObicie} />
-        <CostRow label="Okleina"                 qty={data.totalKorpusEdge + data.totalObicieEdge} unit="m" cost={data.costOkleinaK + data.costOkleinaO} />
+        <CostRow label="Okleina"                 qty={data.totalKorpusEdge + data.totalObicieEdge} unit="m" price={PRICE_OKLEINA_M} cost={data.costOkleinaK + data.costOkleinaO} />
       </CostSection>
 
       <CostSection title="Koszty sprzętu" subtotal={hardwareSubtotal}>
