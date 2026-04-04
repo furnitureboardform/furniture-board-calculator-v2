@@ -1,5 +1,6 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { useThreeScene } from './useThreeScene';
+import { HDF_GRAY } from './builders';
 import { useFinishes } from './hooks/useFinishes';
 import { useHistory } from './hooks/useHistory';
 import { useDragHandlers } from './hooks/useDragHandlers';
@@ -82,7 +83,7 @@ const App: React.FC = () => {
     handleDividerSwitchSlot,
     handleRotateCabinet,
     handleClearAll,
-  } = useElementActions({ setElements, setSelectedId, setMultiSelectedIds, boardSizeRef, dividerYHintRef, dragDeltaRef, detachedFromRef });
+  } = useElementActions({ setElements, setSelectedId, setMultiSelectedIds, boardSizeRef, dividerYHintRef, dragDeltaRef, detachedFromRef, finishColorMap });
 
   useKeyboard({ selectedId, multiSelectedIds, handleDelete, elements, setElements, setMultiSelectedIds, undo, redo, handleDividerSwitchSlot });
 
@@ -102,7 +103,14 @@ const App: React.FC = () => {
   }, showCeilingGrid);
 
   const handleFinishChange = (id: string, finishId: string | undefined) => {
-    setElements((prev) => prev.map((e) => e.id === id ? { ...e, finishId } : e));
+    setElements((prev) => prev.map((e) => {
+      if (e.id !== id) return e;
+      if (e.type === 'hdf') {
+        const hex = finishId ? finishColorMap.get(finishId) : undefined;
+        return { ...e, finishId, color: hex ?? HDF_GRAY };
+      }
+      return { ...e, finishId };
+    }));
   };
 
   const selectedElement = elements.find((e) => e.id === selectedId) ?? null;

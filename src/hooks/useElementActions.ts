@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import type React from 'react';
 import type { BoxElement } from '../types';
 import { PANEL_T, DRAWER_RAIL_CLEARANCE, FRONT_INSET } from '../constants';
+import { HDF_GRAY } from '../builders';
 import {
   computeHdfForCabinet,
   computeRearboardForCabinet,
@@ -31,6 +32,7 @@ interface Params {
   dividerYHintRef: React.MutableRefObject<Map<string, number>>;
   dragDeltaRef: React.MutableRefObject<Map<string, { dx: number; dz: number }>>;
   detachedFromRef: React.MutableRefObject<Map<string, string>>;
+  finishColorMap: Map<string, string>;
 }
 
 export function useElementActions({
@@ -41,6 +43,7 @@ export function useElementActions({
   dividerYHintRef,
   dragDeltaRef,
   detachedFromRef,
+  finishColorMap,
 }: Params) {
   const handleSelect = useCallback((id: string | null) => {
     setSelectedId(id);
@@ -414,7 +417,8 @@ export function useElementActions({
         cabinetId,
         dimensions: { width: 0, height: 0, depth: 0 },
         position: { x: 0, y: 0, z: 0 },
-        color: cab.color,
+        color: cab.finishId ? (finishColorMap.get(cab.finishId) ?? HDF_GRAY) : HDF_GRAY,
+        finishId: cab.finishId,
       }, cab);
       setSelectedId(cabinetId);
       return [...prev, hdf];

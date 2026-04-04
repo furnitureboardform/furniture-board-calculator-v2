@@ -3,7 +3,8 @@ import type { BoxElement } from './types';
 import { HDF_T } from './constants';
 
 const PANEL_T = 0.018;
-const HDF_COLOR = new THREE.Color(0x5c4033);
+export const HDF_GRAY = '#8a8a8a';
+const HDF_COLOR = new THREE.Color(HDF_GRAY);
 const ROD_RADIUS = 0.0125;
 const LEG_RADIUS = 0.02;
 const LEG_CORNER_OFFSET = 0.03;
@@ -186,14 +187,14 @@ export function rebuildFront(parent: THREE.Mesh, element: BoxElement, color: THR
   }
 }
 
-export function rebuildHdf(parent: THREE.Mesh, element: BoxElement, emissive: THREE.Color) {
+export function rebuildHdf(parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) {
   clearChildren(parent);
   const { width, height, depth } = element.dimensions;
   const geo = new THREE.BoxGeometry(width, height, depth);
-  const outerMat = new THREE.MeshStandardMaterial({ color: HDF_COLOR, emissive, roughness: 0.6, metalness: 0.05 });
-  const innerMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive, roughness: 0.6, metalness: 0.05 });
+  const backMat   = new THREE.MeshStandardMaterial({ color: HDF_COLOR, emissive, roughness: 0.6, metalness: 0.05 });
+  const insideMat = new THREE.MeshStandardMaterial({ color, emissive, roughness: 0.6, metalness: 0.05 });
   // BoxGeometry face order: +X, -X, +Y, -Y, +Z (front/inside), -Z (back/outside)
-  const mats = [outerMat, outerMat, outerMat, outerMat, innerMat, outerMat];
+  const mats = [backMat, backMat, backMat, backMat, insideMat, backMat];
   const panel = new THREE.Mesh(geo, mats);
   panel.castShadow = true;
   panel.receiveShadow = true;
