@@ -7,6 +7,7 @@ import { PANEL_T, HDF_T } from './constants';
 import './OrderModal.css';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import type { Content } from 'pdfmake/interfaces';
 (pdfMake as any).vfs = (pdfFonts as any).vfs;
 
 interface Props {
@@ -625,7 +626,7 @@ function generatePdf(data: ReturnType<typeof useOrderData>, finishes: FinishOpti
   const panelSections = (baseTitle: string, panels: GroupedPanel[]) => {
     const byFinish = groupPanelsByFinish(panels);
     const multi = byFinish.size > 1;
-    const result: object[] = [];
+    const result: Content[] = [];
     for (const [fid, fps] of byFinish.entries()) {
       const title = multi ? `${baseTitle} · ${finishLabel(fid, finishes)}` : baseTitle;
       result.push(headerRow(title), panelTable(fps));
