@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { BoxElement, BoxDimensions } from './types';
+import type { FinishOption } from './hooks/useFinishes';
 import { PANEL_T } from './constants';
-import { useFinishes } from './hooks/useFinishes';
 import './PropertiesPanel.css';
 
 interface Props {
   element: BoxElement | null;
   elements?: BoxElement[];
+  finishes: FinishOption[];
+  hdfFinishes: FinishOption[];
   onChange: (id: string, dims: BoxDimensions) => void;
   onYChange?: (id: string, y: number) => void;
   onDividerXChange?: (id: string, x: number) => void;
@@ -33,8 +35,7 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onFrontNoHandleChange, onRotate, onFinishChange }) => {
-  const finishes = useFinishes();
+const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onFrontNoHandleChange, onRotate, onFinishChange }) => {
   const [finishOpen, setFinishOpen] = useState(false);
   const finishRef = useRef<HTMLDivElement>(null);
   // Local draft strings so the user can type freely
@@ -468,8 +469,11 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
         );
       })()}
 
-      {onFinishChange && finishes.length > 0 && (() => {
-        const sel = finishes.find((f) => f.id === element.finishId);
+      {onFinishChange && (() => {
+        const activeFinishes = element.type === 'hdf' ? hdfFinishes : finishes;
+        if (activeFinishes.length === 0) return null;
+        const sel = activeFinishes.find((f) => f.id === element.finishId)
+          ?? (element.type === 'hdf' ? finishes.find((f) => f.id === element.finishId) : undefined);
         return (
           <>
             <div className="prop-divider" />
@@ -495,7 +499,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
                 </button>
                 {finishOpen && (
                   <ul className="prop-finish-list">
-                    {finishes.map((f) => (
+                    {activeFinishes.map((f) => (
                       <li
                         key={f.id}
                         className={`prop-finish-item${element.finishId === f.id ? ' prop-finish-item--active' : ''}`}

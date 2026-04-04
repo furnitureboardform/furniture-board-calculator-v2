@@ -218,7 +218,7 @@ function hingesForFront(el: BoxElement): number {
 }
 
 // ── Main data hook ─────────────────────────────────────────────────────────────
-function useOrderData(elements: BoxElement[], finishes: FinishOption[]) {
+function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinishes: FinishOption[]) {
   return useMemo(() => {
     const korpusPanels: PanelEntry[] = [];
     const obiciePanels: PanelEntry[] = [];
@@ -300,7 +300,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[]) {
     // Costs
     const costKorpus = calcMaterialCost(korpusAreaByFinish, finishes, PRICE_KORPUS_M2);
     const costObicie = calcMaterialCost(obicieAreaByFinish, finishes, PRICE_OBICIE_M2);
-    const costHdf           = totalHdfArea    * PRICE_HDF_M2;
+    const costHdf           = calcMaterialCost(hdfAreaByFinish, hdfFinishes, PRICE_HDF_M2);
     const costCutKorpus     = totalKorpusCut  * PRICE_CUT_M;
     const costCutObicie     = totalObicieCut  * PRICE_CUT_M;
     const costCutHdf        = totalHdfCut     * PRICE_CUT_M;
@@ -338,7 +338,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[]) {
       costRods, costHinges, costSlides, costPtoSlides, costTipOn, costCouplings, costHandles, costLegs,
       grandTotal,
     };
-  }, [elements, finishes]);
+  }, [elements, finishes, hdfFinishes]);
 }
 
 // ── Summary tab sub-components ─────────────────────────────────────────────────
@@ -477,17 +477,19 @@ const FinishCostSection: React.FC<{
   areaByFinish: Map<string | undefined, number>;
   subtotal: number;
   finishes: FinishOption[];
+  labelFinishes?: FinishOption[];
   defaultLabel: string;
   defaultPrice: number;
   labelPrefix?: string;
-}> = ({ title, areaByFinish, subtotal, finishes, defaultLabel, defaultPrice, labelPrefix }) => (
+}> = ({ title, areaByFinish, subtotal, finishes, labelFinishes, defaultLabel, defaultPrice, labelPrefix }) => (
   <CostSection title={title} subtotal={subtotal}>
     {areaByFinish.size === 0
       ? <div className="om-empty-row">brak</div>
       : Array.from(areaByFinish.entries()).map(([fid, area]) => {
           const finish = finishes.find(f => f.id === fid);
+          const labelFinish = labelFinishes ? (labelFinishes.find(f => f.id === fid) ?? finish) : finish;
           const price = finish?.pricePerSqmPln ?? defaultPrice;
-          const name = finish ? `${finish.label} · ${finish.brand}` : defaultLabel;
+          const name = labelFinish ? `${labelFinish.label} · ${labelFinish.brand}` : defaultLabel;
           const label = labelPrefix ? `${labelPrefix} · ${name}` : name;
           return <CostRow key={fid ?? 'none'} label={label} qty={area} unit="m²" price={price} cost={area * price} />;
         })
@@ -586,7 +588,8 @@ const CostTab: React.FC<{
   fin: FinancialState;
   setFin: React.Dispatch<React.SetStateAction<FinancialState>>;
   finishes: FinishOption[];
-}> = ({ data, fin, setFin, finishes }) => {
+  hdfFinishes: FinishOption[];
+}> = ({ data, fin, setFin, finishes, hdfFinishes }) => {
   const hardwareSubtotal =
     data.costRods + data.costHinges + data.costSlides + data.costPtoSlides + data.costTipOn +
     data.costCouplings + data.costHandles + data.costLegs;
@@ -597,7 +600,7 @@ const CostTab: React.FC<{
         finishes={finishes} defaultLabel="Płyta" defaultPrice={PRICE_KORPUS_M2} />
 
       <FinishCostSection title="Płyta HDF" areaByFinish={data.hdfAreaByFinish} subtotal={data.costHdf}
-        finishes={finishes} defaultLabel="Płyta HDF" defaultPrice={PRICE_HDF_M2} labelPrefix="HDF" />
+        finishes={hdfFinishes} labelFinishes={finishes} defaultLabel="Płyta HDF" defaultPrice={PRICE_HDF_M2} />
 
       <CostSection title="Cięcie płyt" subtotal={data.costCutKorpus + data.costCutObicie + data.costCutHdf}>
         <CostRow label="Cięcie płyty korpus" qty={data.totalKorpusCut} unit="m" price={PRICE_CUT_M} cost={data.costCutKorpus} />
@@ -718,8 +721,10 @@ type ModalTab = 'summary' | 'cost';
 const OrderModal: React.FC<Props> = ({ elements }) => {
   const [open, setOpen] = useState(false);
   const [tab, setTab]   = useState<ModalTab>('summary');
-  const finishes        = useFinishes();
-  const data            = useOrderData(elements, finishes);
+  const finishesBase    = useFinishes();
+  const finishesHdf     = useFinishes('hdf', false);
+  const finishes        = useMemo(() => [...finishesBase, ...finishesHdf], [finishesBase, finishesHdf]);
+  const data            = useOrderData(elements, finishes, finishesHdf);
 
   const [fin, setFin] = useState<FinancialState>({
     transport: 0,
@@ -783,7 +788,7 @@ const OrderModal: React.FC<Props> = ({ elements }) => {
               ) : tab === 'summary' ? (
                 <SummaryTab data={data} finishes={finishes} />
               ) : (
-                <CostTab data={data} fin={fin} setFin={setFin} finishes={finishes} />
+                <CostTab data={data} fin={fin} setFin={setFin} finishes={finishes} hdfFinishes={finishesHdf} />
               )}
             </div>
           </div>

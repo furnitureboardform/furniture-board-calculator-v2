@@ -34,11 +34,12 @@ function extractDominantColor(imageBase64: string): Promise<string> {
   });
 }
 
-export function useFinishes() {
+export function useFinishes(collectionName = 'finishes', ordered = true) {
   const [finishes, setFinishes] = useState<FinishOption[]>([]);
 
   useEffect(() => {
-    const q = query(collection(db, 'finishes'), orderBy('createdAt', 'desc'));
+    const col = collection(db, collectionName);
+    const q = ordered ? query(col, orderBy('createdAt', 'desc')) : query(col);
     const unsub = onSnapshot(q, async (snap) => {
       const raw = snap.docs.map((d) => ({ id: d.id, ...d.data() } as FinishOption));
       const withColors = await Promise.all(raw.map(async (f) => {
@@ -51,7 +52,7 @@ export function useFinishes() {
       setFinishes(withColors);
     });
     return unsub;
-  }, []);
+  }, [collectionName, ordered]);
 
   return finishes;
 }

@@ -26,7 +26,8 @@ const App: React.FC = () => {
   const dragDeltaRef = useRef<Map<string, { dx: number; dz: number }>>(new Map());
   const detachedFromRef = useRef<Map<string, string>>(new Map());
   const finishes = useFinishes();
-  const finishColorMap = useMemo(() => new Map(finishes.filter(f => f.colorHex).map(f => [f.id, f.colorHex!])), [finishes]);
+  const hdfFinishes = useFinishes('hdf', false);
+  const finishColorMap = useMemo(() => new Map([...finishes, ...hdfFinishes].filter(f => f.colorHex).map(f => [f.id, f.colorHex!])), [finishes, hdfFinishes]);
   const { savedModels, loading: modelsLoading, saveModel, deleteModel, overwriteModel } = useSavedModels();
   const handleSaveModel = async (name: string) => { await saveModel(name, elements); };
   const handleLoadModel = (model: { elements: typeof elements }) => { setElements(model.elements); };
@@ -190,6 +191,8 @@ const App: React.FC = () => {
         <PropertiesPanel
           element={selectedElement}
           elements={elements}
+          finishes={finishes}
+          hdfFinishes={hdfFinishes}
           onChange={handleDimensionInput}
           onDividerXChange={handleDividerXChange}
           onYChange={handleYChange}
