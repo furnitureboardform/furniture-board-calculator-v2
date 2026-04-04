@@ -73,6 +73,7 @@ export function useElementActions({
           y: cab.position.y + cab.dimensions.height / 2,
         },
         color: cab.color,
+        finishId: cab.finishId,
       };
       setSelectedId(cabinetId);
       return [...prev, shelf];
@@ -108,6 +109,7 @@ export function useElementActions({
           y: cab.position.y + cab.dimensions.height / 2,
         },
         color: cab.color,
+        finishId: cab.finishId,
       };
       setSelectedId(cabinetId);
       return [...prev, drawer];
@@ -147,6 +149,7 @@ export function useElementActions({
           z: cab.position.z - 0.02,
         },
         color: cab.color,
+        finishId: cab.finishId,
       };
 
       const blendas: BoxElement[] = [];
@@ -165,6 +168,7 @@ export function useElementActions({
             z: blendaZ,
           },
           color: cab.color,
+          finishId: cab.finishId,
         });
       }
       if (isDouble) {
@@ -181,6 +185,7 @@ export function useElementActions({
             z: blendaZ,
           },
           color: cab.color,
+          finishId: cab.finishId,
         });
       }
 
@@ -203,6 +208,7 @@ export function useElementActions({
         dimensions: { width: PANEL_T, height: bounds.height, depth: cab.dimensions.depth },
         position: { x: midX, z: cab.position.z, y: bounds.y },
         color: cab.color,
+        finishId: cab.finishId,
       };
       setSelectedId(cabinetId);
       return [...prev, divider];
@@ -653,6 +659,7 @@ export function useElementActions({
           y: cab.position.y + cab.dimensions.height * 0.75,
         },
         color: cab.color,
+        finishId: cab.finishId,
       };
       setSelectedId(cabinetId);
       return [...prev, rod];
