@@ -180,6 +180,15 @@ function getCabinetStructPanels(cab: BoxElement): PanelEntry[] {
   ];
 }
 
+function mergeGroupedPanels(a: GroupedPanel[], b: GroupedPanel[]): GroupedPanel[] {
+  return [...a, ...b].reduce<GroupedPanel[]>((acc, p) => {
+    const existing = acc.find(x => x.key === p.key);
+    if (existing) existing.count += p.count;
+    else acc.push({ ...p });
+    return acc;
+  }, []);
+}
+
 // ── Group panels by finish + face dimensions ──────────────────────────────────
 function groupPanels(panels: PanelEntry[]): GroupedPanel[] {
   const map = new Map<string, GroupedPanel>();
@@ -635,44 +644,39 @@ const CostTab: React.FC<{
 // ── PDF generation ─────────────────────────────────────────────────────────────
 
 function generatePdf(data: ReturnType<typeof useOrderData>, finishes: FinishOption[]) {
-  const headerRow = (text: string) => ({
-    text, bold: true, fontSize: 11, margin: [0, 12, 0, 2] as [number,number,number,number],
+  const sectionHeader = (text: string): Content => ({
+    text, bold: true, fontSize: 11, margin: [0, 14, 0, 2],
   });
 
-  const panelTable = (panels: GroupedPanel[]) => {
-    if (panels.length === 0) return { text: 'brak', fontSize: 10, margin: [0, 0, 0, 6] as [number,number,number,number] };
+  const panelTable = (panels: GroupedPanel[], showEdge = true): Content => {
+    if (panels.length === 0) return { text: 'brak', fontSize: 10, margin: [0, 0, 0, 6] };
+    const widths = showEdge ? [160, 50, '*'] : [160, 50];
+    const headerCells: object[] = [
+      { text: 'Wymiary (mm)', bold: true, fillColor: '#f0f0f0' },
+      { text: 'Ilość',        bold: true, fillColor: '#f0f0f0' },
+    ];
+    if (showEdge) headerCells.push({ text: 'Obrzeże', bold: true, fillColor: '#f0f0f0' });
+    const rows = panels.map(g => {
+      const row: string[] = [`${g.fa} × ${g.fb}`, `${g.count} szt.`];
+      if (showEdge) row.push(g.edgeBanding);
+      return row;
+    });
     return {
-      table: {
-        widths: [160, 50, '*'],
-        headerRows: 1,
-        body: [
-          [
-            { text: 'Wymiary (mm)', bold: true, fillColor: '#f0f0f0' },
-            { text: 'Ilość',        bold: true, fillColor: '#f0f0f0' },
-            { text: 'Obrzeże',      bold: true, fillColor: '#f0f0f0' },
-          ],
-          ...panels.map(g => [
-            `${g.fa} × ${g.fb}`,
-            `${g.count} szt.`,
-            g.edgeBanding,
-          ]),
-        ],
-      },
+      table: { widths, headerRows: 1, body: [headerCells, ...rows] },
       layout: 'lightHorizontalLines',
       fontSize: 10,
-      margin: [0, 0, 0, 6] as [number,number,number,number],
+      margin: [0, 0, 0, 6],
     };
   };
 
-  const panelSections = (baseTitle: string, panels: GroupedPanel[]) => {
+  const panelSections = (baseTitle: string, panels: GroupedPanel[], showEdge = true): Content[] => {
     const byFinish = groupPanelsByFinish(panels);
-    const multi = byFinish.size > 1;
     const result: Content[] = [];
     for (const [fid, fps] of byFinish.entries()) {
-      const title = multi ? `${baseTitle} · ${finishLabel(fid, finishes)}` : baseTitle;
-      result.push(headerRow(title), panelTable(fps));
+      const title = `${baseTitle} · ${finishLabel(fid, finishes)}`;
+      result.push(sectionHeader(title), panelTable(fps, showEdge));
     }
-    if (panels.length === 0) result.push(headerRow(baseTitle), panelTable([]));
+    if (panels.length === 0) result.push(sectionHeader(baseTitle), panelTable([], showEdge));
     return result;
   };
 
@@ -686,26 +690,18 @@ function generatePdf(data: ReturnType<typeof useOrderData>, finishes: FinishOpti
   if (data.handleCount > 0)    addonRows.push(['Uchwyty',                  `${data.handleCount} szt.`,   '1 na drzwi']);
   if (data.legCount > 0)       addonRows.push(['Nóżki',                    `${data.legCount} szt.`,      '4 na box']);
 
-  const addonsContent = addonRows.length === 0
+  const addonsContent: Content = addonRows.length === 0
     ? { text: 'brak', fontSize: 10 }
-    : {
-        table: {
-          widths: [160, 50, '*'],
-          body: addonRows,
-        },
-        layout: 'lightHorizontalLines',
-        fontSize: 10,
-      };
+    : { table: { widths: [160, 50, '*'], body: addonRows }, layout: 'lightHorizontalLines', fontSize: 10 };
 
   pdfMake.createPdf({
     pageSize: 'A4',
     pageMargins: [30, 30, 30, 30],
     defaultStyle: { font: 'Roboto', fontSize: 10 },
     content: [
-      ...panelSections('Płyty obicie', data.obicieGrouped),
-      ...panelSections('Płyty korpus', data.korpusGrouped),
-      ...panelSections('Płyta HDF',   data.hdfGrouped),
-      headerRow('Dodatki'),
+      ...panelSections('Płyta', mergeGroupedPanels(data.obicieGrouped, data.korpusGrouped)),
+      ...panelSections('Płyta HDF', data.hdfGrouped, false),
+      sectionHeader('Dodatki'),
       addonsContent,
     ],
   }).download('zamowienie.pdf');
