@@ -7,7 +7,7 @@ import { PANEL_T, HDF_T } from './constants';
 import './OrderModal.css';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
-import type { Content } from 'pdfmake/interfaces';
+import type { Content, TableCell } from 'pdfmake/interfaces';
 (pdfMake as any).vfs = (pdfFonts as any).vfs;
 
 interface Props {
@@ -651,14 +651,14 @@ function generatePdf(data: ReturnType<typeof useOrderData>, finishes: FinishOpti
   const panelTable = (panels: GroupedPanel[], showEdge = true): Content => {
     if (panels.length === 0) return { text: 'brak', fontSize: 10, margin: [0, 0, 0, 6] };
     const widths = showEdge ? [160, 50, '*'] : [160, 50];
-    const headerCells: object[] = [
+    const headerCells: TableCell[] = [
       { text: 'Wymiary (mm)', bold: true, fillColor: '#f0f0f0' },
       { text: 'Ilość',        bold: true, fillColor: '#f0f0f0' },
     ];
     if (showEdge) headerCells.push({ text: 'Obrzeże', bold: true, fillColor: '#f0f0f0' });
-    const rows = panels.map(g => {
-      const row: string[] = [`${g.fa} × ${g.fb}`, `${g.count} szt.`];
-      if (showEdge) row.push(g.edgeBanding);
+    const rows: TableCell[][] = panels.map(g => {
+      const row: TableCell[] = [{ text: `${g.fa} × ${g.fb}` }, { text: `${g.count} szt.` }];
+      if (showEdge) row.push({ text: g.edgeBanding });
       return row;
     });
     return {
