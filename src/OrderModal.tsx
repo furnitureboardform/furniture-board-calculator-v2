@@ -448,12 +448,12 @@ const SummaryTab: React.FC<{ data: ReturnType<typeof useOrderData>; finishes: Fi
 
 // ── Cost tab sub-components ────────────────────────────────────────────────────
 
-interface CostRowProps { label: string; qty: number; unit: string; price: number; cost: number; }
+interface CostRowProps { label: string; qty: number; unit: string; price?: number; cost: number; }
 const CostRow: React.FC<CostRowProps> = ({ label, qty, unit, price, cost }) => (
   <div className="om-cost-row">
     <span className="om-cost-label">{label}</span>
     <span className="om-cost-qty">{fmtQty(qty, unit)} {unit}</span>
-    <span className="om-cost-price">{price.toFixed(2)} zł/{unit}</span>
+    <span className="om-cost-price">{price != null ? `${price.toFixed(2)} zł/${unit}` : '—'}</span>
     <span className="om-cost-total">{fmtPLN(cost)}</span>
   </div>
 );
@@ -603,19 +603,16 @@ const CostTab: React.FC<{
         finishes={hdfFinishes} labelFinishes={finishes} defaultLabel="Płyta HDF" defaultPrice={PRICE_HDF_M2} />
 
       <CostSection title="Cięcie płyt" subtotal={data.costCutKorpus + data.costCutObicie + data.costCutHdf}>
-        <CostRow label="Cięcie płyty korpus" qty={data.totalKorpusCut} unit="m" price={PRICE_CUT_M} cost={data.costCutKorpus} />
-        <CostRow label="Cięcie płyty obicie" qty={data.totalObicieCut} unit="m" price={PRICE_CUT_M} cost={data.costCutObicie} />
-        <CostRow label="Cięcie HDF"          qty={data.totalHdfCut}    unit="m" price={PRICE_CUT_M} cost={data.costCutHdf} />
+        <CostRow label="Cięcie płyt"  qty={data.totalKorpusCut + data.totalObicieCut} unit="m" price={PRICE_CUT_M} cost={data.costCutKorpus + data.costCutObicie} />
+        <CostRow label="Cięcie HDF"   qty={data.totalHdfCut}                          unit="m" price={PRICE_CUT_M} cost={data.costCutHdf} />
       </CostSection>
 
       <CostSection
         title="Oklejanie płyt"
         subtotal={data.costEdgeSvcKorpus + data.costEdgeSvcObicie + data.costOkleinaK + data.costOkleinaO}
       >
-        <CostRow label="Oklejanie płyty korpus" qty={data.totalKorpusEdge} unit="m" price={PRICE_EDGE_SVC_M}  cost={data.costEdgeSvcKorpus} />
-        <CostRow label="Oklejanie płyty obicie" qty={data.totalObicieEdge} unit="m" price={PRICE_EDGE_SVC_M}  cost={data.costEdgeSvcObicie} />
-        <CostRow label="Okleina korpus"         qty={data.totalKorpusEdge} unit="m" price={PRICE_OKLEINA_K_M} cost={data.costOkleinaK} />
-        <CostRow label="Okleina obicie"         qty={data.totalObicieEdge} unit="m" price={PRICE_OKLEINA_O_M} cost={data.costOkleinaO} />
+        <CostRow label="Oklejanie płyt"          qty={data.totalKorpusEdge + data.totalObicieEdge} unit="m" price={PRICE_EDGE_SVC_M}  cost={data.costEdgeSvcKorpus + data.costEdgeSvcObicie} />
+        <CostRow label="Okleina"                 qty={data.totalKorpusEdge + data.totalObicieEdge} unit="m" cost={data.costOkleinaK + data.costOkleinaO} />
       </CostSection>
 
       <CostSection title="Koszty sprzętu" subtotal={hardwareSubtotal}>
