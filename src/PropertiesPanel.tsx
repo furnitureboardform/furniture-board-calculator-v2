@@ -490,7 +490,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, onChange, onYChan
                     ? <img src={sel.imageBase64} alt="" className="prop-finish-thumb" />
                     : <span className="prop-finish-no-img" />
                   }
-                  <span className="prop-finish-trigger-label">{sel ? `${sel.label} · ${sel.brand}` : 'korpusowy'}</span>
+                  <span className="prop-finish-trigger-label">{sel ? `${sel.label} · ${sel.brand}` : 'Nieokreślona'}</span>
                   <span className="prop-finish-arrow">{finishOpen ? '▲' : '▼'}</span>
                 </button>
                 {finishOpen && (
