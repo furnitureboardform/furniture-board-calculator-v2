@@ -285,6 +285,8 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[]) {
     const korpusAreaByFinish = buildAreaByFinish(korpusPanels);
     const obicieAreaByFinish = buildAreaByFinish(obiciePanels);
     const hdfAreaByFinish    = buildAreaByFinish(hdfPanels);
+    const plytaAreaByFinish  = new Map(korpusAreaByFinish);
+    for (const [fid, area] of obicieAreaByFinish) plytaAreaByFinish.set(fid, (plytaAreaByFinish.get(fid) ?? 0) + area);
 
     // Hardware counts
     const rodCount      = elements.filter(e => e.type === 'rod').length;
@@ -327,7 +329,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[]) {
       totalKorpusArea, totalObicieArea, totalHdfArea,
       totalKorpusCut, totalObicieCut, totalHdfCut,
       totalKorpusEdge, totalObicieEdge,
-      korpusAreaByFinish, obicieAreaByFinish, hdfAreaByFinish,
+      hdfAreaByFinish, plytaAreaByFinish,
       rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleCount, legCount,
       costKorpus, costObicie, costHdf,
       costCutKorpus, costCutObicie, costCutHdf,
@@ -591,11 +593,8 @@ const CostTab: React.FC<{
 
   return (
     <div className="om-tab-content">
-      <FinishCostSection title="Płyty korpus" areaByFinish={data.korpusAreaByFinish} subtotal={data.costKorpus}
-        finishes={finishes} defaultLabel="Płyta korpus" defaultPrice={PRICE_KORPUS_M2} />
-
-      <FinishCostSection title="Płyty obicie" areaByFinish={data.obicieAreaByFinish} subtotal={data.costObicie}
-        finishes={finishes} defaultLabel="Płyta obicie" defaultPrice={PRICE_OBICIE_M2} />
+      <FinishCostSection title="Płyta" areaByFinish={data.plytaAreaByFinish} subtotal={data.costKorpus + data.costObicie}
+        finishes={finishes} defaultLabel="Płyta" defaultPrice={PRICE_KORPUS_M2} />
 
       <FinishCostSection title="Płyta HDF" areaByFinish={data.hdfAreaByFinish} subtotal={data.costHdf}
         finishes={finishes} defaultLabel="Płyta HDF" defaultPrice={PRICE_HDF_M2} labelPrefix="HDF" />
