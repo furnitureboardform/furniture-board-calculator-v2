@@ -423,7 +423,7 @@ const ElementLibrary: React.FC<Props> = ({
               <li className="element-item element-item--add" onClick={() => onAddRearboardToCabinet(cab.id)}>
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj płytę tylną 18mm</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj płytę tylną</span>
               </li>
             )}
 
