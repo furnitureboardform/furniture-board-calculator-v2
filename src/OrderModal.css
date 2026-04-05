@@ -100,8 +100,15 @@
   cursor: pointer;
 }
 
-.om-pdf-btn:hover {
+.om-pdf-btn:hover:not(:disabled) {
   background: #5a9c4e;
+}
+
+.om-pdf-btn:disabled {
+  background: #555;
+  border-color: #777;
+  color: #999;
+  cursor: not-allowed;
 }
 
 .om-modal-close {
@@ -198,6 +205,10 @@
   padding: 7px 12px 6px;
   background: #2d2d30;
   border-bottom: 1px solid #3d3d3d;
+}
+
+.om-section-title--warning {
+  color: #c0392b;
 }
 
 .om-empty-row {

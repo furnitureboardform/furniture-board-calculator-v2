@@ -348,6 +348,10 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
       costRods + costHinges + costSlides + costPtoSlides + costTipOn + costCouplings + costHandles + costLegs;
 
     return {
+      hasUnknownFinish:
+        korpusGrouped.some(p => isUnknownFinish(p.finishId, finishes)) ||
+        obicieGrouped.some(p => isUnknownFinish(p.finishId, finishes)) ||
+        hdfGrouped.some(p => isUnknownFinish(p.finishId, finishes)),
       korpusGrouped, obicieGrouped, hdfGrouped,
       totalKorpusArea, totalObicieArea, totalHdfArea,
       totalKorpusCut, totalObicieCut, totalHdfCut,
@@ -366,9 +370,9 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
 
 // ── Summary tab sub-components ─────────────────────────────────────────────────
 
-const GroupedSection: React.FC<{ title: string; panels: GroupedPanel[]; showEdge?: boolean }> = ({ title, panels, showEdge = true }) => (
+const GroupedSection: React.FC<{ title: string; panels: GroupedPanel[]; showEdge?: boolean; warning?: boolean }> = ({ title, panels, showEdge = true, warning }) => (
   <div className="om-section">
-    <div className="om-section-title">{title}</div>
+    <div className={`om-section-title${warning ? ' om-section-title--warning' : ''}`}>{title}</div>
     {panels.length === 0 ? (
       <div className="om-empty-row">brak</div>
     ) : (
@@ -395,6 +399,10 @@ function finishLabel(finishId: string | undefined, finishes: FinishOption[]): st
   return f ? `${f.label} · ${f.brand}` : 'Nieznana okleina';
 }
 
+function isUnknownFinish(finishId: string | undefined, finishes: FinishOption[]): boolean {
+  return !finishes.find(f => f.id === finishId);
+}
+
 function groupPanelsByFinish(panels: GroupedPanel[]): Map<string | undefined, GroupedPanel[]> {
   const map = new Map<string | undefined, GroupedPanel[]>();
   for (const p of panels) {
@@ -413,6 +421,7 @@ const FinishGroupedSections: React.FC<{ baseTitle: string; panels: GroupedPanel[
         <GroupedSection
           key={fid ?? 'none'}
           title={`${baseTitle} · ${finishLabel(fid, finishes)}`}
+          warning={isUnknownFinish(fid, finishes)}
           panels={fps}
           showEdge={showEdge}
         />
@@ -659,8 +668,8 @@ const CostTab: React.FC<{
 // ── PDF generation ─────────────────────────────────────────────────────────────
 
 function generatePdf(data: ReturnType<typeof useOrderData>, finishes: FinishOption[]) {
-  const sectionHeader = (text: string): Content => ({
-    text, bold: true, fontSize: 11, margin: [0, 14, 0, 2],
+  const sectionHeader = (text: string, warning = false): Content => ({
+    text, bold: true, fontSize: 11, margin: [0, 14, 0, 2], ...(warning && { color: '#c0392b' }),
   });
 
   const panelTable = (panels: GroupedPanel[], showEdge = true): Content => {
@@ -688,8 +697,8 @@ function generatePdf(data: ReturnType<typeof useOrderData>, finishes: FinishOpti
     const byFinish = groupPanelsByFinish(panels);
     const result: Content[] = [];
     for (const [fid, fps] of byFinish.entries()) {
-      const title = `${baseTitle} · ${finishLabel(fid, finishes)}`;
-      result.push(sectionHeader(title), panelTable(fps, showEdge));
+      const label = finishLabel(fid, finishes);
+      result.push(sectionHeader(`${baseTitle} · ${label}`, isUnknownFinish(fid, finishes)), panelTable(fps, showEdge));
     }
     if (panels.length === 0) result.push(sectionHeader(baseTitle), panelTable([], showEdge));
     return result;
@@ -769,7 +778,12 @@ const OrderModal: React.FC<Props> = ({ elements, handles }) => {
               <span className="om-modal-title">Zamówienia</span>
               <div className="om-modal-header-actions">
                 {tab === 'summary' && hasCabinets && (
-                  <button className="om-pdf-btn" onClick={() => generatePdf(data, finishes)} title="Generuj PDF">PDF</button>
+                  <button
+                    className="om-pdf-btn"
+                    onClick={() => generatePdf(data, finishes)}
+                    disabled={data.hasUnknownFinish}
+                    title={data.hasUnknownFinish ? 'Uzupełnij okleiny przed generowaniem PDF' : 'Generuj PDF'}
+                  >PDF</button>
                 )}
                 <button className="om-modal-close" onClick={() => setOpen(false)} title="Zamknij">✕</button>
               </div>
