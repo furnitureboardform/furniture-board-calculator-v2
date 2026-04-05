@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import type { BoxElement } from './types';
 import { useFinishes } from './hooks/useFinishes';
 import type { FinishOption } from './hooks/useFinishes';
+import type { HandleOption } from './hooks/useHandles';
 import { PANEL_T, HDF_T } from './constants';
 import './OrderModal.css';
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -12,6 +13,7 @@ import type { Content, TableCell } from 'pdfmake/interfaces';
 
 interface Props {
   elements: BoxElement[];
+  handles: HandleOption[];
 }
 
 // ── Prices ─────────────────────────────────────────────────────────────────────
@@ -226,7 +228,7 @@ function hingesForFront(el: BoxElement): number {
 }
 
 // ── Main data hook ─────────────────────────────────────────────────────────────
-function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinishes: FinishOption[]) {
+function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinishes: FinishOption[], handles: HandleOption[]) {
   return useMemo(() => {
     const korpusPanels: PanelEntry[] = [];
     const obiciePanels: PanelEntry[] = [];
@@ -302,7 +304,8 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const slideCount    = elements.filter(e => e.type === 'drawer' && !e.pushToOpen).length;
     const ptoSlideCount = elements.filter(e => e.type === 'drawer' && !!e.pushToOpen).length;
     const couplingCount = slideCount + ptoSlideCount;
-    const handleCount   = elements.filter(e => e.type === 'front' && !e.noHandle).length;
+    const frontsWithHandle = elements.filter(e => e.type === 'front' && !e.noHandle);
+    const handleCount   = frontsWithHandle.length;
     const legCount      = elements.filter(e => e.type === 'leg').length * 4;
 
     // Costs
@@ -322,7 +325,9 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const costPtoSlides     = ptoSlideCount * PRICE_PTO_SLIDE;
     const costTipOn         = ptoSlideCount * PRICE_TIPON;
     const costCouplings     = couplingCount * PRICE_COUPLING;
-    const costHandles       = handleCount   * PRICE_HANDLE;
+    const handlePriceMap    = new Map(handles.map(h => [h.id, h.pricePln]));
+    const costHandles       = frontsWithHandle.reduce((sum, e) =>
+      sum + (e.handleId ? (handlePriceMap.get(e.handleId) ?? PRICE_HANDLE) : PRICE_HANDLE), 0);
     const costLegs          = legCount      * PRICE_LEG;
 
     const grandTotal =
@@ -346,7 +351,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
       costRods, costHinges, costSlides, costPtoSlides, costTipOn, costCouplings, costHandles, costLegs,
       grandTotal,
     };
-  }, [elements, finishes, hdfFinishes]);
+  }, [elements, finishes, hdfFinishes, handles]);
 }
 
 // ── Summary tab sub-components ─────────────────────────────────────────────────
@@ -711,13 +716,13 @@ function generatePdf(data: ReturnType<typeof useOrderData>, finishes: FinishOpti
 
 type ModalTab = 'summary' | 'cost';
 
-const OrderModal: React.FC<Props> = ({ elements }) => {
+const OrderModal: React.FC<Props> = ({ elements, handles }) => {
   const [open, setOpen] = useState(false);
   const [tab, setTab]   = useState<ModalTab>('summary');
   const finishesBase    = useFinishes();
   const finishesHdf     = useFinishes('hdf', false);
   const finishes        = useMemo(() => [...finishesBase, ...finishesHdf], [finishesBase, finishesHdf]);
-  const data            = useOrderData(elements, finishes, finishesHdf);
+  const data            = useOrderData(elements, finishes, finishesHdf, handles);
 
   const [fin, setFin] = useState<FinancialState>({
     transport: 0,

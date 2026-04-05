@@ -28,6 +28,7 @@ export interface BoxElement {
   parentIsDrawerbox?: boolean;  // only for drawer: true when parent is a drawerbox
   pushToOpen?: boolean;         // only for drawer: push-to-open mechanism
   finishId?: string;            // optional: selected finish/veneer from Firebase
+  handleId?: string;            // optional: selected handle type from Firebase (for fronts)
   dimensions: BoxDimensions;
   position: { x: number; y: number; z: number };
   color: string;

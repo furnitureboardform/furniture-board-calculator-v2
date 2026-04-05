@@ -2,6 +2,7 @@ import React, { useRef, useState, useMemo } from 'react';
 import { useThreeScene } from './useThreeScene';
 import { HDF_GRAY } from './builders';
 import { useFinishes } from './hooks/useFinishes';
+import { useHandles } from './hooks/useHandles';
 import { useHistory } from './hooks/useHistory';
 import { useDragHandlers } from './hooks/useDragHandlers';
 import { useElementActions } from './hooks/useElementActions';
@@ -27,6 +28,7 @@ const App: React.FC = () => {
   const detachedFromRef = useRef<Map<string, string>>(new Map());
   const finishes = useFinishes();
   const hdfFinishes = useFinishes('hdf', false);
+  const handles = useHandles();
   const finishColorMap = useMemo(() => new Map([...finishes, ...hdfFinishes].filter(f => f.colorHex).map(f => [f.id, f.colorHex!])), [finishes, hdfFinishes]);
   const { savedModels, loading: modelsLoading, saveModel, deleteModel, overwriteModel } = useSavedModels();
   const handleSaveModel = async (name: string) => { await saveModel(name, elements); };
@@ -103,6 +105,14 @@ const App: React.FC = () => {
     onDragStart: handleDragStart,
   }, showCeilingGrid);
 
+  const handleHandleChange = (id: string, handleId: string | undefined) => {
+    setElements((prev) => prev.map((e) => {
+      if (e.id === id && e.type === 'front') return { ...e, handleId };
+      if (e.type === 'front' && e.cabinetId === id) return { ...e, handleId };
+      return e;
+    }));
+  };
+
   const handleFinishChange = (id: string, finishId: string | undefined) => {
     setElements((prev) => prev.map((e) => {
       if (e.id !== id) return e;
@@ -170,7 +180,7 @@ const App: React.FC = () => {
           onDeleteModel={deleteModel}
           onOverwriteModel={handleOverwriteModel}
         />
-        <OrderModal elements={elements} />
+        <OrderModal elements={elements} handles={handles} />
         <div className="undo-redo-fab">
           <button
             className="undo-redo-btn"
@@ -211,6 +221,8 @@ const App: React.FC = () => {
           onDividerSwitchSlot={handleDividerSwitchSlot}
           onRotate={(id) => handleRotateCabinet(id)}
           onFinishChange={handleFinishChange}
+          handles={handles}
+          onHandleChange={handleHandleChange}
         />
       </aside>
     </div>

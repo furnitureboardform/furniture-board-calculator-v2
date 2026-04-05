@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { BoxElement, BoxDimensions } from './types';
 import type { FinishOption } from './hooks/useFinishes';
+import type { HandleOption } from './hooks/useHandles';
 import { PANEL_T } from './constants';
 import './PropertiesPanel.css';
 
@@ -27,6 +28,8 @@ interface Props {
   onFrontNoHandleChange?: (v: boolean) => void;
   onRotate?: (id: string) => void;
   onFinishChange?: (id: string, finishId: string | undefined) => void;
+  handles?: HandleOption[];
+  onHandleChange?: (id: string, handleId: string | undefined) => void;
 }
 
 type DimKey = keyof BoxDimensions;
@@ -35,9 +38,11 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onFrontNoHandleChange, onRotate, onFinishChange }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onFrontNoHandleChange, onRotate, onFinishChange, handles, onHandleChange }) => {
   const [finishOpen, setFinishOpen] = useState(false);
+  const [handleOpen, setHandleOpen] = useState(false);
   const finishRef = useRef<HTMLDivElement>(null);
+  const handleRef = useRef<HTMLDivElement>(null);
   // Local draft strings so the user can type freely
   const [drafts, setDrafts] = useState<Record<DimKey, string>>({ width: '', height: '', depth: '' });
   const [yDraft, setYDraft] = useState('');
@@ -51,6 +56,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
   useEffect(() => {
     if (!element) return;
     setFinishOpen(false);
+    setHandleOpen(false);
     setDrafts({
       width: toMm(element.dimensions.width),
       height: toMm(element.dimensions.height),
@@ -80,6 +86,71 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
       </div>
     );
   }
+
+  const getCommonHandleId = (parentId: string) => {
+    const fronts = elements?.filter((e) => e.type === 'front' && e.cabinetId === parentId) ?? [];
+    return fronts.length > 0 && fronts.every((e) => e.handleId === fronts[0].handleId)
+      ? fronts[0].handleId
+      : undefined;
+  };
+
+  const renderHandleSelector = (currentHandleId: string | undefined, targetId: string) => {
+    if (!handles || !onHandleChange) return null;
+    const sel = handles.find((h) => h.id === currentHandleId);
+    return (
+      <>
+        <div className="prop-divider" />
+        <div className="prop-finish-section">
+          <span className="prop-label">Uchwyt (typ)</span>
+          <div
+            className="prop-finish-dropdown"
+            ref={handleRef}
+            onBlur={(e) => { if (!handleRef.current?.contains(e.relatedTarget as Node)) setHandleOpen(false); }}
+            tabIndex={-1}
+          >
+            <button
+              className="prop-finish-trigger"
+              onClick={() => setHandleOpen((o) => !o)}
+              type="button"
+            >
+              {sel?.imageBase64
+                ? <img src={sel.imageBase64} alt="" className="prop-finish-thumb" />
+                : <span className="prop-finish-no-img" />
+              }
+              <span className="prop-finish-trigger-label">
+                {sel ? `${sel.label} · ${sel.brand}` : 'Nieokreślony'}
+              </span>
+              <span className="prop-finish-arrow">{handleOpen ? '▲' : '▼'}</span>
+            </button>
+            {handleOpen && (
+              <ul className="prop-finish-list">
+                <li
+                  className={`prop-finish-item${!currentHandleId ? ' prop-finish-item--active' : ''}`}
+                  onClick={() => { onHandleChange(targetId, undefined); setHandleOpen(false); }}
+                >
+                  <span className="prop-finish-no-img" />
+                  <span>Nieokreślony</span>
+                </li>
+                {handles.map((h) => (
+                  <li
+                    key={h.id}
+                    className={`prop-finish-item${currentHandleId === h.id ? ' prop-finish-item--active' : ''}`}
+                    onClick={() => { onHandleChange(targetId, h.id); setHandleOpen(false); }}
+                  >
+                    {h.imageBase64
+                      ? <img src={h.imageBase64} alt="" className="prop-finish-thumb" />
+                      : <span className="prop-finish-no-img" />
+                    }
+                    <span>{h.label} · {h.brand}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </>
+    );
+  };
 
   if (element.type === 'group') {
     const w = Math.round(element.dimensions.width * 1000);
@@ -121,6 +192,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
             </div>
           </>
         )}
+        {hasFront && renderHandleSelector(getCommonHandleId(element.id), element.id)}
       </div>
     );
   }
@@ -519,6 +591,8 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
           </>
         );
       })()}
+
+      {element.type === 'front' && !element.noHandle && renderHandleSelector(element.handleId, element.id)}
     </div>
   );
 };
