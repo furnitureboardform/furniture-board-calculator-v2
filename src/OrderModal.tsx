@@ -17,9 +17,6 @@ interface Props {
 }
 
 // ── Prices ─────────────────────────────────────────────────────────────────────
-const PRICE_KORPUS_M2   = 37.85;
-const PRICE_HDF_M2      = 11.04;
-const PRICE_OBICIE_M2   = 46.05;
 const PRICE_CUT_M       = 6.00;
 const PRICE_EDGE_SVC_M  = 6.00;
 const PRICE_OKLEINA_M   = 1.00;

@@ -21,6 +21,10 @@ React + TypeScript app for calculating furniture board cuts and generating order
 11. **No Co-Authored-By** — never add `Co-Authored-By: Claude` or any Claude/Anthropic attribution to commit messages.
 12. **Code review before commit/push** — before every `git commit` or `git push`, run the `simplify` skill to review changed code for quality issues, then fix any found problems before proceeding.
 
+## Build Errors Policy
+- **Unused variables** — delete them; never suppress with eslint-disable or prefix with `_`.
+- Fix only the reported lines; don't touch surrounding code.
+
 ## Code Conventions
 - Components in `src/` with matching `.css` files
 - Types defined in `src/types.ts`
