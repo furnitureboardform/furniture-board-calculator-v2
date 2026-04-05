@@ -325,9 +325,19 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const costPtoSlides     = ptoSlideCount * PRICE_PTO_SLIDE;
     const costTipOn         = ptoSlideCount * PRICE_TIPON;
     const costCouplings     = couplingCount * PRICE_COUPLING;
-    const handlePriceMap    = new Map(handles.map(h => [h.id, h.pricePln]));
-    const costHandles       = frontsWithHandle.reduce((sum, e) =>
-      sum + (e.handleId ? (handlePriceMap.get(e.handleId) ?? PRICE_HANDLE) : PRICE_HANDLE), 0);
+    const handleMap         = new Map(handles.map(h => [h.id, { label: `${h.label} · ${h.brand}`, pricePln: h.pricePln }]));
+    const handleGroupMap    = new Map<string, { id: string; label: string; count: number; cost: number; unitPrice: number }>();
+    for (const e of frontsWithHandle) {
+      const key = e.handleId ?? '__default__';
+      const hd = e.handleId ? handleMap.get(e.handleId) : undefined;
+      const unitPrice = hd?.pricePln ?? PRICE_HANDLE;
+      const label = hd?.label ?? 'Uchwyt';
+      const g = handleGroupMap.get(key);
+      if (g) { g.count++; g.cost += unitPrice; }
+      else handleGroupMap.set(key, { id: key, label, count: 1, cost: unitPrice, unitPrice });
+    }
+    const handleGroups      = Array.from(handleGroupMap.values());
+    const costHandles       = handleGroups.reduce((s, g) => s + g.cost, 0);
     const costLegs          = legCount      * PRICE_LEG;
 
     const grandTotal =
@@ -343,7 +353,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
       totalKorpusCut, totalObicieCut, totalHdfCut,
       totalKorpusEdge, totalObicieEdge,
       hdfAreaByFinish, plytaAreaByFinish,
-      rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleCount, legCount,
+      rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, legCount,
       costKorpus, costObicie, costHdf,
       costCutKorpus, costCutObicie, costCutHdf,
       costEdgeSvcKorpus, costEdgeSvcObicie,
@@ -413,8 +423,8 @@ const FinishGroupedSections: React.FC<{ baseTitle: string; panels: GroupedPanel[
 
 const AdditionalSection: React.FC<{
   rodCount: number; hingeCount: number; slideCount: number; ptoSlideCount: number;
-  couplingCount: number; handleCount: number; legCount: number;
-}> = ({ rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleCount, legCount }) => {
+  couplingCount: number; handleGroups: Array<{ label: string; count: number }>; legCount: number;
+}> = ({ rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, legCount }) => {
   const items: Array<{ name: string; qty: number; note?: string }> = [];
   if (rodCount > 0)       items.push({ name: 'Drążki',              qty: rodCount });
   if (hingeCount > 0)     items.push({ name: 'Zawiasy',             qty: hingeCount,    note: 'na drzwi (wg wysokości drzwi)' });
@@ -422,7 +432,7 @@ const AdditionalSection: React.FC<{
   if (ptoSlideCount > 0)  items.push({ name: 'Prowadnice push to open', qty: ptoSlideCount, note: '1 zestaw na szufladę' });
   if (ptoSlideCount > 0)  items.push({ name: 'TIP-ON BLUMOTION', qty: ptoSlideCount, note: '1 na szufladę' });
   if (couplingCount > 0)  items.push({ name: 'Sprzęgła',            qty: couplingCount, note: '1 zestaw na szufladę' });
-  if (handleCount > 0)    items.push({ name: 'Uchwyty',             qty: handleCount,   note: '1 na drzwi' });
+  for (const g of handleGroups) items.push({ name: g.label, qty: g.count, note: '1 na drzwi' });
   if (legCount > 0)       items.push({ name: 'Nóżki',               qty: legCount,      note: '4 na box' });
 
   return (
@@ -454,7 +464,7 @@ const SummaryTab: React.FC<{ data: ReturnType<typeof useOrderData>; finishes: Fi
       slideCount={data.slideCount}
       ptoSlideCount={data.ptoSlideCount}
       couplingCount={data.couplingCount}
-      handleCount={data.handleCount}
+      handleGroups={data.handleGroups}
       legCount={data.legCount}
     />
   </div>
@@ -636,7 +646,7 @@ const CostTab: React.FC<{
         {data.ptoSlideCount > 0 && <CostRow label="Prowadnice push to open" qty={data.ptoSlideCount} unit="szt." price={PRICE_PTO_SLIDE} cost={data.costPtoSlides} />}
         {data.ptoSlideCount > 0 && <CostRow label="TIP-ON BLUMOTION"        qty={data.ptoSlideCount} unit="szt." price={PRICE_TIPON}     cost={data.costTipOn} />}
         {data.couplingCount > 0 && <CostRow label="Sprzęgła"               qty={data.couplingCount} unit="szt." price={PRICE_COUPLING} cost={data.costCouplings} />}
-        {data.handleCount > 0  && <CostRow label="Uchwyty"             qty={data.handleCount}   unit="szt." price={PRICE_HANDLE}   cost={data.costHandles} />}
+        {data.handleGroups.map(g => <CostRow key={g.id} label={g.label} qty={g.count} unit="szt." price={g.unitPrice} cost={g.cost} />)}
         {data.legCount > 0     && <CostRow label="Nóżki"               qty={data.legCount}      unit="szt." price={PRICE_LEG}      cost={data.costLegs} />}
         {hardwareSubtotal === 0 && <div className="om-empty-row">brak</div>}
       </CostSection>
@@ -692,7 +702,7 @@ function generatePdf(data: ReturnType<typeof useOrderData>, finishes: FinishOpti
   if (data.ptoSlideCount > 0)  addonRows.push(['Prowadnice push to open',  `${data.ptoSlideCount} szt.`, '1 zestaw na szufladę']);
   if (data.ptoSlideCount > 0)  addonRows.push(['TIP-ON BLUMOTION',         `${data.ptoSlideCount} szt.`, '1 na szufladę']);
   if (data.couplingCount > 0)  addonRows.push(['Sprzęgła',                 `${data.couplingCount} szt.`, '1 zestaw na szufladę']);
-  if (data.handleCount > 0)    addonRows.push(['Uchwyty',                  `${data.handleCount} szt.`,   '1 na drzwi']);
+  for (const g of data.handleGroups) addonRows.push([g.label, `${g.count} szt.`, '1 na drzwi']);
   if (data.legCount > 0)       addonRows.push(['Nóżki',                    `${data.legCount} szt.`,      '4 na box']);
 
   const addonsContent: Content = addonRows.length === 0
