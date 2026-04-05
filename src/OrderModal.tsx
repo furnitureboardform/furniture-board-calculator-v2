@@ -213,10 +213,11 @@ function buildAreaByFinish(panels: PanelEntry[]): Map<string | undefined, number
   return map;
 }
 
-function calcMaterialCost(areaByFinish: Map<string | undefined, number>, finishes: FinishOption[], defaultPrice: number): number {
+function calcMaterialCost(areaByFinish: Map<string | undefined, number>, finishes: FinishOption[]): number {
   let cost = 0;
   for (const [fid, area] of areaByFinish) {
-    cost += area * (finishes.find(f => f.id === fid)?.pricePerSqmPln ?? defaultPrice);
+    const price = finishes.find(f => f.id === fid)?.pricePerSqmPln ?? 0;
+    cost += area * price;
   }
   return cost;
 }
@@ -308,9 +309,9 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const legCount      = elements.filter(e => e.type === 'leg').length * 4;
 
     // Costs
-    const costKorpus = calcMaterialCost(korpusAreaByFinish, finishes, PRICE_KORPUS_M2);
-    const costObicie = calcMaterialCost(obicieAreaByFinish, finishes, PRICE_OBICIE_M2);
-    const costHdf           = calcMaterialCost(hdfAreaByFinish, hdfFinishes, PRICE_HDF_M2);
+    const costKorpus = calcMaterialCost(korpusAreaByFinish, finishes);
+    const costObicie = calcMaterialCost(obicieAreaByFinish, finishes);
+    const costHdf           = calcMaterialCost(hdfAreaByFinish, hdfFinishes);
     const costCutKorpus     = totalKorpusCut  * PRICE_CUT_M;
     const costCutObicie     = totalObicieCut  * PRICE_CUT_M;
     const costCutHdf        = totalHdfCut     * PRICE_CUT_M;
@@ -480,9 +481,9 @@ const SummaryTab: React.FC<{ data: ReturnType<typeof useOrderData>; finishes: Fi
 
 // ── Cost tab sub-components ────────────────────────────────────────────────────
 
-interface CostRowProps { label: string; qty: number; unit: string; price: number; cost: number; }
-const CostRow: React.FC<CostRowProps> = ({ label, qty, unit, price, cost }) => (
-  <div className="om-cost-row">
+interface CostRowProps { label: string; qty: number; unit: string; price: number; cost: number; warning?: boolean; }
+const CostRow: React.FC<CostRowProps> = ({ label, qty, unit, price, cost, warning }) => (
+  <div className={`om-cost-row${warning ? ' om-cost-row--warning' : ''}`}>
     <span className="om-cost-label">{label}</span>
     <span className="om-cost-qty">{fmtQty(qty, unit)} {unit}</span>
     <span className="om-cost-price">{price.toFixed(2)} zł/{unit}</span>
@@ -511,19 +512,18 @@ const FinishCostSection: React.FC<{
   finishes: FinishOption[];
   labelFinishes?: FinishOption[];
   defaultLabel: string;
-  defaultPrice: number;
   labelPrefix?: string;
-}> = ({ title, areaByFinish, subtotal, finishes, labelFinishes, defaultLabel, defaultPrice, labelPrefix }) => (
+}> = ({ title, areaByFinish, subtotal, finishes, labelFinishes, defaultLabel, labelPrefix }) => (
   <CostSection title={title} subtotal={subtotal}>
     {areaByFinish.size === 0
       ? <div className="om-empty-row">brak</div>
       : Array.from(areaByFinish.entries()).map(([fid, area]) => {
           const finish = finishes.find(f => f.id === fid);
           const labelFinish = labelFinishes ? (labelFinishes.find(f => f.id === fid) ?? finish) : finish;
-          const price = finish?.pricePerSqmPln ?? defaultPrice;
+          const price = finish?.pricePerSqmPln ?? 0;
           const name = labelFinish ? `${labelFinish.label} · ${labelFinish.brand}` : defaultLabel;
           const label = labelPrefix ? `${labelPrefix} · ${name}` : name;
-          return <CostRow key={fid ?? 'none'} label={label} qty={area} unit="m²" price={price} cost={area * price} />;
+          return <CostRow key={fid ?? 'none'} label={label} qty={area} unit="m²" price={price} cost={area * price} warning={!finish} />;
         })
     }
   </CostSection>
@@ -629,10 +629,10 @@ const CostTab: React.FC<{
   return (
     <div className="om-tab-content">
       <FinishCostSection title="Płyta" areaByFinish={data.plytaAreaByFinish} subtotal={data.costKorpus + data.costObicie}
-        finishes={finishes} defaultLabel="Płyta" defaultPrice={PRICE_KORPUS_M2} />
+        finishes={finishes} defaultLabel="Płyta" />
 
       <FinishCostSection title="Płyta HDF" areaByFinish={data.hdfAreaByFinish} subtotal={data.costHdf}
-        finishes={hdfFinishes} labelFinishes={finishes} defaultLabel="Płyta HDF" defaultPrice={PRICE_HDF_M2} />
+        finishes={hdfFinishes} labelFinishes={finishes} defaultLabel="Płyta HDF" />
 
       <CostSection title="Cięcie płyt" subtotal={data.costCutKorpus + data.costCutObicie + data.costCutHdf}>
         <CostRow label="Cięcie płyt"  qty={data.totalKorpusCut + data.totalObicieCut} unit="m" price={PRICE_CUT_M} cost={data.costCutKorpus + data.costCutObicie} />
