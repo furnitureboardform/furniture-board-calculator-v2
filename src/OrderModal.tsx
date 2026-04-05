@@ -26,7 +26,6 @@ const PRICE_SLIDE       = 104.00;
 const PRICE_PTO_SLIDE   = 123.00;
 const PRICE_TIPON       = 72.00;
 const PRICE_COUPLING    = 8.00;
-const PRICE_HANDLE      = 46.00;
 const PRICE_LEG         = 6.00;
 
 const T = PANEL_T;
@@ -328,7 +327,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     for (const e of frontsWithHandle) {
       const key = e.handleId ?? '__default__';
       const hd = e.handleId ? handleMap.get(e.handleId) : undefined;
-      const unitPrice = hd?.pricePln ?? PRICE_HANDLE;
+      const unitPrice = hd?.pricePln ?? 0;
       const label = hd?.label ?? 'Nieznany uchwyt';
       const warning = !hd;
       if (warning) hasUnknownHandle = true;
@@ -655,7 +654,7 @@ const CostTab: React.FC<{
         {data.ptoSlideCount > 0 && <CostRow label="Prowadnice push to open" qty={data.ptoSlideCount} unit="szt." price={PRICE_PTO_SLIDE} cost={data.costPtoSlides} />}
         {data.ptoSlideCount > 0 && <CostRow label="TIP-ON BLUMOTION"        qty={data.ptoSlideCount} unit="szt." price={PRICE_TIPON}     cost={data.costTipOn} />}
         {data.couplingCount > 0 && <CostRow label="Sprzęgła"               qty={data.couplingCount} unit="szt." price={PRICE_COUPLING} cost={data.costCouplings} />}
-        {data.handleGroups.map(g => <CostRow key={g.id} label={g.label} qty={g.count} unit="szt." price={g.unitPrice} cost={g.cost} />)}
+        {data.handleGroups.map(g => <CostRow key={g.id} label={g.label} qty={g.count} unit="szt." price={g.unitPrice} cost={g.cost} warning={g.warning} />)}
         {data.legCount > 0     && <CostRow label="Nóżki"               qty={data.legCount}      unit="szt." price={PRICE_LEG}      cost={data.costLegs} />}
         {hardwareSubtotal === 0 && <div className="om-empty-row">brak</div>}
       </CostSection>
