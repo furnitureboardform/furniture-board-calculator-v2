@@ -323,15 +323,18 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const costTipOn         = ptoSlideCount * PRICE_TIPON;
     const costCouplings     = couplingCount * PRICE_COUPLING;
     const handleMap         = new Map(handles.map(h => [h.id, { label: `${h.label} · ${h.brand}`, pricePln: h.pricePln }]));
-    const handleGroupMap    = new Map<string, { id: string; label: string; count: number; cost: number; unitPrice: number }>();
+    const handleGroupMap    = new Map<string, { id: string; label: string; count: number; cost: number; unitPrice: number; warning: boolean }>();
+    let hasUnknownHandle    = false;
     for (const e of frontsWithHandle) {
       const key = e.handleId ?? '__default__';
       const hd = e.handleId ? handleMap.get(e.handleId) : undefined;
       const unitPrice = hd?.pricePln ?? PRICE_HANDLE;
-      const label = hd?.label ?? 'Uchwyt';
+      const label = hd?.label ?? 'Nieznany uchwyt';
+      const warning = !hd;
+      if (warning) hasUnknownHandle = true;
       const g = handleGroupMap.get(key);
       if (g) { g.count++; g.cost += unitPrice; }
-      else handleGroupMap.set(key, { id: key, label, count: 1, cost: unitPrice, unitPrice });
+      else handleGroupMap.set(key, { id: key, label, count: 1, cost: unitPrice, unitPrice, warning });
     }
     const handleGroups      = Array.from(handleGroupMap.values());
     const costHandles       = handleGroups.reduce((s, g) => s + g.cost, 0);
@@ -349,6 +352,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
         korpusGrouped.some(p => isUnknownFinish(p.finishId, finishes)) ||
         obicieGrouped.some(p => isUnknownFinish(p.finishId, finishes)) ||
         hdfGrouped.some(p => isUnknownFinish(p.finishId, finishes)),
+      hasUnknownHandle,
       korpusGrouped, obicieGrouped, hdfGrouped,
       totalKorpusArea, totalObicieArea, totalHdfArea,
       totalKorpusCut, totalObicieCut, totalHdfCut,
@@ -429,16 +433,16 @@ const FinishGroupedSections: React.FC<{ baseTitle: string; panels: GroupedPanel[
 
 const AdditionalSection: React.FC<{
   rodCount: number; hingeCount: number; slideCount: number; ptoSlideCount: number;
-  couplingCount: number; handleGroups: Array<{ label: string; count: number }>; legCount: number;
+  couplingCount: number; handleGroups: Array<{ label: string; count: number; warning?: boolean }>; legCount: number;
 }> = ({ rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, legCount }) => {
-  const items: Array<{ name: string; qty: number; note?: string }> = [];
+  const items: Array<{ name: string; qty: number; note?: string; warning?: boolean }> = [];
   if (rodCount > 0)       items.push({ name: 'Drążki',              qty: rodCount });
   if (hingeCount > 0)     items.push({ name: 'Zawiasy',             qty: hingeCount,    note: 'na drzwi (wg wysokości drzwi)' });
   if (slideCount > 0)     items.push({ name: 'Prowadnice przesuwne', qty: slideCount,   note: '1 zestaw na szufladę' });
   if (ptoSlideCount > 0)  items.push({ name: 'Prowadnice push to open', qty: ptoSlideCount, note: '1 zestaw na szufladę' });
   if (ptoSlideCount > 0)  items.push({ name: 'TIP-ON BLUMOTION', qty: ptoSlideCount, note: '1 na szufladę' });
   if (couplingCount > 0)  items.push({ name: 'Sprzęgła',            qty: couplingCount, note: '1 zestaw na szufladę' });
-  for (const g of handleGroups) items.push({ name: g.label, qty: g.count, note: '1 na drzwi' });
+  for (const g of handleGroups) items.push({ name: g.label, qty: g.count, note: '1 na drzwi', warning: g.warning });
   if (legCount > 0)       items.push({ name: 'Nóżki',               qty: legCount,      note: '4 na box' });
 
   return (
@@ -448,7 +452,7 @@ const AdditionalSection: React.FC<{
         <div className="om-empty-row">brak</div>
       ) : (
         items.map(item => (
-          <div key={item.name} className="om-addon-row">
+          <div key={item.name} className={`om-addon-row${item.warning ? ' om-addon-row--warning' : ''}`}>
             <span className="om-addon-name">{item.name}</span>
             <span className="om-addon-qty">{item.qty} szt.</span>
             {item.note && <span className="om-addon-note">{item.note}</span>}
@@ -777,8 +781,8 @@ const OrderModal: React.FC<Props> = ({ elements, handles }) => {
                   <button
                     className="om-pdf-btn"
                     onClick={() => generatePdf(data, finishes)}
-                    disabled={data.hasUnknownFinish}
-                    title={data.hasUnknownFinish ? 'Uzupełnij okleiny przed generowaniem PDF' : 'Generuj PDF'}
+                    disabled={data.hasUnknownFinish || data.hasUnknownHandle}
+                    title={data.hasUnknownFinish ? 'Uzupełnij okleiny przed generowaniem PDF' : data.hasUnknownHandle ? 'Uzupełnij uchwyty przed generowaniem PDF' : 'Generuj PDF'}
                   >PDF</button>
                 )}
                 <button className="om-modal-close" onClick={() => setOpen(false)} title="Zamknij">✕</button>
