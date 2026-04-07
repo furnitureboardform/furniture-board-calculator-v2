@@ -1,3 +1,9 @@
+export interface BoardSize {
+  width: number;
+  depth: number;
+  height: number;
+}
+
 export interface BoxDimensions {
   width: number;
   height: number;

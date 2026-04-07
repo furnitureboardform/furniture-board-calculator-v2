@@ -9,6 +9,7 @@ import { useDragHandlers } from './hooks/useDragHandlers';
 import { useElementActions } from './hooks/useElementActions';
 import { useKeyboard } from './hooks/useKeyboard';
 import { useSavedModels } from './hooks/useSavedModels';
+import type { BoardSize } from './types';
 import ElementLibrary from './ElementLibrary';
 import PropertiesPanel from './PropertiesPanel';
 import ModelOverlay from './ModelOverlay';
@@ -37,14 +38,15 @@ const App: React.FC = () => {
   const [ctrlSName, setCtrlSName] = useState('');
   const [ctrlSSaving, setCtrlSSaving] = useState(false);
   const handleSaveModel = async (name: string) => {
-    const id = await saveModel(name, elements);
+    const id = await saveModel(name, elements, boardSize);
     setCurrentModelId(id);
   };
-  const handleLoadModel = (model: { id: string; elements: typeof elements }) => {
+  const handleLoadModel = (model: { id: string; elements: typeof elements; boardSize?: BoardSize }) => {
     setElements(model.elements);
+    if (model.boardSize) setBoardSize(model.boardSize);
     setCurrentModelId(model.id);
   };
-  const handleOverwriteModel = async (id: string) => { await overwriteModel(id, elements); };
+  const handleOverwriteModel = async (id: string) => { await overwriteModel(id, elements, boardSize); };
   const handleCtrlSave = () => {
     if (currentModelId) {
       setCtrlSAction('overwrite');
@@ -68,7 +70,7 @@ const App: React.FC = () => {
   };
   const handleCtrlSOverwrite = () => {
     if (!currentModelId) return;
-    withCtrlSSaving(() => overwriteModel(currentModelId, elements));
+    withCtrlSSaving(() => handleOverwriteModel(currentModelId));
   };
 
   const {

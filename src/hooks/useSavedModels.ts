@@ -11,13 +11,14 @@ import {
   orderBy,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import type { BoxElement } from '../types';
+import type { BoardSize, BoxElement } from '../types';
 
 export interface SavedModel {
   id: string;
   name: string;
   createdAt: Date;
   elements: BoxElement[];
+  boardSize?: BoardSize;
 }
 
 export function useSavedModels() {
@@ -34,6 +35,7 @@ export function useSavedModels() {
         name: d.data().name as string,
         createdAt: d.data().createdAt?.toDate?.() ?? new Date(),
         elements: d.data().elements as BoxElement[],
+        boardSize: d.data().boardSize as BoardSize | undefined,
       }));
       setSavedModels(models);
     } finally {
@@ -45,13 +47,14 @@ export function useSavedModels() {
     fetchModels();
   }, []);
 
-  const saveModel = async (name: string, elements: BoxElement[]) => {
+  const saveModel = async (name: string, elements: BoxElement[], boardSize?: BoardSize) => {
     const docRef = await addDoc(collection(db, 'models'), {
       name,
       elements,
+      boardSize,
       createdAt: serverTimestamp(),
     });
-    const newModel: SavedModel = { id: docRef.id, name, createdAt: new Date(), elements };
+    const newModel: SavedModel = { id: docRef.id, name, createdAt: new Date(), elements, boardSize };
     setSavedModels((prev) => [newModel, ...prev]);
     return docRef.id;
   };
@@ -61,10 +64,10 @@ export function useSavedModels() {
     setSavedModels((prev) => prev.filter((m) => m.id !== id));
   };
 
-  const overwriteModel = async (id: string, elements: BoxElement[]) => {
-    await setDoc(doc(db, 'models', id), { elements }, { merge: true });
+  const overwriteModel = async (id: string, elements: BoxElement[], boardSize?: BoardSize) => {
+    await setDoc(doc(db, 'models', id), { elements, boardSize }, { merge: true });
     setSavedModels((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, elements } : m))
+      prev.map((m) => (m.id === id ? { ...m, elements, boardSize } : m))
     );
   };
 
