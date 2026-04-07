@@ -3,6 +3,14 @@ import { PANEL_T, FRONT_INSET, HDF_T, HDF_INSET } from './constants';
 
 /** Computes position/dimensions of an HDF back panel bound to its cabinet. */
 export function computeHdfForCabinet(hdf: BoxElement, cab: BoxElement): BoxElement {
+  const rot = cab.rotationY ?? 0;
+  const halfD = cab.dimensions.depth / 2;
+  let posX = cab.position.x;
+  let posZ = cab.position.z;
+  if (rot === 0)        { posZ = cab.position.z - halfD - HDF_T / 2; }
+  else if (rot === 90)  { posX = cab.position.x - halfD - HDF_T / 2; }
+  else if (rot === 180) { posZ = cab.position.z + halfD + HDF_T / 2; }
+  else                  { posX = cab.position.x + halfD + HDF_T / 2; }
   return {
     ...hdf,
     dimensions: {
@@ -11,15 +19,23 @@ export function computeHdfForCabinet(hdf: BoxElement, cab: BoxElement): BoxEleme
       depth: HDF_T,
     },
     position: {
-      x: cab.position.x,
+      x: posX,
       y: cab.position.y + HDF_INSET,
-      z: cab.position.z - cab.dimensions.depth / 2 - HDF_T / 2,
+      z: posZ,
     },
   };
 }
 
 /** Computes position/dimensions of a rear 18mm board bound to its cabinet. */
 export function computeRearboardForCabinet(rb: BoxElement, cab: BoxElement): BoxElement {
+  const rot = cab.rotationY ?? 0;
+  const halfD = cab.dimensions.depth / 2;
+  let posX = cab.position.x;
+  let posZ = cab.position.z;
+  if (rot === 0)        { posZ = cab.position.z - halfD - PANEL_T / 2; }
+  else if (rot === 90)  { posX = cab.position.x - halfD - PANEL_T / 2; }
+  else if (rot === 180) { posZ = cab.position.z + halfD + PANEL_T / 2; }
+  else                  { posX = cab.position.x + halfD + PANEL_T / 2; }
   return {
     ...rb,
     dimensions: {
@@ -28,9 +44,9 @@ export function computeRearboardForCabinet(rb: BoxElement, cab: BoxElement): Box
       depth: PANEL_T,
     },
     position: {
-      x: cab.position.x,
+      x: posX,
       y: cab.position.y,
-      z: cab.position.z - cab.dimensions.depth / 2 - PANEL_T / 2,
+      z: posZ,
     },
   };
 }
