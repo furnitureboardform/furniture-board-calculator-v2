@@ -18,13 +18,20 @@ interface Params {
   undo: () => void;
   redo: () => void;
   handleDividerSwitchSlot?: (id: string) => void;
+  onCtrlSave?: () => void;
 }
 
-export function useKeyboard({ selectedId, multiSelectedIds, handleDelete, elements, setElements, setMultiSelectedIds, undo, redo, handleDividerSwitchSlot }: Params) {
+export function useKeyboard({ selectedId, multiSelectedIds, handleDelete, elements, setElements, setMultiSelectedIds, undo, redo, handleDividerSwitchSlot, onCtrlSave }: Params) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        onCtrlSave?.();
+        return;
+      }
 
       if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
@@ -96,5 +103,5 @@ export function useKeyboard({ selectedId, multiSelectedIds, handleDelete, elemen
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectedId, multiSelectedIds, handleDelete, elements, setElements, setMultiSelectedIds, undo, redo]);
+  }, [selectedId, multiSelectedIds, handleDelete, elements, setElements, setMultiSelectedIds, undo, redo, onCtrlSave]);
 }

@@ -1,4 +1,5 @@
 import React, { useRef, useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useThreeScene } from './useThreeScene';
 import { HDF_GRAY } from './builders';
 import { useFinishes } from './hooks/useFinishes';
@@ -31,9 +32,44 @@ const App: React.FC = () => {
   const handles = useHandles();
   const finishColorMap = useMemo(() => new Map([...finishes, ...hdfFinishes].filter(f => f.colorHex).map(f => [f.id, f.colorHex!])), [finishes, hdfFinishes]);
   const { savedModels, loading: modelsLoading, saveModel, deleteModel, overwriteModel } = useSavedModels();
-  const handleSaveModel = async (name: string) => { await saveModel(name, elements); };
-  const handleLoadModel = (model: { elements: typeof elements }) => { setElements(model.elements); };
+  const [currentModelId, setCurrentModelId] = useState<string | null>(null);
+  const [ctrlSAction, setCtrlSAction] = useState<'new' | 'overwrite' | null>(null);
+  const [ctrlSName, setCtrlSName] = useState('');
+  const [ctrlSSaving, setCtrlSSaving] = useState(false);
+  const handleSaveModel = async (name: string) => {
+    const id = await saveModel(name, elements);
+    setCurrentModelId(id);
+  };
+  const handleLoadModel = (model: { id: string; elements: typeof elements }) => {
+    setElements(model.elements);
+    setCurrentModelId(model.id);
+  };
   const handleOverwriteModel = async (id: string) => { await overwriteModel(id, elements); };
+  const handleCtrlSave = () => {
+    if (currentModelId) {
+      setCtrlSAction('overwrite');
+    } else {
+      setCtrlSName('');
+      setCtrlSAction('new');
+    }
+  };
+  const withCtrlSSaving = async (fn: () => Promise<void>) => {
+    setCtrlSSaving(true);
+    try {
+      await fn();
+      setCtrlSAction(null);
+    } finally {
+      setCtrlSSaving(false);
+    }
+  };
+  const handleCtrlSSaveNew = () => {
+    if (!ctrlSName.trim()) return;
+    withCtrlSSaving(() => handleSaveModel(ctrlSName.trim()));
+  };
+  const handleCtrlSOverwrite = () => {
+    if (!currentModelId) return;
+    withCtrlSSaving(() => overwriteModel(currentModelId, elements));
+  };
 
   const {
     handleDimensionDrag,
@@ -88,7 +124,7 @@ const App: React.FC = () => {
     handleClearAll,
   } = useElementActions({ setElements, setSelectedId, setMultiSelectedIds, boardSizeRef, dividerYHintRef, dragDeltaRef, detachedFromRef, finishColorMap });
 
-  useKeyboard({ selectedId, multiSelectedIds, handleDelete, elements, setElements, setMultiSelectedIds, undo, redo, handleDividerSwitchSlot });
+  useKeyboard({ selectedId, multiSelectedIds, handleDelete, elements, setElements, setMultiSelectedIds, undo, redo, handleDividerSwitchSlot, onCtrlSave: handleCtrlSave });
 
   useThreeScene(containerRef, {
     elements,
@@ -131,6 +167,7 @@ const App: React.FC = () => {
     elements.some((e) => e.type === 'front' && e.cabinetId === selectedElement.id);
 
   return (
+    <>
     <div className="app">
       <aside className="sidebar left">
         <ElementLibrary
@@ -226,6 +263,56 @@ const App: React.FC = () => {
         />
       </aside>
     </div>
+
+    {ctrlSAction === 'new' && createPortal(
+      <div className="clear-all-overlay" onClick={() => setCtrlSAction(null)}>
+        <div className="clear-all-dialog" onClick={(e) => e.stopPropagation()}>
+          <p>Podaj nazwę projektu:</p>
+          <input
+            className="mo-models-input"
+            type="text"
+            placeholder="Nazwa projektu..."
+            value={ctrlSName}
+            autoFocus
+            onChange={(e) => setCtrlSName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleCtrlSSaveNew(); if (e.key === 'Escape') setCtrlSAction(null); }}
+          />
+          <div className="clear-all-actions" style={{ marginTop: '16px' }}>
+            <button className="clear-all-cancel" onClick={() => setCtrlSAction(null)}>Anuluj</button>
+            <button
+              className="clear-all-confirm"
+              style={{ background: '#1a2d25', borderColor: '#4ec9b0', color: '#4ec9b0' }}
+              onClick={handleCtrlSSaveNew}
+              disabled={ctrlSSaving || !ctrlSName.trim()}
+            >
+              {ctrlSSaving ? '...' : 'Zapisz'}
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+
+    {ctrlSAction === 'overwrite' && createPortal(
+      <div className="clear-all-overlay" onClick={() => setCtrlSAction(null)}>
+        <div className="clear-all-dialog" onClick={(e) => e.stopPropagation()}>
+          <p>Nadpisać projekt „{savedModels.find((m) => m.id === currentModelId)?.name ?? ''}" aktualnym stanem?</p>
+          <div className="clear-all-actions">
+            <button className="clear-all-cancel" onClick={() => setCtrlSAction(null)}>Anuluj</button>
+            <button
+              className="clear-all-confirm"
+              style={{ background: '#1a2d25', borderColor: '#4ec9b0', color: '#4ec9b0' }}
+              onClick={handleCtrlSOverwrite}
+              disabled={ctrlSSaving}
+            >
+              {ctrlSSaving ? '...' : 'Nadpisz'}
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+    </>
   );
 };
 
