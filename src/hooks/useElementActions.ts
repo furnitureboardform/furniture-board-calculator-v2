@@ -21,7 +21,7 @@ import {
   recomputeGroups,
 } from '../computeElements';
 import { computeDividerBounds, computeYForBox, switchShelfToNextBay, switchDrawerToNextBay, switchDividerToNextSlot } from '../geometry';
-import { createBox, createShelf, createBoard, createBoxKuchenny } from '../factories';
+import { createBox, createShelf, createBoard, createBoxKuchenny, createSzafkaDolna } from '../factories';
 import { counters } from '../elementCounters';
 
 interface Params {
@@ -666,8 +666,8 @@ export function useElementActions({
     });
   }, [setElements, setSelectedId]);
 
-  const handleAdd = useCallback((type: 'cabinet' | 'shelf' | 'board' | 'boxkuchenny') => {
-    const raw = type === 'shelf' ? createShelf() : type === 'board' ? createBoard() : type === 'boxkuchenny' ? createBoxKuchenny() : createBox();
+  const handleAdd = useCallback((type: 'cabinet' | 'shelf' | 'board' | 'boxkuchenny' | 'szafkadolna60' | 'szafkadolna40' | 'szafkadolna30') => {
+    const raw = type === 'shelf' ? createShelf() : type === 'board' ? createBoard() : type === 'boxkuchenny' ? createBoxKuchenny() : type === 'szafkadolna60' ? createSzafkaDolna(0.6) : type === 'szafkadolna40' ? createSzafkaDolna(0.4) : type === 'szafkadolna30' ? createSzafkaDolna(0.3) : createBox();
     const bw = boardSizeRef.current.width / 1000;
     const bd = boardSizeRef.current.depth / 1000;
     const rx = Math.max(0, (bw - raw.dimensions.width) / 2);

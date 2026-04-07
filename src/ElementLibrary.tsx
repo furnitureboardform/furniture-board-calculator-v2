@@ -3,7 +3,7 @@ import type { BoxElement } from './types';
 import './ElementLibrary.css';
 
 interface CatalogItem {
-  type: 'cabinet' | 'shelf' | 'board' | 'boxkuchenny';
+  type: 'cabinet' | 'shelf' | 'board' | 'boxkuchenny' | 'szafkadolna60' | 'szafkadolna40' | 'szafkadolna30';
   label: string;
   icon: React.ReactNode;
 }
@@ -59,6 +59,51 @@ const CATALOG: CatalogItem[] = [
       </svg>
     ),
   },
+  {
+    type: 'szafkadolna60',
+    label: 'Szafka 60',
+    icon: (
+      <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="catalog-icon">
+        <rect x="4" y="6" width="28" height="24" rx="1" fill="none" stroke="#9cdcfe" strokeWidth="1" strokeDasharray="3 2"/>
+        <rect x="4" y="6" width="3" height="24" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5"/>
+        <rect x="29" y="6" width="3" height="24" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5"/>
+        <rect x="7" y="27" width="22" height="3" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5"/>
+        <rect x="7" y="6" width="22" height="3" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5" opacity="0.5"/>
+        <rect x="7" y="9" width="22" height="3" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5" opacity="0.5"/>
+        <text x="18" y="22" textAnchor="middle" fontSize="7" fill="#9cdcfe" fontFamily="monospace">60</text>
+      </svg>
+    ),
+  },
+  {
+    type: 'szafkadolna40',
+    label: 'Szafka 40',
+    icon: (
+      <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="catalog-icon">
+        <rect x="4" y="6" width="28" height="24" rx="1" fill="none" stroke="#9cdcfe" strokeWidth="1" strokeDasharray="3 2"/>
+        <rect x="4" y="6" width="3" height="24" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5"/>
+        <rect x="29" y="6" width="3" height="24" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5"/>
+        <rect x="7" y="27" width="22" height="3" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5"/>
+        <rect x="7" y="6" width="22" height="3" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5" opacity="0.5"/>
+        <rect x="7" y="9" width="22" height="3" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5" opacity="0.5"/>
+        <text x="18" y="22" textAnchor="middle" fontSize="7" fill="#9cdcfe" fontFamily="monospace">40</text>
+      </svg>
+    ),
+  },
+  {
+    type: 'szafkadolna30',
+    label: 'Szafka 30',
+    icon: (
+      <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="catalog-icon">
+        <rect x="4" y="6" width="28" height="24" rx="1" fill="none" stroke="#9cdcfe" strokeWidth="1" strokeDasharray="3 2"/>
+        <rect x="4" y="6" width="3" height="24" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5"/>
+        <rect x="29" y="6" width="3" height="24" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5"/>
+        <rect x="7" y="27" width="22" height="3" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5"/>
+        <rect x="7" y="6" width="22" height="3" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5" opacity="0.5"/>
+        <rect x="7" y="9" width="22" height="3" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5" opacity="0.5"/>
+        <text x="18" y="22" textAnchor="middle" fontSize="7" fill="#9cdcfe" fontFamily="monospace">30</text>
+      </svg>
+    ),
+  },
 ];
 
 interface Props {
@@ -70,7 +115,7 @@ interface Props {
   onSelect: (id: string) => void;
   onMultiSelectToggle: (id: string) => void;
   onGroup: (ids: string[]) => void;
-  onAdd: (type: 'cabinet' | 'shelf' | 'board' | 'boxkuchenny') => void;
+  onAdd: (type: 'cabinet' | 'shelf' | 'board' | 'boxkuchenny' | 'szafkadolna60' | 'szafkadolna40' | 'szafkadolna30') => void;
   onAddShelfToCabinet: (cabinetId: string) => void;
   onAddDrawerToCabinet: (cabinetId: string) => void;
   onAddDrawerboxToCabinet: (cabinetId: string) => void;
@@ -451,9 +496,10 @@ const ElementLibrary: React.FC<Props> = ({
   };
 
   const renderBoxKuchenny = (box: BoxElement) => {
-    const legs = elements.filter((e) => e.type === 'leg' && e.cabinetId === box.id);
+    const children = elements.filter((e) => e.cabinetId === box.id);
+    const legs = children.filter((e) => e.type === 'leg');
     const isSelected = box.id === selectedId;
-    const isExpanded = isSelected || legs.some((l) => l.id === selectedId);
+    const isExpanded = isSelected || children.some((c) => c.id === selectedId);
     return (
       <React.Fragment key={box.id}>
         <li
@@ -472,6 +518,62 @@ const ElementLibrary: React.FC<Props> = ({
         </li>
         {isExpanded && (
           <>
+            {children.filter((c) => c.type !== 'leg').map((child) => renderItem(child, true))}
+
+            {/* Section: Wnętrze */}
+            <li className="element-item element-item--section">
+              <span className="element-section-line" />
+              Wnętrze
+            </li>
+            <li className="element-item element-item--add" onClick={() => onAddShelfToCabinet(box.id)}>
+              <span className="element-indent-line" />
+              <span className="element-add-icon">＋</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj półkę</span>
+            </li>
+            <li className="element-item element-item--add" onClick={() => onAddDrawerToCabinet(box.id)}>
+              <span className="element-indent-line" />
+              <span className="element-add-icon">＋</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj szufladę</span>
+            </li>
+
+            {/* Section: Front */}
+            {!elements.some((e) => e.type === 'front' && e.cabinetId === box.id) && (
+              <>
+                <li className="element-item element-item--section">
+                  <span className="element-section-line" />
+                  Front
+                </li>
+                <li className="element-item element-item--add" onClick={() => onAddFrontToCabinet(box.id)}>
+                  <span className="element-indent-line" />
+                  <span className="element-add-icon">＋</span>
+                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front</span>
+                </li>
+                <li className="element-item element-item--add" onClick={() => onAddDoubleFrontToCabinet(box.id)}>
+                  <span className="element-indent-line" />
+                  <span className="element-add-icon">＋</span>
+                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj podwójny front</span>
+                </li>
+              </>
+            )}
+
+            {/* Section: Płyta tylna */}
+            <li className="element-item element-item--section">
+              <span className="element-section-line" />
+              Płyta tylna
+            </li>
+            {!elements.some((e) => e.type === 'hdf' && e.cabinetId === box.id) && (
+              <li className="element-item element-item--add" onClick={() => onAddHdfToCabinet(box.id)}>
+                <span className="element-indent-line" />
+                <span className="element-add-icon">＋</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj płytę HDF</span>
+              </li>
+            )}
+
+            {/* Section: Dodatki */}
+            <li className="element-item element-item--section">
+              <span className="element-section-line" />
+              Dodatki
+            </li>
             {legs.map((leg) => renderItem(leg, true))}
             {!legs.length && (
               <li className="element-item element-item--add" onClick={() => onAddLegsToBoxKuchenny(box.id)}>
