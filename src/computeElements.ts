@@ -209,11 +209,13 @@ export function computeMaskowanicaForCabinet(mask: BoxElement, cab: BoxElement, 
       position: { x: cab.position.x, y: cab.position.y + cab.dimensions.height, z: zPos },
     };
   }
-  const hasTop    = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'top'    && e.id !== mask.id)
-                 || (cab.groupIds?.some((gid) => allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === gid && e.maskownicaSide === 'top')) ?? false);
+  const hasTopMask    = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'top' && e.id !== mask.id)
+                     || (cab.groupIds?.some((gid) => allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === gid && e.maskownicaSide === 'top')) ?? false);
+  const hasTopBlenda  = allElements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaSide === 'top' && e.blendaScope === 'cabinet')
+                     || (cab.groupIds?.some((gid) => allElements.some((e) => e.type === 'blenda' && e.cabinetId === gid && e.blendaSide === 'top' && e.blendaScope === 'group')) ?? false);
   const hasBottom = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'bottom' && e.id !== mask.id)
                  || (cab.groupIds?.some((gid) => allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === gid && e.maskownicaSide === 'bottom')) ?? false);
-  const topExt    = hasTop    ? PANEL_T : 0;
+  const topExt    = hasTopBlenda ? BLENDA_CAB_DEPTH : hasTopMask ? PANEL_T : 0;
   const bottomExt = hasBottom ? PANEL_T : 0;
   const minY = cab.position.y - legH - bottomExt;
   const maxY = cab.position.y + cab.dimensions.height + topExt;
@@ -292,10 +294,12 @@ export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxEle
     minY = Math.min(minY, cab.position.y - legH - bottomExt);
     maxY = Math.max(maxY, cab.position.y + cab.dimensions.height + topExt);
   }
-  // Extend for group-level top/bottom maskowanica (left/right cover must be taller)
-  const groupHasTop = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === group.id && e.maskownicaSide === 'top' && e.id !== mask.id);
+  // Extend for group-level top/bottom maskowanica or blenda (left/right cover must be taller)
+  const groupHasTopMask   = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === group.id && e.maskownicaSide === 'top' && e.id !== mask.id);
+  const groupHasTopBlenda = allElements.some((e) => e.type === 'blenda' && e.cabinetId === group.id && e.blendaSide === 'top' && e.blendaScope === 'group');
   const groupHasBottom = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === group.id && e.maskownicaSide === 'bottom' && e.id !== mask.id);
-  if (groupHasTop) maxY += PANEL_T;
+  if (groupHasTopBlenda) maxY += BLENDA_CAB_DEPTH;
+  else if (groupHasTopMask) maxY += PANEL_T;
   if (groupHasBottom) minY -= PANEL_T;
 
   if (mask.maskownicaSide === 'top' || mask.maskownicaSide === 'bottom') {
@@ -631,15 +635,23 @@ export function recomputeGroups(elements: BoxElement[]): BoxElement[] {
     }
     return e;
   });
+  const cabMap = new Map(result3.filter((c) => c.type === 'cabinet').map((c) => [c.id, c]));
+  const result3b = result3.map((e) => {
+    if (e.type === 'maskowanica' && e.cabinetId && (e.maskownicaSide === 'left' || e.maskownicaSide === 'right')) {
+      const cab = cabMap.get(e.cabinetId);
+      if (cab) return computeMaskowanicaForCabinet(e, cab, result3);
+    }
+    return e;
+  });
   const groupsWithPlinths = new Set<string>();
   const result4: BoxElement[] = [];
-  for (const e of result3) {
+  for (const e of result3b) {
     if (e.type === 'plinth' && e.cabinetId) {
-      const linked = result3.find((g) => g.id === e.cabinetId);
+      const linked = result3b.find((g) => g.id === e.cabinetId);
       if (linked?.type === 'group') {
         if (groupsWithPlinths.has(linked.id)) continue;
         groupsWithPlinths.add(linked.id);
-        const newSegments = computePlinthsForGroup(e, linked, result3);
+        const newSegments = computePlinthsForGroup(e, linked, result3b);
         result4.push(...newSegments);
         continue;
       }

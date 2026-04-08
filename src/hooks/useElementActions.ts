@@ -543,12 +543,13 @@ export function useElementActions({
       if (side === 'top') {
         const blendas = computeBlendaTopForGroup(template, group, prev);
         const withBlendas = [...prev, ...blendas];
-        return withBlendas.map((e) =>
+        const withSideBlendasUpdated = withBlendas.map((e) =>
           e.type === 'blenda' && e.cabinetId === groupId &&
           (e.blendaSide === 'left' || e.blendaSide === 'right') && e.blendaScope === 'group'
             ? computeBlendaForGroup(e, group, withBlendas)
             : e
         );
+        return recomputeGroups(withSideBlendasUpdated);
       }
       const blenda = computeBlendaForGroup(template, group, prev);
       return [...prev, blenda];
