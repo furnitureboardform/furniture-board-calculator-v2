@@ -32,6 +32,9 @@ interface UseThreeSceneOptions {
   onMultiPositionChange: (ids: string[], dx: number, dz: number) => void;
   onYMove: (id: string, dy: number) => void;
   onDragStart?: (id: string) => void;
+  rulerMode?: boolean;
+  rulerPoints?: { x: number; y: number; z: number }[];
+  onRulerClick?: (pt: { x: number; y: number; z: number }) => void;
 }
 
 const PANEL_COLOR = new THREE.Color(0xc8a97a);
@@ -462,6 +465,33 @@ export function useThreeScene(
     });
   });
 
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    const pts = (options.rulerPoints ?? []).map((p) => new THREE.Vector3(p.x, p.y, p.z));
+    if (pts.length === 0) return;
+    const mat = new THREE.MeshBasicMaterial({ color: 0xff6600, depthTest: false });
+    const markers = pts.map((pt) => {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 8), mat);
+      m.position.copy(pt);
+      m.renderOrder = 999;
+      scene.add(m);
+      return m;
+    });
+    let line: THREE.Line | null = null;
+    if (pts.length === 2) {
+      const lineMat = new THREE.LineBasicMaterial({ color: 0xff6600, depthTest: false });
+      line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat);
+      line.renderOrder = 999;
+      scene.add(line);
+    }
+    return () => {
+      markers.forEach((m) => { scene.remove(m); m.geometry.dispose(); });
+      mat.dispose();
+      if (line) { scene.remove(line); line.geometry.dispose(); (line.material as THREE.Material).dispose(); }
+    };
+  }, [options.rulerPoints]);
+
   // Pointer events for selection and handle dragging
   useEffect(() => {
     const container = containerRef.current;
@@ -482,8 +512,26 @@ export function useThreeScene(
 
     const onPointerDown = (e: MouseEvent) => {
       if (e.button !== 0) return;
+      if (e.target !== renderer.domElement) return;
       getMouseNDC(e);
       raycaster.setFromCamera(mouse, camera);
+
+      if (optionsRef.current.rulerMode) {
+        const allMeshes: THREE.Mesh[] = [];
+        meshMapRef.current.forEach((mesh) => {
+          mesh.traverse((c) => { if (c instanceof THREE.Mesh && !c.userData.isHandle) allMeshes.push(c as THREE.Mesh); });
+        });
+        const hits = raycaster.intersectObjects(allMeshes, false);
+        let hitPoint: THREE.Vector3;
+        if (hits.length > 0) {
+          hitPoint = hits[0].point.clone();
+        } else {
+          hitPoint = new THREE.Vector3();
+          raycaster.ray.intersectPlane(groundPlane.current, hitPoint);
+        }
+        optionsRef.current.onRulerClick?.({ x: hitPoint.x, y: hitPoint.y, z: hitPoint.z });
+        return;
+      }
 
       const handleMeshes = Array.from(handleMapRef.current.values()).map((h) => h.mesh);
       const handleHits = raycaster.intersectObjects(handleMeshes);
@@ -553,6 +601,11 @@ export function useThreeScene(
     const onPointerMove = (e: MouseEvent) => {
       getMouseNDC(e);
       raycaster.setFromCamera(mouse, camera);
+
+      if (optionsRef.current.rulerMode) {
+        container.style.cursor = 'crosshair';
+        return;
+      }
 
       if (isDraggingHandleRef.current && dragStateRef.current) {
         const { handleKey, startMouseX, startMouseY } = dragStateRef.current;

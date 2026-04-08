@@ -33,6 +33,8 @@ const App: React.FC = () => {
   const handles = useHandles();
   const finishColorMap = useMemo(() => new Map([...finishes, ...hdfFinishes].filter(f => f.colorHex).map(f => [f.id, f.colorHex!])), [finishes, hdfFinishes]);
   const { savedModels, loading: modelsLoading, saveModel, deleteModel, overwriteModel } = useSavedModels();
+  const [rulerMode, setRulerMode] = useState(false);
+  const [rulerPoints, setRulerPoints] = useState<{ x: number; y: number; z: number }[]>([]);
   const [currentModelId, setCurrentModelId] = useState<string | null>(null);
   const [ctrlSAction, setCtrlSAction] = useState<'new' | 'overwrite' | null>(null);
   const [ctrlSName, setCtrlSName] = useState('');
@@ -47,6 +49,29 @@ const App: React.FC = () => {
     setCurrentModelId(model.id);
   };
   const handleOverwriteModel = async (id: string) => { await overwriteModel(id, elements, boardSize); };
+  const handleRulerClick = (pt: { x: number; y: number; z: number }) => {
+    setRulerPoints((prev) => {
+      if (prev.length >= 2) return [pt];
+      if (prev.length === 1) {
+        const a = prev[0];
+        const dx = Math.abs(pt.x - a.x);
+        const dy = Math.abs(pt.y - a.y);
+        const dz = Math.abs(pt.z - a.z);
+        const max = Math.max(dx, dy, dz);
+        const b = max === dx ? { x: pt.x, y: a.y, z: a.z }
+                : max === dy ? { x: a.x, y: pt.y, z: a.z }
+                :               { x: a.x, y: a.y, z: pt.z };
+        return [a, b];
+      }
+      return [pt];
+    });
+  };
+
+  const toggleRuler = () => {
+    if (rulerMode) setRulerPoints([]);
+    setRulerMode((prev) => !prev);
+  };
+
   const handleCtrlSave = () => {
     if (currentModelId) {
       setCtrlSAction('overwrite');
@@ -129,6 +154,14 @@ const App: React.FC = () => {
 
   useKeyboard({ selectedId, multiSelectedIds, handleDelete, elements, setElements, setMultiSelectedIds, undo, redo, handleDividerSwitchSlot, onCtrlSave: handleCtrlSave });
 
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && rulerMode) { setRulerMode(false); setRulerPoints([]); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [rulerMode]);
+
   useThreeScene(containerRef, {
     elements,
     selectedId,
@@ -142,6 +175,9 @@ const App: React.FC = () => {
     onMultiPositionChange: handleMultiPositionChange,
     onYMove: handleYMove,
     onDragStart: handleDragStart,
+    rulerMode,
+    rulerPoints,
+    onRulerClick: handleRulerClick,
   }, showCeilingGrid);
 
   const handleHandleChange = (id: string, handleId: string | undefined) => {
@@ -162,6 +198,14 @@ const App: React.FC = () => {
       return { ...e, finishId };
     }));
   };
+
+  const rulerDistance = rulerPoints.length === 2
+    ? Math.round(Math.sqrt(
+        (rulerPoints[1].x - rulerPoints[0].x) ** 2 +
+        (rulerPoints[1].y - rulerPoints[0].y) ** 2 +
+        (rulerPoints[1].z - rulerPoints[0].z) ** 2
+      ) * 1000 * 10) / 10
+    : null;
 
   const selectedElement = elements.find((e) => e.id === selectedId) ?? null;
   const selectedCabHasFront = selectedElement?.type === 'cabinet' &&
@@ -219,6 +263,10 @@ const App: React.FC = () => {
           onLoadModel={handleLoadModel}
           onDeleteModel={deleteModel}
           onOverwriteModel={handleOverwriteModel}
+          rulerMode={rulerMode}
+          rulerPointCount={rulerPoints.length}
+          rulerDistance={rulerDistance}
+          onToggleRuler={toggleRuler}
         />
         <OrderModal elements={elements} handles={handles} />
         <div className="undo-redo-fab">

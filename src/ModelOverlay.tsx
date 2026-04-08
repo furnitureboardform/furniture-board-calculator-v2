@@ -14,6 +14,10 @@ interface Props {
   onLoadModel?: (model: SavedModel) => void;
   onDeleteModel?: (id: string) => void;
   onOverwriteModel?: (id: string) => Promise<void>;
+  rulerMode?: boolean;
+  rulerPointCount?: number;
+  rulerDistance?: number | null;
+  onToggleRuler?: () => void;
 }
 
 type Tab = 'elements';
@@ -94,6 +98,10 @@ const ModelOverlay: React.FC<Props> = ({
   onLoadModel,
   onDeleteModel,
   onOverwriteModel,
+  rulerMode,
+  rulerPointCount,
+  rulerDistance,
+  onToggleRuler,
 }) => {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('elements');
@@ -323,7 +331,7 @@ const ModelOverlay: React.FC<Props> = ({
 
   return (
     <div className="model-overlay">
-      <div className="mo-button-row">
+      <div className="mo-button-row" onMouseDown={(e) => e.stopPropagation()}>
         <button
           className={`mo-ceiling-btn ${showCeilingGrid ? 'mo-ceiling-btn--active' : ''}`}
           onClick={() => onToggleCeilingGrid?.(!showCeilingGrid)}
@@ -331,6 +339,26 @@ const ModelOverlay: React.FC<Props> = ({
         >
           ⊞
         </button>
+        <button
+          className={`mo-ceiling-btn ${rulerMode ? 'mo-ceiling-btn--active' : ''}`}
+          onClick={onToggleRuler}
+          title="Linijka — mierz odległość (Escape = wyłącz)"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <rect x="2" y="7" width="20" height="10" rx="1.5"/>
+            <line x1="6"  y1="7"  x2="6"  y2="12"/>
+            <line x1="10" y1="7"  x2="10" y2="11"/>
+            <line x1="14" y1="7"  x2="14" y2="12"/>
+            <line x1="18" y1="7"  x2="18" y2="11"/>
+          </svg>
+        </button>
+        {rulerMode && (
+          <div className="mo-ruler-label">
+            {rulerPointCount === 0 && 'Kliknij A'}
+            {rulerPointCount === 1 && 'Kliknij B'}
+            {rulerDistance !== null && `${rulerDistance} mm`}
+          </div>
+        )}
         <button
           className={`mo-ceiling-btn ${modelsOpen ? 'mo-ceiling-btn--active' : ''}`}
           onClick={() => setModelsOpen((v) => !v)}
