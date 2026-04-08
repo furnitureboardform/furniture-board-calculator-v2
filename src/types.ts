@@ -22,6 +22,7 @@ export interface BoxElement {
   blendaScope?: 'cabinet' | 'group'; // set on standalone cabinet blendas (left/right/top), absent on drawerbox blendas; 'group' for group-level blendas
   maskownicaSide?: 'left' | 'right' | 'bottom' | 'top'; // only for maskowanica elements
   niepelna?: boolean; // only for maskowanica: depth forced to 80mm
+  stretchWithLegs?: boolean; // for side maskownica and side blenda: extend height to cover legs/plinth
   openFronts?: boolean; // only for cabinets: front panels shown open at 90°
   noHandle?: boolean;  // only for fronts: do not count handle in report
   hasBottomPanel?: boolean; // only for drawerbox: whether bottom panel is rendered

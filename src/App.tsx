@@ -119,6 +119,7 @@ const App: React.FC = () => {
     handleDrawerFrontHeightChange,
     handleDrawerPushToOpenChange,
     handleMaskownicaNiepelnaChange,
+    handleStretchWithLegsChange,
     handleFrontNoHandleChange,
     handleShelfSwitchBay,
     handleDividerSwitchSlot,
@@ -255,6 +256,7 @@ const App: React.FC = () => {
           onDrawerFrontHeightChange={(h) => selectedElement && handleDrawerFrontHeightChange(selectedElement.id, h)}
           onDrawerPushToOpenChange={(v) => selectedElement && handleDrawerPushToOpenChange(selectedElement.id, v)}
           onMaskownicaNiepelnaChange={(v) => selectedElement && handleMaskownicaNiepelnaChange(selectedElement.id, v)}
+          onStretchWithLegsChange={(v) => selectedElement && handleStretchWithLegsChange(selectedElement.id, v)}
           onFrontNoHandleChange={(v) => selectedElement && handleFrontNoHandleChange(selectedElement.id, v)}
           onShelfSwitchBay={handleShelfSwitchBay}
           onDividerSwitchSlot={handleDividerSwitchSlot}

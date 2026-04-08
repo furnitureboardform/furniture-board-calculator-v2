@@ -25,6 +25,7 @@ interface Props {
   onShelfSwitchBay?: (id: string) => void;
   onDividerSwitchSlot?: (id: string) => void;
   onMaskownicaNiepelnaChange?: (v: boolean) => void;
+  onStretchWithLegsChange?: (v: boolean) => void;
   onFrontNoHandleChange?: (v: boolean) => void;
   onRotate?: (id: string) => void;
   onFinishChange?: (id: string, finishId: string | undefined) => void;
@@ -38,7 +39,7 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onFrontNoHandleChange, onRotate, onFinishChange, handles, onHandleChange }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onRotate, onFinishChange, handles, onHandleChange }) => {
   const [finishOpen, setFinishOpen] = useState(false);
   const [handleOpen, setHandleOpen] = useState(false);
   const finishRef = useRef<HTMLDivElement>(null);
@@ -221,6 +222,8 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
     ? { width: 'Szerokość', height: 'Wysokość', depth: 'Głębokość' }
     : { width: 'Szerokość (X)', height: 'Wysokość (Y)', depth: 'Głębokość (Z)' };
   const colors: Record<DimKey, string> = { width: '#cccccc', height: '#cccccc', depth: '#cccccc' };
+  const isVerticalSide = (element.type === 'maskowanica' && (element.maskownicaSide === 'left' || element.maskownicaSide === 'right'))
+    || (element.type === 'blenda' && (element.blendaSide === 'left' || element.blendaSide === 'right'));
 
   return (
     <div className="properties">
@@ -409,6 +412,24 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
               />
               <span className="prop-toggle-track" />
               <span className="prop-toggle-text">{element.niepelna ? 'tak' : 'nie'}</span>
+            </label>
+          </div>
+          <div className="prop-divider" />
+        </>
+      )}
+
+      {isVerticalSide && onStretchWithLegsChange && (
+        <>
+          <div className="prop-front-state">
+            <span className="prop-label" style={{ color: '#c0c0e0' }}>Wydłuż z nóżkami</span>
+            <label className="prop-toggle">
+              <input
+                type="checkbox"
+                checked={!!element.stretchWithLegs}
+                onChange={(e) => onStretchWithLegsChange(e.target.checked)}
+              />
+              <span className="prop-toggle-track" />
+              <span className="prop-toggle-text">{element.stretchWithLegs ? 'tak' : 'nie'}</span>
             </label>
           </div>
           <div className="prop-divider" />

@@ -1138,6 +1138,30 @@ export function useElementActions({
     });
   }, [setElements]);
 
+  const handleStretchWithLegsChange = useCallback((elementId: string, value: boolean) => {
+    setElements((prev) => {
+      const el = prev.find((e) => e.id === elementId);
+      if (!el || !el.cabinetId) return prev;
+      if (el.stretchWithLegs === value) return prev;
+      const parent = prev.find((p) => p.id === el.cabinetId);
+      if (!parent) return prev;
+      const updated = prev.map((e) => {
+        if (e.id !== elementId) return e;
+        const patched = { ...e, stretchWithLegs: value };
+        if (e.type === 'maskowanica') {
+          if (parent.type === 'cabinet') return computeMaskowanicaForCabinet(patched, parent, prev);
+          if (parent.type === 'group') return computeMaskowanicaForGroup(patched, prev);
+        }
+        if (e.type === 'blenda') {
+          if (parent.type === 'cabinet') return computeBlendaForCabinet(patched, parent, prev);
+          if (parent.type === 'group') return computeBlendaForGroup(patched, parent, prev);
+        }
+        return patched;
+      });
+      return updated;
+    });
+  }, [setElements]);
+
   const handleFrontNoHandleChange = useCallback((frontId: string, value: boolean) => {
     setElements((prev) => prev.map((e) => e.id === frontId ? { ...e, noHandle: value } : e));
   }, [setElements]);
@@ -1248,6 +1272,7 @@ export function useElementActions({
     handleDrawerFrontHeightChange,
     handleDrawerPushToOpenChange,
     handleMaskownicaNiepelnaChange,
+    handleStretchWithLegsChange,
     handleFrontNoHandleChange,
     handleShelfSwitchBay,
     handleDividerSwitchSlot,

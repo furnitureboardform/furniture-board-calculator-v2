@@ -100,8 +100,10 @@ export function computeBlendaForCabinet(blenda: BoxElement, cab: BoxElement, all
     };
   }
   const plinth = allElements.find((e) => e.type === 'plinth' && e.cabinetId === cab.id);
+  const legs = allElements.find((e) => e.type === 'leg' && e.cabinetId === cab.id);
   const topBlenda = allElements.find((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaSide === 'top' && e.blendaScope === 'cabinet');
-  const plinthH = plinth ? plinth.dimensions.height : 0;
+  const legOrPlinthH = plinth ? plinth.dimensions.height : legs ? legs.dimensions.height : 0;
+  const plinthH = blenda.stretchWithLegs ? legOrPlinthH : 0;
   const topH = topBlenda ? BLENDA_CAB_DEPTH : 0;
   const xPos = blenda.blendaSide === 'left'
     ? cab.position.x - cab.dimensions.width / 2 - BLENDA_CAB_DEPTH / 2
@@ -188,7 +190,7 @@ const MASK_BACK_EXT  = HDF_T;            // 3 mm płyta HDF
 /** Computes position/dimensions of a maskowanica (side cover panel) bound to a cabinet. */
 export function computeMaskowanicaForCabinet(mask: BoxElement, cab: BoxElement, allElements: BoxElement[]): BoxElement {
   const legs = allElements.find((e) => e.type === 'leg' && e.cabinetId === cab.id);
-  const legH = legs ? legs.dimensions.height : 0;
+  const legH = mask.stretchWithLegs && legs ? legs.dimensions.height : 0;
   const totalDepth = mask.niepelna ? 0.08 : cab.dimensions.depth + MASK_FRONT_EXT + MASK_BACK_EXT;
   const zPos = mask.niepelna
     ? cab.position.z + cab.dimensions.depth / 2 + MASK_FRONT_EXT - 0.04
@@ -280,7 +282,7 @@ export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxEle
   let maxY = -Infinity;
   for (const cab of members) {
     const legs = allElements.find((e) => e.type === 'leg' && e.cabinetId === cab.id);
-    const legH = legs ? legs.dimensions.height : 0;
+    const legH = mask.stretchWithLegs && legs ? legs.dimensions.height : 0;
     const hasTop = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'top')
       || (cab.groupIds?.some((gid) => gid !== group.id && allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === gid && e.maskownicaSide === 'top')) ?? false);
     const hasBottom = allElements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'bottom')
@@ -310,10 +312,12 @@ export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxEle
       };
     }
     // bottom
-    const groupBottomY = Math.min(...members.map((c) => {
-      const legs = allElements.find((e) => e.type === 'leg' && e.cabinetId === c.id);
-      return c.position.y - (legs ? legs.dimensions.height : 0);
-    }));
+    const groupBottomY = mask.stretchWithLegs
+      ? Math.min(...members.map((c) => {
+          const legs = allElements.find((e) => e.type === 'leg' && e.cabinetId === c.id);
+          return c.position.y - (legs ? legs.dimensions.height : 0);
+        }))
+      : Math.min(...members.map((c) => c.position.y));
     return {
       ...mask,
       dimensions: { width: maxX - minX, height: PANEL_T, depth: totalDepth },
@@ -410,7 +414,9 @@ export function computeBlendaForGroup(blenda: BoxElement, group: BoxElement, all
   const topH = topBlenda ? BLENDA_CAB_DEPTH : 0;
   const groupPlinth = allElements.find((e) => e.type === 'plinth' && e.cabinetId === group.id);
   let plinthH: number;
-  if (groupPlinth) {
+  if (!blenda.stretchWithLegs) {
+    plinthH = 0;
+  } else if (groupPlinth) {
     plinthH = groupPlinth.dimensions.height;
   } else {
     const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
@@ -418,7 +424,9 @@ export function computeBlendaForGroup(blenda: BoxElement, group: BoxElement, all
     const bottomMembers = members.filter((c) => Math.abs(c.position.y - minY) < 0.001);
     plinthH = bottomMembers.reduce((max, cab) => {
       const plinth = allElements.find((e) => e.type === 'plinth' && e.cabinetId === cab.id);
-      return Math.max(max, plinth ? plinth.dimensions.height : 0);
+      if (plinth) return Math.max(max, plinth.dimensions.height);
+      const cabLegs = allElements.find((e) => e.type === 'leg' && e.cabinetId === cab.id);
+      return Math.max(max, cabLegs ? cabLegs.dimensions.height : 0);
     }, 0);
   }
   const xPos = blenda.blendaSide === 'left'
