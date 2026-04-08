@@ -541,7 +541,6 @@ export function computeBlendaTopForGroup(
 function computeHorizMaskYZDepth(
   template: BoxElement,
   members: BoxElement[],
-  allElements: BoxElement[],
 ): { yPos: number; zPos: number; totalDepth: number } {
   const maxFaceZ = Math.max(...members.map((c) => c.position.z + c.dimensions.depth / 2));
   const minBackZ = Math.min(...members.map((c) => c.position.z - c.dimensions.depth / 2));
@@ -566,7 +565,7 @@ export function recomputeHorizMaskGeometry(
   if (!group) return seg;
   const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
   if (members.length === 0) return seg;
-  const { yPos, zPos, totalDepth } = computeHorizMaskYZDepth(seg, members, allElements);
+  const { yPos, zPos, totalDepth } = computeHorizMaskYZDepth(seg, members);
   return {
     ...seg,
     dimensions: { ...seg.dimensions, depth: totalDepth },
@@ -585,7 +584,7 @@ export function computeMaskowanicasHorizForGroup(
 
   const minX = Math.min(...members.map((c) => c.position.x - c.dimensions.width / 2));
   const maxX = Math.max(...members.map((c) => c.position.x + c.dimensions.width / 2));
-  const { yPos, zPos, totalDepth } = computeHorizMaskYZDepth(template, members, allElements);
+  const { yPos, zPos, totalDepth } = computeHorizMaskYZDepth(template, members);
   const segments = splitAtJoints(minX, maxX, getGroupJoints(group, members));
   return mapSegments(template, segments, yPos, zPos, PANEL_T, totalDepth);
 }
@@ -682,7 +681,7 @@ export function recomputeGroups(elements: BoxElement[]): BoxElement[] {
           (s) => s.type === 'maskowanica' && s.cabinetId === linked.id && s.maskownicaSide === e.maskownicaSide
         );
         const members = result5.filter((s) => s.groupIds?.includes(linked.id) && s.type === 'cabinet');
-        const { yPos, zPos, totalDepth } = computeHorizMaskYZDepth(e, members, result5);
+        const { yPos, zPos, totalDepth } = computeHorizMaskYZDepth(e, members);
         const minX = Math.min(...members.map((c) => c.position.x - c.dimensions.width / 2));
         const maxX = Math.max(...members.map((c) => c.position.x + c.dimensions.width / 2));
         const targetSegments = splitAtJoints(minX, maxX, getGroupJoints(linked, members));
