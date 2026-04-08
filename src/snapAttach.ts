@@ -1,6 +1,6 @@
 import type { BoxElement } from './types';
 import { PANEL_T, SNAP_DIST, STACK_OVERLAP, ATTACH_DIST } from './constants';
-import { computeDividerBounds } from './geometry';
+import { computeDividerBounds, clampYBoundsToObstacles } from './geometry';
 
 /** Like findNearCabinet but skips `avoidCabId` until the element has moved past the hysteresis zone. */
 export function findNearCabinetHysteresis(
@@ -28,8 +28,11 @@ export function attachAndFit(elem: BoxElement, cab: BoxElement, allElements: Box
   if (elem.type === 'shelf') {
     const innerWidth = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T);
     const depth = cab.dimensions.depth;
-    const maxY = cab.position.y + cab.dimensions.height - elem.dimensions.height;
-    const clampedY = Math.min(Math.max(cab.position.y, elem.position.y), maxY);
+    let mnY = cab.position.y;
+    let mxY = cab.position.y + cab.dimensions.height - elem.dimensions.height;
+    const drawerboxes = allElements.filter((e) => e.cabinetId === cab.id && e.type === 'drawerbox');
+    ({ mnY, mxY } = clampYBoundsToObstacles(drawerboxes, elem.dimensions.height, elem.position.y, mnY, mxY));
+    const clampedY = Math.min(Math.max(mnY, elem.position.y), Math.max(mnY, mxY));
     return {
       ...elem,
       cabinetId: cab.id,

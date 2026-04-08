@@ -466,6 +466,23 @@ export function recomputeAllY(elements: BoxElement[], roomH = Infinity, skipDivi
   return recomputeGroups(settled);
 }
 
+export function clampYBoundsToObstacles(
+  obstacles: BoxElement[],
+  elemHeight: number,
+  proposedY: number,
+  mnY: number,
+  mxY: number
+): { mnY: number; mxY: number } {
+  for (const obs of obstacles) {
+    if (obs.position.y > proposedY) {
+      mxY = Math.min(mxY, obs.position.y - elemHeight);
+    } else {
+      mnY = Math.max(mnY, obs.position.y + obs.dimensions.height);
+    }
+  }
+  return { mnY, mxY };
+}
+
 const DRAWER_FACE_H_DEFAULT = 0.170;
 
 /**

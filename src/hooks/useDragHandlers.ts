@@ -21,6 +21,7 @@ import {
   fitDrawerToBay,
   computeDrawerYBounds,
   computeStretchCollisionMax,
+  clampYBoundsToObstacles,
 } from '../geometry';
 import {
   findNearCabinetHysteresis,
@@ -333,13 +334,7 @@ export function useDragHandlers({
                   let mnY = cab.position.y + bottomOffset;
                   if (el.type === 'shelf' || el.type === 'rod') {
                     const drawerboxes = prev.filter((e) => e.cabinetId === cab.id && e.type === 'drawerbox');
-                    for (const db of drawerboxes) {
-                      if (db.position.y > newY) {
-                        mxY = Math.min(mxY, db.position.y - el.dimensions.height);
-                      } else {
-                        mnY = Math.max(mnY, db.position.y + db.dimensions.height);
-                      }
-                    }
+                    ({ mnY, mxY } = clampYBoundsToObstacles(drawerboxes, el.dimensions.height, newY, mnY, mxY));
                   }
                   return { minY: mnY, maxY: mxY };
                 })();
@@ -434,13 +429,11 @@ export function useDragHandlers({
                   let mnY = cab.position.y + bottomOffset;
                   if (el.type === 'shelf' || el.type === 'rod') {
                     const drawerboxes = prev.filter((e) => e.cabinetId === cab.id && e.type === 'drawerbox');
-                    for (const db of drawerboxes) {
-                      if (db.position.y > newY) {
-                        mxY = Math.min(mxY, db.position.y - el.dimensions.height);
-                      } else {
-                        mnY = Math.max(mnY, db.position.y + db.dimensions.height);
-                      }
-                    }
+                    ({ mnY, mxY } = clampYBoundsToObstacles(drawerboxes, el.dimensions.height, newY, mnY, mxY));
+                  }
+                  if (el.type === 'drawerbox') {
+                    const shelves = prev.filter((e) => e.cabinetId === cab.id && (e.type === 'shelf' || e.type === 'rod'));
+                    ({ mnY, mxY } = clampYBoundsToObstacles(shelves, el.dimensions.height, newY, mnY, mxY));
                   }
                   return { minY: mnY, maxY: mxY };
                 })();
