@@ -199,7 +199,7 @@ export function computeMaskowanicaForCabinet(mask: BoxElement, cab: BoxElement, 
     return {
       ...mask,
       dimensions: { width: cab.dimensions.width, height: PANEL_T, depth: totalDepth },
-      position: { x: cab.position.x, y: cab.position.y - legH - PANEL_T, z: zPos },
+      position: { x: cab.position.x, y: cab.position.y - PANEL_T, z: zPos },
     };
   }
   if (mask.maskownicaSide === 'top') {
@@ -316,12 +316,7 @@ export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxEle
       };
     }
     // bottom
-    const groupBottomY = mask.stretchWithLegs
-      ? Math.min(...members.map((c) => {
-          const legs = allElements.find((e) => e.type === 'leg' && e.cabinetId === c.id);
-          return c.position.y - (legs ? legs.dimensions.height : 0);
-        }))
-      : Math.min(...members.map((c) => c.position.y));
+    const groupBottomY = Math.min(...members.map((c) => c.position.y));
     return {
       ...mask,
       dimensions: { width: maxX - minX, height: PANEL_T, depth: totalDepth },
@@ -558,10 +553,7 @@ function computeHorizMaskYZDepth(
   if (template.maskownicaSide === 'top') {
     yPos = Math.max(...members.map((c) => c.position.y + c.dimensions.height));
   } else {
-    yPos = Math.min(...members.map((c) => {
-      const legs = allElements.find((e) => e.type === 'leg' && e.cabinetId === c.id);
-      return c.position.y - (legs ? legs.dimensions.height : 0);
-    })) - PANEL_T;
+    yPos = Math.min(...members.map((c) => c.position.y)) - PANEL_T;
   }
   return { yPos, zPos, totalDepth };
 }

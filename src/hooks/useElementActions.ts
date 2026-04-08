@@ -378,11 +378,13 @@ export function useElementActions({
       );
       const withLeg = [...updatedPrev, legsEl];
       setSelectedId(cabinetId);
-      return withLeg.map((e) =>
-        e.type === 'maskowanica' && e.cabinetId === cabinetId
-          ? computeMaskowanicaForCabinet(e, liftedCab, withLeg)
-          : e
-      );
+      return withLeg.map((e) => {
+        if (e.type === 'maskowanica' && e.cabinetId === cabinetId)
+          return computeMaskowanicaForCabinet(e, liftedCab, withLeg);
+        if (e.type === 'maskowanica' && liftedCab.groupIds?.includes(e.cabinetId!))
+          return computeMaskowanicaForGroup(e, withLeg);
+        return e;
+      });
     });
   }, [setElements, setSelectedId]);
 
