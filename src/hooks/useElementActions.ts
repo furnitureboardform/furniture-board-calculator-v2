@@ -840,6 +840,9 @@ export function useElementActions({
             );
           }
         }
+        if (el?.type === 'blenda' && el.blendaSide === 'top' && el.blendaScope === 'group' && el.cabinetId) {
+          return recomputeGroups(filtered);
+        }
         if (el?.type === 'plinth' && el.cabinetId) {
           const cab = filtered.find((e) => e.id === el.cabinetId && e.type === 'cabinet');
           if (cab) {
