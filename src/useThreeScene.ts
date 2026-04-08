@@ -591,6 +591,7 @@ export function useThreeScene(
           };
           controls.enabled = false;
         } else {
+          controls.enabled = false;
           optionsRef.current.onSelect(id);
         }
       } else {
@@ -698,20 +699,18 @@ export function useThreeScene(
       if (isDraggingHandleRef.current) {
         isDraggingHandleRef.current = false;
         dragStateRef.current = null;
-        controls.enabled = true;
       }
       if (isDraggingBoxRef.current) {
         isDraggingBoxRef.current = false;
         moveDragStateRef.current = null;
-        controls.enabled = true;
         container.style.cursor = '';
       }
       if (isDraggingBoxYRef.current) {
         isDraggingBoxYRef.current = false;
         moveDragYStateRef.current = null;
-        controls.enabled = true;
         container.style.cursor = '';
       }
+      controls.enabled = true;
     };
 
     container.addEventListener('mousedown', onPointerDown);
