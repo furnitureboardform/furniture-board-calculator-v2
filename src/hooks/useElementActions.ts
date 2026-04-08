@@ -33,6 +33,7 @@ interface Params {
   dragDeltaRef: React.MutableRefObject<Map<string, { dx: number; dz: number }>>;
   detachedFromRef: React.MutableRefObject<Map<string, string>>;
   finishColorMap: Map<string, string>;
+  defaultHdfFinishId: string | undefined;
 }
 
 export function useElementActions({
@@ -44,6 +45,7 @@ export function useElementActions({
   dragDeltaRef,
   detachedFromRef,
   finishColorMap,
+  defaultHdfFinishId,
 }: Params) {
   const handleSelect = useCallback((id: string | null) => {
     setSelectedId(id);
@@ -425,13 +427,13 @@ export function useElementActions({
         cabinetId,
         dimensions: { width: 0, height: 0, depth: 0 },
         position: { x: 0, y: 0, z: 0 },
-        color: cab.finishId ? (finishColorMap.get(cab.finishId) ?? HDF_GRAY) : HDF_GRAY,
-        finishId: cab.finishId,
+        color: defaultHdfFinishId ? (finishColorMap.get(defaultHdfFinishId) ?? HDF_GRAY) : HDF_GRAY,
+        finishId: defaultHdfFinishId,
       }, cab);
       setSelectedId(cabinetId);
       return [...prev, hdf];
     });
-  }, [setElements, setSelectedId]);
+  }, [setElements, setSelectedId, defaultHdfFinishId, finishColorMap]);
 
   const handleAddPlinthToCabinet = useCallback((cabinetId: string) => {
     setElements((prev) => {

@@ -230,6 +230,8 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const korpusPanels: PanelEntry[] = [];
     const obiciePanels: PanelEntry[] = [];
     const hdfPanels: PanelEntry[]    = [];
+    const hdfFinishIds = new Set(hdfFinishes.map(f => f.id));
+    const defaultHdfFinishId = hdfFinishes[0]?.id;
 
     for (const el of elements) {
       if (el.type === 'cabinet') {
@@ -258,7 +260,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
       } else if (el.type === 'drawer') {
         const { korpus, hdf, face } = getDrawerPanels(el);
         korpusPanels.push(...korpus);
-        hdfPanels.push({ ...hdf, elemType: 'hdf' });
+        hdfPanels.push({ ...hdf, elemType: 'hdf', finishId: defaultHdfFinishId });
         obiciePanels.push(face);
       } else if (el.type === 'front') {
         obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'front', finishId: el.finishId });
@@ -269,7 +271,8 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
       } else if (el.type === 'maskowanica') {
         obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'maskowanica', finishId: el.finishId });
       } else if (el.type === 'hdf') {
-        hdfPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'hdf', finishId: el.finishId });
+        const hdfFid = el.finishId && hdfFinishIds.has(el.finishId) ? el.finishId : defaultHdfFinishId;
+        hdfPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'hdf', finishId: hdfFid });
       } else if (el.type === 'rearboard') {
         korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'cabinet_top', finishId: el.finishId });
       }
