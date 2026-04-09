@@ -5,6 +5,7 @@ import { useFinishes } from './hooks/useFinishes';
 import type { FinishOption } from './hooks/useFinishes';
 import type { HandleOption } from './hooks/useHandles';
 import { PANEL_T, HDF_T } from './constants';
+import { elementHasHandle } from './builders';
 import './OrderModal.css';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
@@ -304,7 +305,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const slideCount    = elements.filter(e => e.type === 'drawer' && !e.pushToOpen).length;
     const ptoSlideCount = elements.filter(e => e.type === 'drawer' && !!e.pushToOpen).length;
     const couplingCount = slideCount + ptoSlideCount;
-    const frontsWithHandle = elements.filter(e => (e.type === 'front' && !e.noHandle) || (e.type === 'drawer' && e.noHandle === false));
+    const frontsWithHandle = elements.filter(e => (e.type === 'front' || e.type === 'drawer') && elementHasHandle(e));
     const legCount      = elements.filter(e => e.type === 'leg').length * 4;
 
     // Costs

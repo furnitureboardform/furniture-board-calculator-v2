@@ -9,6 +9,19 @@ const ROD_RADIUS = 0.0125;
 const LEG_RADIUS = 0.02;
 const LEG_CORNER_OFFSET = 0.03;
 
+export function elementHasHandle(e: BoxElement): boolean {
+  if (e.type === 'drawer') return e.noHandle === false;
+  return !e.noHandle;
+}
+
+function addHandle(parent: THREE.Mesh, geo: THREE.BoxGeometry, x: number, y: number, z: number, elementId: string) {
+  const mat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3, metalness: 0.8 });
+  const handle = new THREE.Mesh(geo, mat);
+  handle.position.set(x, y, z);
+  handle.userData = { elementId };
+  parent.add(handle);
+}
+
 /** Remove non-handle children from a parent mesh, disposing geometry and material. */
 function clearChildren(parent: THREE.Mesh) {
   parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
@@ -98,14 +111,9 @@ export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: TH
   addPanel(width - 2 * t, hFrontInner, t, 0, (hFrontInner - H_SIDE) / 2, depth / 2 - t / 2);
   const faceY = isExt ? 0 : (faceH - H_SIDE) / 2;
   addPanel(faceW, faceH, t, 0, faceY, depth / 2 + t / 2, frontColor);
-  if (element.noHandle === false) {
+  if (elementHasHandle(element)) {
     const handleLength = Math.min(faceW * 0.4, 0.150);
-    const handleGeo = new THREE.BoxGeometry(handleLength, 0.012, 0.012);
-    const handleMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3, metalness: 0.8 });
-    const handle = new THREE.Mesh(handleGeo, handleMat);
-    handle.position.set(0, faceY, depth / 2 + t + 0.007);
-    handle.userData = { elementId: element.id };
-    parent.add(handle);
+    addHandle(parent, new THREE.BoxGeometry(handleLength, 0.012, 0.012), 0, faceY, depth / 2 + t + 0.007, element.id);
   }
 }
 
@@ -186,15 +194,10 @@ export function rebuildFront(parent: THREE.Mesh, element: BoxElement, color: THR
   panel.userData = { elementId: element.id };
   parent.add(panel);
 
-  if (!element.noHandle) {
+  if (elementHasHandle(element)) {
     const handleLength = Math.min(height * 0.4, 0.128);
-    const handleGeo = new THREE.BoxGeometry(0.012, handleLength, 0.012);
-    const handleMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3, metalness: 0.8 });
-    const handle = new THREE.Mesh(handleGeo, handleMat);
     const handleX = element.frontSide === 'right' ? -(width / 2 - 0.05) : width / 2 - 0.05;
-    handle.position.set(handleX, 0, depth / 2 + 0.007);
-    handle.userData = { elementId: element.id };
-    parent.add(handle);
+    addHandle(parent, new THREE.BoxGeometry(0.012, handleLength, 0.012), handleX, 0, depth / 2 + 0.007, element.id);
   }
 }
 
