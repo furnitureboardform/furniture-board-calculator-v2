@@ -410,7 +410,11 @@ export function computeBlendaForGroup(blenda: BoxElement, group: BoxElement, all
     };
   }
   const topBlenda = allElements.find((e) => e.type === 'blenda' && e.cabinetId === group.id && e.blendaSide === 'top' && e.blendaScope === 'group');
-  const topH = topBlenda ? BLENDA_CAB_DEPTH : 0;
+  const groupMembers = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
+  const topMaskIds = new Set(allElements.filter((e) => e.type === 'maskowanica' && e.maskownicaSide === 'top' && e.cabinetId).map((e) => e.cabinetId!));
+  const hasTopMask = topMaskIds.has(group.id)
+    || groupMembers.some((cab) => cab.groupIds?.some((gid) => gid !== group.id && topMaskIds.has(gid)) ?? false);
+  const topH = topBlenda ? BLENDA_CAB_DEPTH : hasTopMask ? PANEL_T : 0;
   const groupPlinth = allElements.find((e) => e.type === 'plinth' && e.cabinetId === group.id);
   let plinthH: number;
   if (!blenda.stretchWithLegs) {
@@ -418,9 +422,8 @@ export function computeBlendaForGroup(blenda: BoxElement, group: BoxElement, all
   } else if (groupPlinth) {
     plinthH = groupPlinth.dimensions.height;
   } else {
-    const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
-    const minY = members.length > 0 ? Math.min(...members.map((c) => c.position.y)) : group.position.y;
-    const bottomMembers = members.filter((c) => Math.abs(c.position.y - minY) < 0.001);
+    const minY = groupMembers.length > 0 ? Math.min(...groupMembers.map((c) => c.position.y)) : group.position.y;
+    const bottomMembers = groupMembers.filter((c) => Math.abs(c.position.y - minY) < 0.001);
     plinthH = bottomMembers.reduce((max, cab) => {
       const plinth = allElements.find((e) => e.type === 'plinth' && e.cabinetId === cab.id);
       if (plinth) return Math.max(max, plinth.dimensions.height);

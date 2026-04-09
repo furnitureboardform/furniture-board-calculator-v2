@@ -651,9 +651,9 @@ export function useElementActions({
             return { ...e, position: { ...e.position, x: e.position.x + shift } };
           return e;
         });
-        return [...shifted, computeMaskowanicaForGroup(mask, shifted)];
+        return recomputeGroups([...shifted, computeMaskowanicaForGroup(mask, shifted)]);
       }
-      return [...prev, mask];
+      return recomputeGroups([...prev, mask]);
     });
   }, [setElements, boardSizeRef]);
 
@@ -833,15 +833,7 @@ export function useElementActions({
           }
           const group = filtered.find((e) => e.id === el.cabinetId && e.type === 'group');
           if (group) {
-            return filtered.map((e) => {
-              if (e.type !== 'maskowanica') return e;
-              if (e.maskownicaSide !== 'left' && e.maskownicaSide !== 'right') return e;
-              const parentCab = filtered.find((c) => c.id === e.cabinetId && c.type === 'cabinet');
-              if (parentCab) return computeMaskowanicaForCabinet(e, parentCab, filtered);
-              const parentGroup = filtered.find((c) => c.id === e.cabinetId && c.type === 'group');
-              if (parentGroup) return computeMaskowanicaForGroup(e, filtered);
-              return e;
-            });
+            return recomputeGroups(filtered);
           }
         }
         if (el?.type === 'blenda' && el.blendaSide === 'top' && el.blendaScope === 'cabinet' && el.cabinetId) {
