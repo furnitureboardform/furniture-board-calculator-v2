@@ -8,6 +8,7 @@ const HDF_COLOR = new THREE.Color(HDF_GRAY);
 const ROD_RADIUS = 0.0125;
 const LEG_RADIUS = 0.02;
 const LEG_CORNER_OFFSET = 0.03;
+const HANDLE_MAT = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3, metalness: 0.8 });
 
 export function elementHasHandle(e: BoxElement): boolean {
   if (e.type === 'drawer') return e.noHandle === false;
@@ -15,8 +16,7 @@ export function elementHasHandle(e: BoxElement): boolean {
 }
 
 function addHandle(parent: THREE.Mesh, geo: THREE.BoxGeometry, x: number, y: number, z: number, elementId: string) {
-  const mat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3, metalness: 0.8 });
-  const handle = new THREE.Mesh(geo, mat);
+  const handle = new THREE.Mesh(geo, HANDLE_MAT);
   handle.position.set(x, y, z);
   handle.userData = { elementId };
   parent.add(handle);
