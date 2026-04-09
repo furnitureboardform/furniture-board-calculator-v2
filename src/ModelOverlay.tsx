@@ -35,7 +35,7 @@ function getDrawerPanelsDisplay(el: BoxElement): Panel[] {
   const T  = PANEL_T_MM;
   const fW = el.adjustedFrontWidth  ? toMm(el.adjustedFrontWidth)  : (el.parentIsDrawerbox === false ? W : W + 2 * T);
   const fH = el.adjustedFrontHeight ? toMm(el.adjustedFrontHeight) : el.frontHeight ? toMm(el.frontHeight) : DRW_H_FRONT_FACE;
-  const extraH = Math.max(0, fH - DRW_H_FRONT_FACE);
+  const extraH = el.externalFront ? 0 : Math.max(0, fH - DRW_H_FRONT_FACE);
   const hSide       = DRW_H_SIDE        + extraH;
   const hBack       = DRW_H_BACK        + extraH;
   const hFrontInner = DRW_H_FRONT_INNER + extraH;

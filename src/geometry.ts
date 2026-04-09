@@ -484,6 +484,8 @@ export function clampYBoundsToObstacles(
 }
 
 export const DRAWER_FACE_H_DEFAULT = 0.170;
+export const DRAWER_BOX_H = 0.145;
+export const DRAWER_EXT_FRONT_H = 0.196;
 
 function elementTopEdge(e: BoxElement): number {
   return e.position.y + (
@@ -499,25 +501,45 @@ export function computeDrawerYBounds(
   allElements: BoxElement[]
 ): { minY: number; maxY: number } {
   const faceH = drawer.adjustedFrontHeight ?? drawer.frontHeight ?? DRAWER_FACE_H_DEFAULT;
+  const isExt = drawer.externalFront === true;
   const bottomOffset = parent.type === 'drawerbox' ? (parent.hasBottomPanel ? PANEL_T : 0) : PANEL_T;
-  const minY = parent.position.y + bottomOffset;
-  const innerTop = parent.position.y + parent.dimensions.height - PANEL_T;
+  // external front is centered on the 145mm box — it extends (faceH-0.145)/2 below position.y
+  // keep front bottom at or above the cabinet floor plate
+  const extOverhang = isExt ? (faceH - DRAWER_BOX_H) / 2 : 0;
+  const minY = parent.position.y + bottomOffset + extOverhang;
+  // external front can overlap the top plate (górna płyta) — use full cabinet height
+  const innerTop = isExt
+    ? parent.position.y + parent.dimensions.height
+    : parent.position.y + parent.dimensions.height - PANEL_T;
 
   let nearestAbove = Infinity;
   let nearestBelow = -Infinity;
   for (const e of allElements) {
     if (e.cabinetId !== parent.id || e.id === drawer.id) continue;
-    if (e.type !== 'shelf' && e.type !== 'drawer' && e.type !== 'drawerbox') continue;
-    const top = elementTopEdge(e);
-    if (e.position.y >= drawer.position.y + faceH) {
-      nearestAbove = Math.min(nearestAbove, e.position.y);
-    } else if (top <= drawer.position.y) {
-      nearestBelow = Math.max(nearestBelow, top);
+    if (isExt) {
+      if (!(e.type === 'drawer' && e.externalFront === true)) continue;
+      if (e.position.y > drawer.position.y) {
+        nearestAbove = Math.min(nearestAbove, e.position.y);
+      } else if (e.position.y < drawer.position.y) {
+        nearestBelow = Math.max(nearestBelow, elementTopEdge(e));
+      }
+    } else {
+      if (e.type !== 'shelf' && e.type !== 'drawer' && e.type !== 'drawerbox') continue;
+      if (e.position.y >= drawer.position.y + faceH) {
+        nearestAbove = Math.min(nearestAbove, e.position.y);
+      } else {
+        const top = elementTopEdge(e);
+        if (top <= drawer.position.y) nearestBelow = Math.max(nearestBelow, top);
+      }
     }
   }
 
-  const topBound = Math.min(innerTop, nearestAbove);
   const computedMinY = Math.max(minY, nearestBelow);
-  const maxY = Math.max(computedMinY, topBound - faceH);
-  return { minY: computedMinY, maxY };
+  if (isExt) {
+    const cabinetMaxY = innerTop - (DRAWER_BOX_H + faceH) / 2;
+    const elementMaxY = nearestAbove < Infinity ? nearestAbove - faceH : Infinity;
+    return { minY: computedMinY, maxY: Math.max(computedMinY, Math.min(cabinetMaxY, elementMaxY)) };
+  }
+  const topBound = Math.min(innerTop, nearestAbove);
+  return { minY: computedMinY, maxY: Math.max(computedMinY, topBound - faceH) };
 }

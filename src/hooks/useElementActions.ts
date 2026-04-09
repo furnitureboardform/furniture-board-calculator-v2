@@ -20,7 +20,7 @@ import {
   recomputeHorizMaskGeometry,
   recomputeGroups,
 } from '../computeElements';
-import { computeDividerBounds, computeYForBox, fitDrawerToBay, switchShelfToNextBay, switchDrawerToNextBay, switchDividerToNextSlot, DRAWER_FACE_H_DEFAULT } from '../geometry';
+import { computeDividerBounds, computeYForBox, fitDrawerToBay, switchShelfToNextBay, switchDrawerToNextBay, switchDividerToNextSlot, DRAWER_FACE_H_DEFAULT, DRAWER_EXT_FRONT_H } from '../geometry';
 import { createBox, createShelf, createBoard, createBoxKuchenny, createSzafkaDolna } from '../factories';
 import { counters } from '../elementCounters';
 
@@ -1117,14 +1117,14 @@ export function useElementActions({
         const faceW = Math.max(0.001, cab.dimensions.width - 0.004);
         const posZ = cab.position.z + cab.dimensions.depth / 2 - drawer.dimensions.depth / 2;
         return prev.map((e) => e.id === drawerId
-          ? { ...drawer, externalFront: true, adjustedFrontWidth: faceW, position: { ...drawer.position, z: posZ } }
+          ? { ...drawer, externalFront: true, adjustedFrontWidth: faceW, frontHeight: DRAWER_EXT_FRONT_H, position: { ...drawer.position, z: posZ } }
           : e
         );
       }
 
       const normalFaceW = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T - 2 * FRONT_INSET);
       const normalZ = cab.position.z - PANEL_T / 2 + 0.005;
-      const restored = { ...drawer, externalFront: false, adjustedFrontWidth: normalFaceW, position: { ...drawer.position, z: normalZ } };
+      const restored = { ...drawer, externalFront: false, adjustedFrontWidth: normalFaceW, frontHeight: undefined, position: { ...drawer.position, z: normalZ } };
       const fitted = fitDrawerToBay(restored, prev);
       return prev.map((e) => e.id === drawerId ? fitted : e);
     });

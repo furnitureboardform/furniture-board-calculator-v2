@@ -147,7 +147,7 @@ function getDrawerPanels(drawer: BoxElement): { korpus: PanelEntry[]; hdf: Panel
   const D = drawer.dimensions.depth;
   const faceW = drawer.adjustedFrontWidth  ?? (drawer.parentIsDrawerbox === false ? W : W + 2 * T);
   const faceH = drawer.adjustedFrontHeight ?? drawer.frontHeight ?? DRAWER_H_FRONT_FACE;
-  const extraH = Math.max(0, faceH - DRAWER_H_FRONT_FACE);
+  const extraH = drawer.externalFront ? 0 : Math.max(0, faceH - DRAWER_H_FRONT_FACE);
   const hSide       = DRAWER_H_SIDE        + extraH;
   const hBack       = DRAWER_H_BACK        + extraH;
   const hFrontInner = DRAWER_H_FRONT_INNER + extraH;
