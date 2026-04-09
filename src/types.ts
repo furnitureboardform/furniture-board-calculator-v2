@@ -23,7 +23,7 @@ export interface BoxElement {
   maskownicaSide?: 'left' | 'right' | 'bottom' | 'top'; // only for maskowanica elements
   niepelna?: boolean; // only for maskowanica: depth forced to 80mm
   stretchWithLegs?: boolean; // for side maskownica and side blenda: extend height to cover legs/plinth
-  openFronts?: boolean; // only for cabinets: front panels shown open at 90°
+  openFronts?: boolean; // for fronts: panel shown open at 90°; legacy on cabinets
   noHandle?: boolean;  // only for fronts: do not count handle in report
   hasBottomPanel?: boolean; // only for drawerbox: whether bottom panel is rendered
   hasRearHdf?: boolean;     // only for drawerbox: whether rear HDF panel is shown

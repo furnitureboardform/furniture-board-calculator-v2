@@ -454,8 +454,7 @@ export function useThreeScene(
       if (element.type === 'front' && element.cabinetId) {
         const fmesh = meshMapRef.current.get(element.id);
         if (fmesh) {
-          const cab = elements.find((e) => e.id === element.cabinetId);
-          if (cab?.openFronts) {
+          if (element.openFronts) {
             const W = element.dimensions.width;
             const isRight = element.frontSide === 'right';
             fmesh.rotation.y = rotY + (isRight ? Math.PI / 2 : -Math.PI / 2);

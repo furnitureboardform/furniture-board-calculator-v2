@@ -181,23 +181,6 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
           <span className="prop-input" style={{ display: 'flex', alignItems: 'center', color: '#d0d0f0' }}>{d}</span>
           <span className="prop-unit">mm</span>
         </div>
-        {hasFront && onOpenFrontsChange && (
-          <>
-            <div className="prop-divider" />
-            <div className="prop-front-state">
-              <span className="prop-label" style={{ color: '#c0c0e0' }}>Fronty</span>
-              <label className="prop-toggle">
-                <input
-                  type="checkbox"
-                  checked={!!element.openFronts}
-                  onChange={(e) => onOpenFrontsChange(e.target.checked)}
-                />
-                <span className="prop-toggle-track" />
-                <span className="prop-toggle-text">{element.openFronts ? 'otwarte' : 'zamknięte'}</span>
-              </label>
-            </div>
-          </>
-        )}
         {hasFront && renderHandleSelector(getCommonHandleId(element.id), element.id)}
       </div>
     );
@@ -366,11 +349,11 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
         );
       })()}
 
-      {element.type === 'cabinet' && hasFront && onOpenFrontsChange && (
+      {element.type === 'front' && onOpenFrontsChange && (
         <>
           <div className="prop-divider" />
           <div className="prop-front-state">
-            <span className="prop-label" style={{ color: '#c0c0e0' }}>Fronty</span>
+            <span className="prop-label" style={{ color: '#c0c0e0' }}>Front</span>
             <label className="prop-toggle">
               <input
                 type="checkbox"
@@ -378,7 +361,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
                 onChange={(e) => onOpenFrontsChange(e.target.checked)}
               />
               <span className="prop-toggle-track" />
-              <span className="prop-toggle-text">{element.openFronts ? 'otwarte' : 'zamknięte'}</span>
+              <span className="prop-toggle-text">{element.openFronts ? 'otwarty' : 'zamknięty'}</span>
             </label>
           </div>
           <div className="prop-divider" />
@@ -387,7 +370,6 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
 
       {element.type === 'front' && onFrontNoHandleChange && (
         <>
-          <div className="prop-divider" />
           <div className="prop-front-state">
             <span className="prop-label" style={{ color: '#c0c0e0' }}>Uchwyt</span>
             <label className="prop-toggle">
