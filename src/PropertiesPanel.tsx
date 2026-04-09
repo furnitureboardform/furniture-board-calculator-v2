@@ -22,6 +22,7 @@ interface Props {
   onDrawerAdjustFrontChange?: (adj: boolean) => void;
   onDrawerFrontHeightChange?: (h: number) => void;
   onDrawerPushToOpenChange?: (v: boolean) => void;
+  onDrawerExternalFrontChange?: (v: boolean) => void;
   onShelfSwitchBay?: (id: string) => void;
   onDividerSwitchSlot?: (id: string) => void;
   onMaskownicaNiepelnaChange?: (v: boolean) => void;
@@ -29,6 +30,7 @@ interface Props {
   onFrontNoHandleChange?: (v: boolean) => void;
   onRotate?: (id: string) => void;
   onFinishChange?: (id: string, finishId: string | undefined) => void;
+  onDrawerFrontFinishChange?: (id: string, finishId: string | undefined) => void;
   handles?: HandleOption[];
   onHandleChange?: (id: string, handleId: string | undefined) => void;
 }
@@ -39,11 +41,13 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onRotate, onFinishChange, handles, onHandleChange }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerExternalFrontChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange }) => {
   const [finishOpen, setFinishOpen] = useState(false);
   const [handleOpen, setHandleOpen] = useState(false);
+  const [frontFinishOpen, setFrontFinishOpen] = useState(false);
   const finishRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
+  const frontFinishRef = useRef<HTMLDivElement>(null);
   // Local draft strings so the user can type freely
   const [drafts, setDrafts] = useState<Record<DimKey, string>>({ width: '', height: '', depth: '' });
   const [yDraft, setYDraft] = useState('');
@@ -58,6 +62,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
     if (!element) return;
     setFinishOpen(false);
     setHandleOpen(false);
+    setFrontFinishOpen(false);
     setDrafts({
       width: toMm(element.dimensions.width),
       height: toMm(element.dimensions.height),
@@ -543,6 +548,23 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
           </div>
         </>
       )}
+      {element.type === 'drawer' && element.parentIsDrawerbox === false && onDrawerExternalFrontChange && (
+        <>
+          <div className="prop-divider" />
+          <div className="prop-front-state">
+            <span className="prop-label" style={{ color: '#c0c0e0' }}>Szuflada zewnętrzna</span>
+            <label className="prop-toggle">
+              <input
+                type="checkbox"
+                checked={!!element.externalFront}
+                onChange={(e) => onDrawerExternalFrontChange(e.target.checked)}
+              />
+              <span className="prop-toggle-track" />
+              <span className="prop-toggle-text">{element.externalFront ? 'tak' : 'nie'}</span>
+            </label>
+          </div>
+        </>
+      )}
       {(element.type === 'shelf' || element.type === 'rod' || element.type === 'drawer') && element.cabinetId && onShelfSwitchBay && (() => {
         const hasOverlappingDivider = elements?.some(
           (e) => e.cabinetId === element.cabinetId && e.type === 'divider' &&
@@ -597,6 +619,62 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
                         key={f.id}
                         className={`prop-finish-item${element.finishId === f.id ? ' prop-finish-item--active' : ''}`}
                         onClick={() => { onFinishChange(element.id, f.id); setFinishOpen(false); }}
+                      >
+                        {f.imageBase64
+                          ? <img src={f.imageBase64} alt="" className="prop-finish-thumb" />
+                          : <span className="prop-finish-no-img" />
+                        }
+                        <span>{f.label} · {f.brand}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </>
+        );
+      })()}
+
+      {element.type === 'drawer' && onDrawerFrontFinishChange && (() => {
+        if (finishes.length === 0) return null;
+        const sel = finishes.find((f) => f.id === element.frontFinishId);
+        return (
+          <>
+            <div className="prop-divider" />
+            <div className="prop-finish-section">
+              <span className="prop-label">Okleina frontu</span>
+              <div
+                className="prop-finish-dropdown"
+                ref={frontFinishRef}
+                onBlur={(e) => { if (!frontFinishRef.current?.contains(e.relatedTarget as Node)) setFrontFinishOpen(false); }}
+                tabIndex={-1}
+              >
+                <button
+                  className="prop-finish-trigger"
+                  onClick={() => setFrontFinishOpen((o) => !o)}
+                  type="button"
+                >
+                  {sel?.imageBase64
+                    ? <img src={sel.imageBase64} alt="" className="prop-finish-thumb" />
+                    : <span className="prop-finish-no-img" />
+                  }
+                  <span className="prop-finish-trigger-label">{sel ? `${sel.label} · ${sel.brand}` : 'Jak korpus'}</span>
+                  <span className="prop-finish-arrow">{frontFinishOpen ? '▲' : '▼'}</span>
+                </button>
+                {frontFinishOpen && (
+                  <ul className="prop-finish-list">
+                    <li
+                      className={`prop-finish-item${!element.frontFinishId ? ' prop-finish-item--active' : ''}`}
+                      onClick={() => { onDrawerFrontFinishChange(element.id, undefined); setFrontFinishOpen(false); }}
+                    >
+                      <span className="prop-finish-no-img" />
+                      <span>Jak korpus</span>
+                    </li>
+                    {finishes.map((f) => (
+                      <li
+                        key={f.id}
+                        className={`prop-finish-item${element.frontFinishId === f.id ? ' prop-finish-item--active' : ''}`}
+                        onClick={() => { onDrawerFrontFinishChange(element.id, f.id); setFrontFinishOpen(false); }}
                       >
                         {f.imageBase64
                           ? <img src={f.imageBase64} alt="" className="prop-finish-thumb" />

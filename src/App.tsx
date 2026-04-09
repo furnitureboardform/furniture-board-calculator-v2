@@ -143,6 +143,7 @@ const App: React.FC = () => {
     handleDrawerAdjustFrontChange,
     handleDrawerFrontHeightChange,
     handleDrawerPushToOpenChange,
+    handleDrawerExternalFrontChange,
     handleMaskownicaNiepelnaChange,
     handleStretchWithLegsChange,
     handleFrontNoHandleChange,
@@ -197,6 +198,10 @@ const App: React.FC = () => {
       }
       return { ...e, finishId };
     }));
+  };
+
+  const handleDrawerFrontFinishChange = (id: string, finishId: string | undefined) => {
+    setElements((prev) => prev.map((e) => e.id === id ? { ...e, frontFinishId: finishId } : e));
   };
 
   const rulerDistance = rulerPoints.length === 2
@@ -303,6 +308,7 @@ const App: React.FC = () => {
           onDrawerAdjustFrontChange={(adj) => selectedElement && handleDrawerAdjustFrontChange(selectedElement.id, adj)}
           onDrawerFrontHeightChange={(h) => selectedElement && handleDrawerFrontHeightChange(selectedElement.id, h)}
           onDrawerPushToOpenChange={(v) => selectedElement && handleDrawerPushToOpenChange(selectedElement.id, v)}
+          onDrawerExternalFrontChange={(v) => selectedElement && handleDrawerExternalFrontChange(selectedElement.id, v)}
           onMaskownicaNiepelnaChange={(v) => selectedElement && handleMaskownicaNiepelnaChange(selectedElement.id, v)}
           onStretchWithLegsChange={(v) => selectedElement && handleStretchWithLegsChange(selectedElement.id, v)}
           onFrontNoHandleChange={(v) => selectedElement && handleFrontNoHandleChange(selectedElement.id, v)}
@@ -310,6 +316,7 @@ const App: React.FC = () => {
           onDividerSwitchSlot={handleDividerSwitchSlot}
           onRotate={(id) => handleRotateCabinet(id)}
           onFinishChange={handleFinishChange}
+          onDrawerFrontFinishChange={handleDrawerFrontFinishChange}
           handles={handles}
           onHandleChange={handleHandleChange}
         />

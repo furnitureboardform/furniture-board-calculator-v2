@@ -62,7 +62,7 @@ export function rebuildShelf(parent: THREE.Mesh, element: BoxElement, color: THR
   parent.add(panel);
 }
 
-export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) {
+export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color, frontColor?: THREE.Color) {
   clearChildren(parent);
   const { width, depth } = element.dimensions;
   const t = PANEL_T;
@@ -76,9 +76,9 @@ export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: TH
   const hSide       = H_SIDE        + extraH;
   const hBack       = H_BACK        + extraH;
   const hFrontInner = H_FRONT_INNER + extraH;
-  const makeMat = () => new THREE.MeshStandardMaterial({ color, emissive, roughness: 0.4, metalness: 0.05, side: THREE.DoubleSide });
-  const addPanel = (w: number, h: number, d: number, px: number, py: number, pz: number) => {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), makeMat());
+  const makeMat = (c: THREE.Color) => new THREE.MeshStandardMaterial({ color: c, emissive, roughness: 0.4, metalness: 0.05, side: THREE.DoubleSide });
+  const addPanel = (w: number, h: number, d: number, px: number, py: number, pz: number, c?: THREE.Color) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), makeMat(c ?? color));
     mesh.position.set(px, py, pz);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
@@ -95,7 +95,7 @@ export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: TH
   addPanel(bottomW, hdf, bottomD, 0, -(H_SIDE / 2 - hdf / 2), -t / 2);
   addPanel(width - 2 * t, hBack, t, 0, (hBack - H_SIDE) / 2, -(depth / 2 - t / 2));
   addPanel(width - 2 * t, hFrontInner, t, 0, (hFrontInner - H_SIDE) / 2, depth / 2 - t / 2);
-  addPanel(faceW, faceH, t, 0, (faceH - H_SIDE) / 2, depth / 2 + t / 2);
+  addPanel(faceW, faceH, t, 0, (faceH - H_SIDE) / 2, depth / 2 + t / 2, frontColor);
 }
 
 export function rebuildDrawerbox(parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) {

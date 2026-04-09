@@ -226,9 +226,9 @@ export function useThreeScene(
 
   // Helper to dispatch to correct rebuild function
   const rebuildElement = useCallback(
-    (mesh: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) => {
+    (mesh: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color, frontColor?: THREE.Color) => {
       if (element.type === 'shelf' || element.type === 'board') rebuildShelf(mesh, element, color, emissive);
-      else if (element.type === 'drawer') rebuildDrawer(mesh, element, color, emissive);
+      else if (element.type === 'drawer') rebuildDrawer(mesh, element, color, emissive, frontColor);
       else if (element.type === 'drawerbox') rebuildDrawerbox(mesh, element, color, emissive);
       else if (element.type === 'blenda') rebuildBlenda(mesh, element, color, emissive);
       else if (element.type === 'plinth') rebuildPlinth(mesh, element, color, emissive);
@@ -416,6 +416,12 @@ export function useThreeScene(
       const color = finishHex ? new THREE.Color(finishHex) : (isPanelType ? PANEL_COLOR : BOARD_COLOR);
       const emissive = new THREE.Color(isSelected ? 0x224488 : isMultiSelected ? 0x442266 : 0x000000);
 
+      let frontColor: THREE.Color | undefined;
+      if (element.type === 'drawer' && element.frontFinishId) {
+        const ffHex = optionsRef.current.finishColorMap?.get(element.frontFinishId);
+        if (ffHex) frontColor = new THREE.Color(ffHex);
+      }
+
       const rotY = getCabRotY(element);
 
       if (meshMapRef.current.has(element.id)) {
@@ -426,7 +432,7 @@ export function useThreeScene(
         else mesh.raycast = THREE.Mesh.prototype.raycast.bind(mesh);
         mesh.position.set(element.position.x, element.position.y + height / 2, element.position.z);
         mesh.rotation.y = rotY;
-        rebuildElement(mesh, element, color, emissive);
+        rebuildElement(mesh, element, color, emissive, frontColor);
         if (isSelected) placeHandles(mesh, element);
         else mesh.children.slice().filter((c) => c.userData.isHandle).forEach((c) => mesh.remove(c));
       } else {
@@ -441,7 +447,7 @@ export function useThreeScene(
         mesh.userData = { elementId: element.id };
         scene.add(mesh);
         meshMapRef.current.set(element.id, mesh);
-        rebuildElement(mesh, element, color, emissive);
+        rebuildElement(mesh, element, color, emissive, frontColor);
         if (isSelected) placeHandles(mesh, element);
       }
       // Override position/rotation for open front panels

@@ -33,8 +33,10 @@ export interface BoxElement {
   adjustedFrontHeight?: number; // only for drawer: auto-calculated height (Dostosuj front switch)
   frontHeight?: number;         // only for drawer: manual front height override
   parentIsDrawerbox?: boolean;  // only for drawer: true when parent is a drawerbox
+  externalFront?: boolean;      // only for drawer: when in normal cabinet, front flush with cabinet face and wider
   pushToOpen?: boolean;         // only for drawer: push-to-open mechanism
   finishId?: string;            // optional: selected finish/veneer from Firebase
+  frontFinishId?: string;       // only for drawer: separate finish for the front face panel
   handleId?: string;            // optional: selected handle type from Firebase (for fronts)
   dimensions: BoxDimensions;
   position: { x: number; y: number; z: number };

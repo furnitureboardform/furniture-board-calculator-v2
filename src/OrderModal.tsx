@@ -161,7 +161,7 @@ function getDrawerPanels(drawer: BoxElement): { korpus: PanelEntry[]; hdf: Panel
       { id: drawer.id + '_fi', w: W - 2*T, h: hFrontInner, d: T,         elemType: 'drawer_back', finishId: fid },
     ],
     hdf:  { id: drawer.id + '_b',  w: W - 0.004, h: HDF_T, d: sideD - 0.004, elemType: 'drawer_bottom', finishId: fid },
-    face: { id: drawer.id + '_ff', w: faceW, h: faceH, d: T, elemType: 'drawer_face', finishId: fid },
+    face: { id: drawer.id + '_ff', w: faceW, h: faceH, d: T, elemType: 'drawer_face', finishId: drawer.frontFinishId ?? fid },
   };
 }
 function getCabinetStructPanels(cab: BoxElement): PanelEntry[] {

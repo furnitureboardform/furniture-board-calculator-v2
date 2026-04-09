@@ -20,7 +20,7 @@ import {
   recomputeHorizMaskGeometry,
   recomputeGroups,
 } from '../computeElements';
-import { computeDividerBounds, computeYForBox, switchShelfToNextBay, switchDrawerToNextBay, switchDividerToNextSlot } from '../geometry';
+import { computeDividerBounds, computeYForBox, fitDrawerToBay, switchShelfToNextBay, switchDrawerToNextBay, switchDividerToNextSlot } from '../geometry';
 import { createBox, createShelf, createBoard, createBoxKuchenny, createSzafkaDolna } from '../factories';
 import { counters } from '../elementCounters';
 
@@ -103,6 +103,7 @@ export function useElementActions({
         type: 'drawer',
         cabinetId,
         parentIsDrawerbox: isDrawerbox,
+        externalFront: false,
         adjustedFrontWidth: faceW,
         dimensions: { width: innerWidth, height: 0.145, depth },
         position: {
@@ -1094,6 +1095,31 @@ export function useElementActions({
     setElements((prev) => prev.map((e) => e.id === drawerId ? { ...e, pushToOpen: value } : e));
   }, [setElements]);
 
+  const handleDrawerExternalFrontChange = useCallback((drawerId: string, value: boolean) => {
+    setElements((prev) => {
+      const drawer = prev.find((e) => e.id === drawerId);
+      if (!drawer || drawer.type !== 'drawer' || !drawer.cabinetId) return prev;
+      if (drawer.parentIsDrawerbox !== false) return prev;
+      const cab = prev.find((e) => e.id === drawer.cabinetId);
+      if (!cab || (cab.type !== 'cabinet' && cab.type !== 'boxkuchenny')) return prev;
+
+      if (value) {
+        const faceW = Math.max(0.001, cab.dimensions.width - 0.004);
+        const posZ = cab.position.z + cab.dimensions.depth / 2 - drawer.dimensions.depth / 2;
+        return prev.map((e) => e.id === drawerId
+          ? { ...drawer, externalFront: true, adjustedFrontWidth: faceW, position: { ...drawer.position, z: posZ } }
+          : e
+        );
+      }
+
+      const normalFaceW = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T - 2 * FRONT_INSET);
+      const normalZ = cab.position.z - PANEL_T / 2 + 0.005;
+      const restored = { ...drawer, externalFront: false, adjustedFrontWidth: normalFaceW, position: { ...drawer.position, z: normalZ } };
+      const fitted = fitDrawerToBay(restored, prev);
+      return prev.map((e) => e.id === drawerId ? fitted : e);
+    });
+  }, [setElements]);
+
   const handleHasTopRailsChange = useCallback((drawerboxId: string, has: boolean) => {
     setElements((prev) => prev.map((e) => e.id === drawerboxId ? { ...e, hasTopRails: has } : e));
   }, [setElements]);
@@ -1279,6 +1305,7 @@ export function useElementActions({
     handleDrawerAdjustFrontChange,
     handleDrawerFrontHeightChange,
     handleDrawerPushToOpenChange,
+    handleDrawerExternalFrontChange,
     handleMaskownicaNiepelnaChange,
     handleStretchWithLegsChange,
     handleFrontNoHandleChange,
