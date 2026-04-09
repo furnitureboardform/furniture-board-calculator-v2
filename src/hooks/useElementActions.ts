@@ -20,7 +20,7 @@ import {
   recomputeHorizMaskGeometry,
   recomputeGroups,
 } from '../computeElements';
-import { computeDividerBounds, computeYForBox, fitDrawerToBay, switchShelfToNextBay, switchDrawerToNextBay, switchDividerToNextSlot } from '../geometry';
+import { computeDividerBounds, computeYForBox, fitDrawerToBay, switchShelfToNextBay, switchDrawerToNextBay, switchDividerToNextSlot, DRAWER_FACE_H_DEFAULT } from '../geometry';
 import { createBox, createShelf, createBoard, createBoxKuchenny, createSzafkaDolna } from '../factories';
 import { counters } from '../elementCounters';
 
@@ -97,6 +97,16 @@ export function useElementActions({
       const posZ = isDrawerbox
         ? cab.position.z
         : cab.position.z - PANEL_T / 2 + 0.005;
+      const bottomOffset = isDrawerbox ? (cab.hasBottomPanel ? PANEL_T : 0) : PANEL_T;
+      const innerBottom = cab.position.y + bottomOffset;
+      const innerTop = cab.position.y + cab.dimensions.height - PANEL_T;
+      const existingDrawers = prev.filter((e) => e.cabinetId === cabinetId && e.type === 'drawer');
+      const maxTopEdge = existingDrawers.reduce((max, e) =>
+        Math.max(max, e.position.y + (e.adjustedFrontHeight ?? e.frontHeight ?? DRAWER_FACE_H_DEFAULT))
+      , -Infinity);
+      const placementY = existingDrawers.length > 0
+        ? Math.min(maxTopEdge, innerTop - DRAWER_FACE_H_DEFAULT)
+        : innerBottom;
       const drawer: BoxElement = {
         id: crypto.randomUUID(),
         name: `Szuflada ${counters.drawer++}`,
@@ -109,7 +119,7 @@ export function useElementActions({
         position: {
           x: cab.position.x,
           z: posZ,
-          y: cab.position.y + cab.dimensions.height / 2,
+          y: placementY,
         },
         color: cab.color,
         finishId: cab.finishId,

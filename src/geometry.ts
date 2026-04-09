@@ -483,14 +483,16 @@ export function clampYBoundsToObstacles(
   return { mnY, mxY };
 }
 
-const DRAWER_FACE_H_DEFAULT = 0.170;
+export const DRAWER_FACE_H_DEFAULT = 0.170;
 
-/**
- * Returns the valid Y range for a drawer based on its front face bounds.
- * Front bottom = drawer.position.y, front top = drawer.position.y + faceH.
- * minY: front bottom at inner bottom of parent.
- * maxY: front top just below nearest obstacle above (sibling shelf/drawer) or parent inner top.
- */
+function elementTopEdge(e: BoxElement): number {
+  return e.position.y + (
+    e.type === 'drawer'
+      ? (e.adjustedFrontHeight ?? e.frontHeight ?? DRAWER_FACE_H_DEFAULT)
+      : e.dimensions.height
+  );
+}
+
 export function computeDrawerYBounds(
   drawer: BoxElement,
   parent: BoxElement,
@@ -501,19 +503,21 @@ export function computeDrawerYBounds(
   const minY = parent.position.y + bottomOffset;
   const innerTop = parent.position.y + parent.dimensions.height - PANEL_T;
 
-  // Find bottom edge of nearest sibling above current drawer position
-  const siblingsAbove = allElements.filter(
-    (e) =>
-      e.cabinetId === parent.id &&
-      e.id !== drawer.id &&
-      e.position.y > drawer.position.y &&
-      (e.type === 'shelf' || e.type === 'drawer' || e.type === 'drawerbox')
-  );
-  const nearestObstacle = siblingsAbove.length > 0
-    ? Math.min(...siblingsAbove.map((e) => e.position.y))
-    : Infinity;
+  let nearestAbove = Infinity;
+  let nearestBelow = -Infinity;
+  for (const e of allElements) {
+    if (e.cabinetId !== parent.id || e.id === drawer.id) continue;
+    if (e.type !== 'shelf' && e.type !== 'drawer' && e.type !== 'drawerbox') continue;
+    const top = elementTopEdge(e);
+    if (e.position.y >= drawer.position.y + faceH) {
+      nearestAbove = Math.min(nearestAbove, e.position.y);
+    } else if (top <= drawer.position.y) {
+      nearestBelow = Math.max(nearestBelow, top);
+    }
+  }
 
-  const topBound = Math.min(innerTop, nearestObstacle);
-  const maxY = Math.max(minY, topBound - faceH);
-  return { minY, maxY };
+  const topBound = Math.min(innerTop, nearestAbove);
+  const computedMinY = Math.max(minY, nearestBelow);
+  const maxY = Math.max(computedMinY, topBound - faceH);
+  return { minY: computedMinY, maxY };
 }
