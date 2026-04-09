@@ -673,6 +673,25 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
         );
       })()}
 
+      {element.type === 'drawer' && onFrontNoHandleChange && (
+        <>
+          <div className="prop-divider" />
+          <div className="prop-front-state">
+            <span className="prop-label" style={{ color: '#c0c0e0' }}>Uchwyt</span>
+            <label className="prop-toggle">
+              <input
+                type="checkbox"
+                checked={element.noHandle === false}
+                onChange={(e) => onFrontNoHandleChange(!e.target.checked)}
+              />
+              <span className="prop-toggle-track" />
+              <span className="prop-toggle-text">{element.noHandle === false ? 'tak' : 'brak'}</span>
+            </label>
+          </div>
+        </>
+      )}
+      {element.type === 'drawer' && element.noHandle === false && renderHandleSelector(element.handleId, element.id)}
+
       {element.type === 'front' && !element.noHandle && renderHandleSelector(element.handleId, element.id)}
     </div>
   );

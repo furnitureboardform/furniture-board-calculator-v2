@@ -96,7 +96,17 @@ export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: TH
   addPanel(bottomW, hdf, bottomD, 0, -(H_SIDE / 2 - hdf / 2), -t / 2);
   addPanel(width - 2 * t, hBack, t, 0, (hBack - H_SIDE) / 2, -(depth / 2 - t / 2));
   addPanel(width - 2 * t, hFrontInner, t, 0, (hFrontInner - H_SIDE) / 2, depth / 2 - t / 2);
-  addPanel(faceW, faceH, t, 0, isExt ? 0 : (faceH - H_SIDE) / 2, depth / 2 + t / 2, frontColor);
+  const faceY = isExt ? 0 : (faceH - H_SIDE) / 2;
+  addPanel(faceW, faceH, t, 0, faceY, depth / 2 + t / 2, frontColor);
+  if (element.noHandle === false) {
+    const handleLength = Math.min(faceW * 0.4, 0.150);
+    const handleGeo = new THREE.BoxGeometry(handleLength, 0.012, 0.012);
+    const handleMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3, metalness: 0.8 });
+    const handle = new THREE.Mesh(handleGeo, handleMat);
+    handle.position.set(0, faceY, depth / 2 + t + 0.007);
+    handle.userData = { elementId: element.id };
+    parent.add(handle);
+  }
 }
 
 export function rebuildDrawerbox(parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) {

@@ -183,7 +183,7 @@ const App: React.FC = () => {
 
   const handleHandleChange = (id: string, handleId: string | undefined) => {
     setElements((prev) => prev.map((e) => {
-      if (e.id === id && e.type === 'front') return { ...e, handleId };
+      if (e.id === id && (e.type === 'front' || e.type === 'drawer')) return { ...e, handleId };
       if (e.type === 'front' && e.cabinetId === id) return { ...e, handleId };
       return e;
     }));

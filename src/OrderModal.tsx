@@ -304,7 +304,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const slideCount    = elements.filter(e => e.type === 'drawer' && !e.pushToOpen).length;
     const ptoSlideCount = elements.filter(e => e.type === 'drawer' && !!e.pushToOpen).length;
     const couplingCount = slideCount + ptoSlideCount;
-    const frontsWithHandle = elements.filter(e => e.type === 'front' && !e.noHandle);
+    const frontsWithHandle = elements.filter(e => (e.type === 'front' && !e.noHandle) || (e.type === 'drawer' && e.noHandle === false));
     const legCount      = elements.filter(e => e.type === 'leg').length * 4;
 
     // Costs
