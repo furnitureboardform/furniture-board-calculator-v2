@@ -36,6 +36,26 @@ body, html, #root {
 
 .sidebar.right {
   border-left: 1px solid #3d3d3d;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #454545 transparent;
+}
+
+.sidebar.right::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar.right::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar.right::-webkit-scrollbar-thumb {
+  background: #454545;
+  border-radius: 3px;
+}
+
+.sidebar.right::-webkit-scrollbar-thumb:hover {
+  background: #666666;
 }
 
 .viewport {
