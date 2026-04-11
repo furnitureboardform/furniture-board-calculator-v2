@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import type React from 'react';
 import type { BoxElement, DrawerSystemOption } from '../types';
 import { DRAWER_SYSTEM_FRONT_EXTRA } from '../types';
-import { PANEL_T, DRAWER_RAIL_CLEARANCE, FRONT_INSET } from '../constants';
+import { PANEL_T, DRAWER_RAIL_CLEARANCE, FRONT_INSET, DEFAULT_COUNTERTOP_THICKNESS_MM } from '../constants';
 import { HDF_GRAY } from '../builders';
 import {
   computeHdfForCabinet,
@@ -1314,7 +1314,7 @@ export function useElementActions({
     });
   }, [setElements]);
 
-  const handleAddCountertopToCabinet = useCallback((cabinetId: string, thicknessMm = 28, countertopId?: string) => {
+  const handleAddCountertopToCabinet = useCallback((cabinetId: string, thicknessMm = DEFAULT_COUNTERTOP_THICKNESS_MM, countertopId?: string) => {
     setElements((prev) => {
       const cab = prev.find((e) => e.id === cabinetId);
       if (!cab) return prev;
@@ -1334,7 +1334,7 @@ export function useElementActions({
     });
   }, [setElements, setSelectedId]);
 
-  const handleAddCountertopToGroup = useCallback((groupId: string, thicknessMm = 28, countertopId?: string) => {
+  const handleAddCountertopToGroup = useCallback((groupId: string, thicknessMm = DEFAULT_COUNTERTOP_THICKNESS_MM, countertopId?: string) => {
     setElements((prev) => {
       const grp = prev.find((e) => e.id === groupId && e.type === 'group');
       if (!grp) return prev;

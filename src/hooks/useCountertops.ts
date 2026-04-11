@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { DEFAULT_COUNTERTOP_THICKNESS_MM } from '../constants';
 
 export interface CountertopOption {
   id: string;
@@ -23,7 +24,7 @@ export function useCountertops() {
             id: d.id,
             label: String(raw.label ?? ''),
             brand: String(raw.brand ?? ''),
-            thicknessMm: Number(raw.thicknessMm ?? 28),
+            thicknessMm: Number(raw.thicknessMm ?? DEFAULT_COUNTERTOP_THICKNESS_MM),
             pricePln: Number(raw.pricePln ?? 0),
             imageBase64: raw.imageBase64 ?? undefined,
           } as CountertopOption;

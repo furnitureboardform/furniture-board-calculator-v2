@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import type { BoxElement } from './types';
-import type { CountertopOption } from './hooks/useCountertops';
 import './ElementLibrary.css';
 
 interface CatalogItem {
@@ -138,7 +137,6 @@ interface Props {
   onAddRearboardToCabinet: (cabinetId: string) => void;
   onAddCountertopToCabinet: (cabinetId: string, thicknessMm?: number, countertopId?: string) => void;
   onAddCountertopToGroup: (groupId: string, thicknessMm?: number, countertopId?: string) => void;
-  countertops: CountertopOption[];
   onUngroup: (groupId: string) => void;
   onDelete: (id: string) => void;
   onClearAll: () => void;
@@ -167,7 +165,7 @@ const ElementLibrary: React.FC<Props> = ({
   onAddFrontToGroup, onAddDoubleFrontToGroup,
   onAddMaskowanicaToCabinet, onAddMaskowanicaToGroup,
   onAddRearboardToCabinet,
-  onAddCountertopToCabinet, onAddCountertopToGroup, countertops,
+  onAddCountertopToCabinet, onAddCountertopToGroup,
   onUngroup, onDelete, onClearAll,
 }) => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);

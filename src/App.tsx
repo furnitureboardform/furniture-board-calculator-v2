@@ -12,6 +12,7 @@ import { useElementActions } from './hooks/useElementActions';
 import { useKeyboard } from './hooks/useKeyboard';
 import { useSavedModels } from './hooks/useSavedModels';
 import type { BoardSize } from './types';
+import { DEFAULT_COUNTERTOP_THICKNESS_MM } from './constants';
 import ElementLibrary from './ElementLibrary';
 import PropertiesPanel from './PropertiesPanel';
 import ModelOverlay from './ModelOverlay';
@@ -212,7 +213,7 @@ const App: React.FC = () => {
 
   const handleCountertopTypeChange = (id: string, countertopId: string | undefined) => {
     const ct = countertops.find((c) => c.id === countertopId);
-    const thickness = ct ? ct.thicknessMm / 1000 : 0.028;
+    const thickness = ct ? ct.thicknessMm / 1000 : DEFAULT_COUNTERTOP_THICKNESS_MM / 1000;
     setElements((prev) => prev.map((e) =>
       e.id === id ? { ...e, countertopId, dimensions: { ...e.dimensions, height: thickness } } : e
     ));
@@ -267,7 +268,6 @@ const App: React.FC = () => {
           onAddRearboardToCabinet={handleAddRearboardToCabinet}
           onAddCountertopToCabinet={handleAddCountertopToCabinet}
           onAddCountertopToGroup={handleAddCountertopToGroup}
-          countertops={countertops}
           onUngroup={handleUngroup}
           onDelete={handleDelete}
           onClearAll={handleClearAll}
