@@ -274,9 +274,10 @@ function hingesForFront(el: BoxElement): number {
 // ── Main data hook ─────────────────────────────────────────────────────────────
 function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinishes: FinishOption[], handles: HandleOption[], drawerSystems: DrawerSystemOption[], countertops: CountertopOption[]) {
   return useMemo(() => {
-    const korpusPanels: PanelEntry[] = [];
-    const obiciePanels: PanelEntry[] = [];
-    const hdfPanels: PanelEntry[]    = [];
+    const korpusPanels: PanelEntry[]      = [];
+    const obiciePanels: PanelEntry[]      = [];
+    const hdfPanels: PanelEntry[]         = [];
+    const countertopPanels: PanelEntry[]  = [];
     const hdfFinishIds = new Set(hdfFinishes.map(f => f.id));
     const defaultHdfFinishId = hdfFinishes[0]?.id;
 
@@ -336,15 +337,16 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
       } else if (el.type === 'rearboard') {
         korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'cabinet_top', finishId: el.finishId });
       } else if (el.type === 'countertop') {
-        korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.depth, d: el.dimensions.height, elemType: 'countertop', finishId: el.finishId });
+        countertopPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.depth, d: el.dimensions.height, elemType: 'countertop', finishId: el.countertopId });
       }
     }
 
     const drawerSystemGroups = Array.from(drawerSystemGroupMap.values());
 
-    const korpusGrouped = groupPanels(korpusPanels);
-    const obicieGrouped = groupPanels(obiciePanels);
-    const hdfGrouped    = groupPanels(hdfPanels);
+    const korpusGrouped      = groupPanels(korpusPanels);
+    const obicieGrouped      = groupPanels(obiciePanels);
+    const hdfGrouped         = groupPanels(hdfPanels);
+    const countertopGrouped  = groupPanels(countertopPanels);
 
     // Totals
     const totalKorpusArea = korpusPanels.reduce((s, p) => s + faceArea(p.w, p.h, p.d), 0);
@@ -434,7 +436,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
         obicieGrouped.some(p => isUnknownFinish(p.finishId, finishes)) ||
         hdfGrouped.some(p => isUnknownFinish(p.finishId, finishes)),
       hasUnknownHandle,
-      korpusGrouped, obicieGrouped, hdfGrouped,
+      korpusGrouped, obicieGrouped, hdfGrouped, countertopGrouped,
       totalKorpusArea, totalObicieArea, totalHdfArea,
       totalKorpusCut, totalObicieCut, totalHdfCut,
       totalKorpusEdge, totalObicieEdge,
@@ -514,12 +516,25 @@ const FinishGroupedSections: React.FC<{ baseTitle: string; panels: GroupedPanel[
   );
 };
 
+const CountertopGroupedSections: React.FC<{ panels: GroupedPanel[]; countertops: CountertopOption[] }> = ({ panels, countertops }) => {
+  const byType = groupPanelsByFinish(panels);
+  const ctMap = new Map(countertops.map(c => [c.id, c]));
+  return (
+    <>
+      {Array.from(byType.entries()).map(([cid, fps]) => {
+        const ct = cid !== undefined ? ctMap.get(cid) : undefined;
+        const label = ct ? `Blat · ${ct.label} · ${ct.brand}` : 'Blat · Nieznany';
+        return <GroupedSection key={cid ?? 'none'} title={label} panels={fps} warning={!ct} />;
+      })}
+    </>
+  );
+};
+
 const AdditionalSection: React.FC<{
   rodCount: number; hingeCount: number; slideCount: number; ptoSlideCount: number;
   couplingCount: number; handleGroups: Array<{ label: string; count: number; warning?: boolean }>; legCount: number;
   drawerSystemGroups: Array<{ label: string; count: number; unitPrice: number }>;
-  countertopGroups: Array<{ label: string; count: number; unitPrice: number }>;
-}> = ({ rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, legCount, drawerSystemGroups, countertopGroups }) => {
+}> = ({ rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, legCount, drawerSystemGroups }) => {
   const items: Array<{ name: string; qty: number; note?: string; warning?: boolean }> = [];
   if (rodCount > 0)       items.push({ name: 'Drążki',              qty: rodCount });
   if (hingeCount > 0)     items.push({ name: 'Zawiasy',             qty: hingeCount,    note: 'na drzwi (wg wysokości drzwi)' });
@@ -530,7 +545,6 @@ const AdditionalSection: React.FC<{
   for (const g of drawerSystemGroups) items.push({ name: `Szuflada ${g.label}`, qty: g.count, note: `${g.unitPrice.toFixed(2)} zł/szt.` });
   for (const g of handleGroups) items.push({ name: g.label, qty: g.count, note: '1 na drzwi', warning: g.warning });
   if (legCount > 0)       items.push({ name: 'Nóżki',               qty: legCount,      note: '4 na box' });
-  for (const g of countertopGroups) items.push({ name: `Blat: ${g.label}`, qty: g.count, note: `${g.unitPrice.toFixed(2)} zł/szt.` });
 
   return (
     <div className="om-section">
@@ -550,11 +564,12 @@ const AdditionalSection: React.FC<{
   );
 };
 
-const SummaryTab: React.FC<{ data: ReturnType<typeof useOrderData>; finishes: FinishOption[] }> = ({ data, finishes }) => (
+const SummaryTab: React.FC<{ data: ReturnType<typeof useOrderData>; finishes: FinishOption[]; countertops: CountertopOption[] }> = ({ data, finishes, countertops }) => (
   <div className="om-tab-content">
     <FinishGroupedSections baseTitle="Płyty obicie" panels={data.obicieGrouped} finishes={finishes} />
     <FinishGroupedSections baseTitle="Płyty korpus" panels={data.korpusGrouped} finishes={finishes} />
     <FinishGroupedSections baseTitle="Płyta HDF"   panels={data.hdfGrouped}    finishes={finishes} showEdge={false} />
+    <CountertopGroupedSections panels={data.countertopGrouped} countertops={countertops} />
     <AdditionalSection
       rodCount={data.rodCount}
       hingeCount={data.hingeCount}
@@ -564,7 +579,6 @@ const SummaryTab: React.FC<{ data: ReturnType<typeof useOrderData>; finishes: Fi
       handleGroups={data.handleGroups}
       legCount={data.legCount}
       drawerSystemGroups={data.drawerSystemGroups}
-      countertopGroups={data.countertopGroups}
     />
   </div>
 );
@@ -901,7 +915,7 @@ const OrderModal: React.FC<Props> = ({ elements, handles, drawerSystems, counter
               {!hasCabinets ? (
                 <div className="om-no-data">Brak elementów na scenie.</div>
               ) : tab === 'summary' ? (
-                <SummaryTab data={data} finishes={finishes} />
+                <SummaryTab data={data} finishes={finishes} countertops={countertops} />
               ) : (
                 <CostTab data={data} fin={fin} setFin={setFin} finishes={finishes} hdfFinishes={finishesHdf} />
               )}
