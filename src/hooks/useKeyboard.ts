@@ -3,7 +3,10 @@ import type React from 'react';
 import type { BoxElement } from '../types';
 import {
   computeHdfForCabinet,
+  computeRearboardForCabinet,
   computeLegsForCabinet,
+  computePlinthForCabinet,
+  computeBlendaForCabinet,
   computeFrontForCabinet,
   computeMaskowanicaForCabinet,
 } from '../computeElements';
@@ -67,36 +70,41 @@ export function useKeyboard({ selectedId, multiSelectedIds, handleDelete, elemen
         if (!selectedId) return;
         setElements((prev) => {
           const src = prev.find((el) => el.id === selectedId);
-          if (!src || src.type !== 'cabinet') return prev;
+          if (!src || (src.type !== 'cabinet' && src.type !== 'boxkuchenny')) return prev;
+          const offsetX = src.dimensions.width + 0.02;
           const newCabId = crypto.randomUUID();
+          const idMap = new Map<string, string>([[src.id, newCabId]]);
           const newCab: BoxElement = {
             ...src,
             id: newCabId,
             name: `${src.name} (kopia)`,
             groupIds: [],
-            position: { ...src.position, x: src.position.x + src.dimensions.width + 0.02 },
+            position: { ...src.position, x: src.position.x + offsetX },
           };
-          const children = prev.filter((el) => el.cabinetId === src.id);
-          const newChildren: BoxElement[] = children.map((child) => {
-            const newChild: BoxElement = {
-              ...child,
-              id: crypto.randomUUID(),
-              cabinetId: newCabId,
-              position: {
-                ...child.position,
-                x: child.position.x + src.dimensions.width + 0.02,
-              },
-            };
-            if (child.type === 'front') return computeFrontForCabinet(newChild, newCab);
-            if (child.type === 'hdf') return computeHdfForCabinet(newChild, newCab);
-            if (child.type === 'leg') return computeLegsForCabinet(newChild, newCab);
-            return newChild;
+          const directChildren = prev.filter((el) => el.cabinetId === src.id);
+          for (const child of directChildren) idMap.set(child.id, crypto.randomUUID());
+          const grandChildren = prev.filter((el) => el.cabinetId && directChildren.some((dc) => dc.id === el.cabinetId));
+          for (const gc of grandChildren) idMap.set(gc.id, crypto.randomUUID());
+          const allDescendants = [...directChildren, ...grandChildren];
+          const newDescendants: BoxElement[] = allDescendants.map((child) => ({
+            ...child,
+            id: idMap.get(child.id)!,
+            cabinetId: idMap.get(child.cabinetId!)!,
+            position: { ...child.position, x: child.position.x + offsetX },
+          }));
+          const allWithNew = [...prev, newCab, ...newDescendants];
+          const finalDescendants = newDescendants.map((c) => {
+            if (c.cabinetId !== newCabId) return c;
+            if (c.type === 'front') return computeFrontForCabinet(c, newCab);
+            if (c.type === 'hdf') return computeHdfForCabinet(c, newCab);
+            if (c.type === 'rearboard') return computeRearboardForCabinet(c, newCab);
+            if (c.type === 'leg') return computeLegsForCabinet(c, newCab);
+            if (c.type === 'plinth') return computePlinthForCabinet(c, newCab, allWithNew);
+            if (c.type === 'blenda' && c.blendaScope === 'cabinet') return computeBlendaForCabinet(c, newCab, allWithNew);
+            if (c.type === 'maskowanica') return computeMaskowanicaForCabinet(c, newCab, allWithNew);
+            return c;
           });
-          const allWithNew = [...prev, newCab, ...newChildren];
-          const finalChildren = newChildren.map((c) =>
-            c.type === 'maskowanica' ? computeMaskowanicaForCabinet(c, newCab, allWithNew) : c
-          );
-          return [...prev, newCab, ...finalChildren];
+          return [...prev, newCab, ...finalDescendants];
         });
         return;
       }

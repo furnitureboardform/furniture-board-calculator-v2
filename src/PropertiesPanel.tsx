@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { BoxElement, BoxDimensions } from './types';
+import type { BoxElement, BoxDimensions, DrawerSystemOption } from './types';
+import { DRAWER_SYSTEM_FRONT_EXTRA } from './types';
 import type { FinishOption } from './hooks/useFinishes';
 import type { HandleOption } from './hooks/useHandles';
 import { PANEL_T } from './constants';
@@ -22,7 +23,7 @@ interface Props {
   onDrawerAdjustFrontChange?: (adj: boolean) => void;
   onDrawerFrontHeightChange?: (h: number) => void;
   onDrawerPushToOpenChange?: (v: boolean) => void;
-  onDrawerExternalFrontChange?: (v: boolean) => void;
+  onDrawerExternalFrontChange?: (v: string) => void;
   onShelfSwitchBay?: (id: string) => void;
   onDividerSwitchSlot?: (id: string) => void;
   onMaskownicaNiepelnaChange?: (v: boolean) => void;
@@ -33,6 +34,7 @@ interface Props {
   onDrawerFrontFinishChange?: (id: string, finishId: string | undefined) => void;
   handles?: HandleOption[];
   onHandleChange?: (id: string, handleId: string | undefined) => void;
+  drawerSystems?: DrawerSystemOption[];
 }
 
 type DimKey = keyof BoxDimensions;
@@ -41,10 +43,11 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerExternalFrontChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerExternalFrontChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems }) => {
   const [finishOpen, setFinishOpen] = useState(false);
   const [handleOpen, setHandleOpen] = useState(false);
   const [frontFinishOpen, setFrontFinishOpen] = useState(false);
+  const [drawerTypeOpen, setDrawerTypeOpen] = useState(false);
   const finishRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
   const frontFinishRef = useRef<HTMLDivElement>(null);
@@ -63,6 +66,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
     setFinishOpen(false);
     setHandleOpen(false);
     setFrontFinishOpen(false);
+    setDrawerTypeOpen(false);
     setDrafts({
       width: toMm(element.dimensions.width),
       height: toMm(element.dimensions.height),
@@ -70,7 +74,9 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
     });
     setYDraft(toMm(element.position.y));
     if (element.type === 'drawer') {
-      setFrontHeightDraft(element.adjustedFrontHeight ? toMm(element.adjustedFrontHeight) : element.frontHeight ? toMm(element.frontHeight) : '170');
+      const sysSpec = element.drawerSystemType ? drawerSystems?.find(s => s.id === element.drawerSystemType) : undefined;
+      const defaultFH = sysSpec ? Math.round((sysSpec.height + DRAWER_SYSTEM_FRONT_EXTRA) * 1000).toString() : '170';
+      setFrontHeightDraft(element.adjustedFrontHeight ? toMm(element.adjustedFrontHeight) : element.frontHeight ? toMm(element.frontHeight) : defaultFH);
     }
     if (element.type === 'divider') {
       const cab = getDividerCab();
@@ -435,7 +441,11 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
         </>
       )}
 
-      {(['width', 'height', 'depth'] as const).filter((axis) => element.type !== 'leg' || axis === 'height').map((axis) => (
+      {(['width', 'height', 'depth'] as const).filter((axis) => {
+        if (element.type === 'leg') return axis === 'height';
+        if (element.drawerSystemType) return false;
+        return true;
+      }).map((axis) => (
         <div className="prop-row" key={axis}>
           <label className="prop-label" style={{ color: colors[axis] }}>{labels[axis]}</label>
           <input
@@ -474,6 +484,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
       {element.type === 'drawer' && element.cabinetId && onDrawerAdjustFrontChange && (() => {
         const par = elements?.find((e) => e.id === element.cabinetId);
         if (!par) return null;
+        const isSystem = !!element.drawerSystemType;
         const commitFrontHeight = () => {
           const m = fromMm(frontHeightDraft);
           if (isNaN(m) || m <= 0) { setFrontHeightDraft(element.adjustedFrontHeight ? toMm(element.adjustedFrontHeight) : ''); return; }
@@ -482,19 +493,21 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
         return (
           <>
             <div className="prop-divider" />
-            <div className="prop-front-state">
-              <span className="prop-label" style={{ color: '#c0c0e0' }}>Dostosuj front</span>
-              <label className="prop-toggle">
-                <input
-                  type="checkbox"
-                  checked={!!element.adjustedFrontHeight}
-                  onChange={(e) => onDrawerAdjustFrontChange(e.target.checked)}
-                />
-                <span className="prop-toggle-track" />
-                <span className="prop-toggle-text">{element.adjustedFrontHeight ? 'tak' : 'nie'}</span>
-              </label>
-            </div>
-            {!element.adjustedFrontHeight && (
+            {!isSystem && (
+              <div className="prop-front-state">
+                <span className="prop-label" style={{ color: '#c0c0e0' }}>Dostosuj front</span>
+                <label className="prop-toggle">
+                  <input
+                    type="checkbox"
+                    checked={!!element.adjustedFrontHeight}
+                    onChange={(e) => onDrawerAdjustFrontChange(e.target.checked)}
+                  />
+                  <span className="prop-toggle-track" />
+                  <span className="prop-toggle-text">{element.adjustedFrontHeight ? 'tak' : 'nie'}</span>
+                </label>
+              </div>
+            )}
+            {(isSystem || !element.adjustedFrontHeight) && (
               <div className="prop-row">
                 <label className="prop-label" style={{ color: '#44ff44' }}>Wys. frontu</label>
                 <input
@@ -530,23 +543,42 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
           </div>
         </>
       )}
-      {element.type === 'drawer' && element.parentIsDrawerbox === false && onDrawerExternalFrontChange && (
-        <>
-          <div className="prop-divider" />
-          <div className="prop-front-state">
-            <span className="prop-label" style={{ color: '#c0c0e0' }}>Szuflada zewnętrzna</span>
-            <label className="prop-toggle">
-              <input
-                type="checkbox"
-                checked={!!element.externalFront}
-                onChange={(e) => onDrawerExternalFrontChange(e.target.checked)}
-              />
-              <span className="prop-toggle-track" />
-              <span className="prop-toggle-text">{element.externalFront ? 'tak' : 'nie'}</span>
-            </label>
-          </div>
-        </>
-      )}
+      {element.type === 'drawer' && element.parentIsDrawerbox === false && onDrawerExternalFrontChange && (() => {
+        const drawerTypeValue = element.drawerSystemType ?? (element.externalFront ? 'nakladana' : 'wpuszczana');
+        const allOptions: { value: string; label: string }[] = [
+          { value: 'wpuszczana', label: 'Wpuszczana' },
+          { value: 'nakladana', label: 'Nakładana' },
+          ...(drawerSystems ?? []).map(s => ({ value: s.id, label: `${s.brand}: ${s.label}` })),
+        ];
+        const selectedLabel = allOptions.find(o => o.value === drawerTypeValue)?.label ?? '';
+        return (
+          <>
+            <div className="prop-divider" />
+            <div className="prop-front-state" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 4 }}>
+              <span className="prop-label" style={{ color: '#c0c0e0' }}>Typ szuflady</span>
+              <div className="prop-dtype-dropdown" tabIndex={0} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDrawerTypeOpen(false); }}>
+                <button type="button" className="prop-dtype-trigger" onClick={() => setDrawerTypeOpen(o => !o)}>
+                  <span className="prop-dtype-trigger-label">{selectedLabel}</span>
+                  <span className="prop-finish-arrow">{drawerTypeOpen ? '▲' : '▼'}</span>
+                </button>
+                {drawerTypeOpen && (
+                  <ul className="prop-dtype-list">
+                    {allOptions.map(opt => (
+                      <li
+                        key={opt.value}
+                        className={`prop-dtype-item${opt.value === drawerTypeValue ? ' prop-dtype-item--active' : ''}`}
+                        onClick={() => { onDrawerExternalFrontChange(opt.value); setDrawerTypeOpen(false); }}
+                      >
+                        {opt.label}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </>
+        );
+      })()}
       {(element.type === 'shelf' || element.type === 'rod' || element.type === 'drawer') && element.cabinetId && onShelfSwitchBay && (() => {
         const hasOverlappingDivider = elements?.some(
           (e) => e.cabinetId === element.cabinetId && e.type === 'divider' &&

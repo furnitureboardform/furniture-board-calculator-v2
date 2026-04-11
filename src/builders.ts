@@ -77,8 +77,46 @@ export function rebuildShelf(parent: THREE.Mesh, element: BoxElement, color: THR
 
 export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color, frontColor?: THREE.Color) {
   clearChildren(parent);
-  const { width, depth } = element.dimensions;
+  const { width, height, depth } = element.dimensions;
   const t = PANEL_T;
+
+  if (element.drawerSystemType) {
+    const boxH = height;
+    const faceW = element.adjustedFrontWidth ?? (width + 2 * t - 0.004);
+    const faceH = element.adjustedFrontHeight ?? element.frontHeight ?? (boxH + 0.030);
+    const bottomW = width - 0.042;
+    const bottomD = depth - 0.024;
+    const backW = bottomW - 0.012;
+
+    const makeMat = (c: THREE.Color, opts?: { metalness?: number; roughness?: number }) =>
+      new THREE.MeshStandardMaterial({ color: c, emissive, roughness: opts?.roughness ?? 0.4, metalness: opts?.metalness ?? 0.05, side: THREE.DoubleSide });
+    const addPanel = (w: number, h: number, d: number, px: number, py: number, pz: number, mat: THREE.MeshStandardMaterial) => {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+      mesh.position.set(px, py, pz);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.userData = { elementId: element.id };
+      parent.add(mesh);
+    };
+    const woodMat = makeMat(color);
+    const frontMat = makeMat(frontColor ?? color);
+    const metalColor = new THREE.Color(0x888899);
+    const metalMat = makeMat(metalColor, { metalness: 0.7, roughness: 0.25 });
+    const metalT = 0.0015;
+
+    addPanel(metalT, boxH, depth, -(bottomW / 2 + metalT / 2), 0, 0, metalMat);
+    addPanel(metalT, boxH, depth, (bottomW / 2 + metalT / 2), 0, 0, metalMat);
+    addPanel(bottomW, t, bottomD, 0, -(boxH / 2 - t / 2), 0, woodMat);
+    addPanel(backW, boxH, t, 0, 0, -(depth / 2 - t / 2), woodMat);
+    addPanel(faceW, faceH, t, 0, 0, depth / 2 + t / 2, frontMat);
+
+    if (elementHasHandle(element)) {
+      const handleLength = Math.min(faceW * 0.4, 0.150);
+      addHandle(parent, new THREE.BoxGeometry(handleLength, 0.012, 0.012), 0, 0, depth / 2 + t + 0.007, element.id);
+    }
+    return;
+  }
+
   const H_SIDE        = 0.145;
   const H_BACK        = 0.100;
   const H_FRONT_INNER = 0.130;
@@ -86,7 +124,7 @@ export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: TH
   const isExt = element.externalFront === true;
   const faceW = element.adjustedFrontWidth  ?? (element.parentIsDrawerbox === false ? width : width + 2 * t);
   const faceH = element.adjustedFrontHeight ?? element.frontHeight ?? H_FRONT_FACE;
-  const extraH = isExt ? 0 : Math.max(0, faceH - H_FRONT_FACE);
+  const extraH = Math.max(0, faceH - H_FRONT_FACE);
   const hSide       = H_SIDE        + extraH;
   const hBack       = H_BACK        + extraH;
   const hFrontInner = H_FRONT_INNER + extraH;

@@ -32,10 +32,25 @@ const DRW_H_FRONT_FACE  = 170;
 function getDrawerPanelsDisplay(el: BoxElement): Panel[] {
   const W  = toMm(el.dimensions.width);
   const D  = toMm(el.dimensions.depth);
+  const H  = toMm(el.dimensions.height);
   const T  = PANEL_T_MM;
+
+  if (el.drawerSystemType) {
+    const bottomW = W - 42;
+    const bottomD = D - 24;
+    const backW = bottomW - 12;
+    const fW = el.adjustedFrontWidth ? toMm(el.adjustedFrontWidth) : (W + 2 * T - 4);
+    const fH = el.adjustedFrontHeight ? toMm(el.adjustedFrontHeight) : el.frontHeight ? toMm(el.frontHeight) : (H + 30);
+    return [
+      { label: 'Dno',   w: bottomW, h: T,  d: bottomD },
+      { label: 'Tył',   w: backW,   h: H,  d: T       },
+      { label: 'Front', w: fW,      h: fH, d: T       },
+    ];
+  }
+
   const fW = el.adjustedFrontWidth  ? toMm(el.adjustedFrontWidth)  : (el.parentIsDrawerbox === false ? W : W + 2 * T);
   const fH = el.adjustedFrontHeight ? toMm(el.adjustedFrontHeight) : el.frontHeight ? toMm(el.frontHeight) : DRW_H_FRONT_FACE;
-  const extraH = el.externalFront ? 0 : Math.max(0, fH - DRW_H_FRONT_FACE);
+  const extraH = Math.max(0, fH - DRW_H_FRONT_FACE);
   const hSide       = DRW_H_SIDE        + extraH;
   const hBack       = DRW_H_BACK        + extraH;
   const hFrontInner = DRW_H_FRONT_INNER + extraH;

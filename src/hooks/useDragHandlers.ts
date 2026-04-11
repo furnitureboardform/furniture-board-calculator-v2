@@ -61,6 +61,7 @@ export function useDragHandlers({
       setElementsRaw((prev) => {
         const updated = prev.map((el) => {
           if (el.id !== id) return el;
+          if (el.drawerSystemType) return el;
           const oldVal = el.dimensions[axis];
           const pa = posAxis[axis];
 
@@ -116,6 +117,7 @@ export function useDragHandlers({
     (id: string, dims: BoxDimensions) => {
       setElements((prev) => {
         const el = prev.find((e) => e.id === id);
+        if (el?.drawerSystemType) return prev;
         let clampedDims = dims;
         if (el && !el.cabinetId) {
           const { width: bwMm, depth: bdMm, height: bhMm } = boardSizeRef.current;

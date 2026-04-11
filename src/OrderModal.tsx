@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import type { BoxElement } from './types';
+import type { BoxElement, DrawerSystemOption } from './types';
 import { useFinishes } from './hooks/useFinishes';
 import type { FinishOption } from './hooks/useFinishes';
 import type { HandleOption } from './hooks/useHandles';
@@ -15,6 +15,7 @@ import type { Content, TableCell } from 'pdfmake/interfaces';
 interface Props {
   elements: BoxElement[];
   handles: HandleOption[];
+  drawerSystems: DrawerSystemOption[];
 }
 
 // ── Prices ─────────────────────────────────────────────────────────────────────
@@ -48,6 +49,8 @@ type PanelElemType =
   | 'drawer_bottom'
   | 'drawer_back'
   | 'drawer_face'
+  | 'sys_drawer_bottom'
+  | 'sys_drawer_back'
   | 'maskowanica';
 
 interface PanelEntry {
@@ -96,9 +99,11 @@ function bandedEdgeMeters(p: PanelEntry): number {
     case 'front':
     case 'drawerbox':
     case 'drawer_face':  return 2 * (fa + fb);
-    case 'drawer_side':  return fa + fb;  // top + front
-    case 'drawer_bottom': return fb;      // front edge only
-    case 'drawer_back':  return 0;
+    case 'drawer_side':       return fa + fb;
+    case 'drawer_bottom':     return fb;
+    case 'drawer_back':       return 0;
+    case 'sys_drawer_bottom': return 0;
+    case 'sys_drawer_back':   return fa;
     case 'cabinet_side':
     case 'divider':
     case 'blenda':
@@ -120,9 +125,11 @@ function getEdgeBanding(p: PanelEntry): string {
     case 'front':
     case 'drawerbox':
     case 'drawer_face':   return 'Wszystkie obrzeża (4 strony)';
-    case 'drawer_side':   return `Obrzeże na głębokości ${mmA} mm i na wysokości ${mmB} mm (2 boki)`;
-    case 'drawer_bottom': return `Obrzeże na szerokości ${mmB} mm (1 bok)`;
-    case 'drawer_back':   return 'Bez obrzeży';
+    case 'drawer_side':       return `Obrzeże na głębokości ${mmA} mm i na wysokości ${mmB} mm (2 boki)`;
+    case 'drawer_bottom':     return `Obrzeże na szerokości ${mmB} mm (1 bok)`;
+    case 'drawer_back':       return 'Bez obrzeży';
+    case 'sys_drawer_bottom': return 'Bez obrzeży';
+    case 'sys_drawer_back':   return `Obrzeże na szerokości ${mmA} mm (1 bok)`;
     case 'cabinet_side':
     case 'blenda':
     case 'maskowanica': return `Obrzeże na wysokości ${mmA} mm (1 bok)`;
@@ -143,17 +150,35 @@ const DRAWER_H_BACK        = 0.100;
 const DRAWER_H_FRONT_INNER = 0.130;
 const DRAWER_H_FRONT_FACE  = 0.170;
 
-function getDrawerPanels(drawer: BoxElement): { korpus: PanelEntry[]; hdf: PanelEntry; face: PanelEntry } {
+function getDrawerPanels(drawer: BoxElement): { korpus: PanelEntry[]; hdf: PanelEntry | null; face: PanelEntry } {
   const W = drawer.dimensions.width;
   const D = drawer.dimensions.depth;
+  const H = drawer.dimensions.height;
+  const fid = drawer.finishId;
+
+  if (drawer.drawerSystemType) {
+    const bottomW = W - 0.042;
+    const bottomD = D - 0.024;
+    const backW = bottomW - 0.012;
+    const faceW = drawer.adjustedFrontWidth ?? (W + 2 * T - 0.004);
+    const faceH = drawer.adjustedFrontHeight ?? drawer.frontHeight ?? (H + 0.030);
+    return {
+      korpus: [
+        { id: drawer.id + '_bt', w: bottomW, h: T,  d: bottomD, elemType: 'sys_drawer_bottom', finishId: fid },
+        { id: drawer.id + '_bk', w: backW,   h: H,  d: T,       elemType: 'sys_drawer_back',   finishId: fid },
+      ],
+      hdf: null,
+      face: { id: drawer.id + '_ff', w: faceW, h: faceH, d: T, elemType: 'drawer_face', finishId: drawer.frontFinishId ?? fid },
+    };
+  }
+
   const faceW = drawer.adjustedFrontWidth  ?? (drawer.parentIsDrawerbox === false ? W : W + 2 * T);
   const faceH = drawer.adjustedFrontHeight ?? drawer.frontHeight ?? DRAWER_H_FRONT_FACE;
-  const extraH = drawer.externalFront ? 0 : Math.max(0, faceH - DRAWER_H_FRONT_FACE);
+  const extraH = Math.max(0, faceH - DRAWER_H_FRONT_FACE);
   const hSide       = DRAWER_H_SIDE        + extraH;
   const hBack       = DRAWER_H_BACK        + extraH;
   const hFrontInner = DRAWER_H_FRONT_INNER + extraH;
   const sideD = drawer.parentIsDrawerbox !== false ? D - 0.010 : D;
-  const fid = drawer.finishId;
   return {
     korpus: [
       { id: drawer.id + '_sl', w: T,       h: hSide,       d: sideD,     elemType: 'drawer_side', finishId: fid },
@@ -176,6 +201,22 @@ function getCabinetStructPanels(cab: BoxElement): PanelEntry[] {
     { id: cab.id + '_sr', w: T,     h: H, d: D, elemType: 'cabinet_side', finishId: fid },
     { id: cab.id + '_t',  w: inner, h: T, d: D, elemType: 'cabinet_top',  finishId: fid },
     { id: cab.id + '_b',  w: inner, h: T, d: D, elemType: 'cabinet_top',  finishId: fid },
+  ];
+}
+
+function getBoxKuchennyStructPanels(cab: BoxElement): PanelEntry[] {
+  const W = cab.dimensions.width;
+  const H = cab.dimensions.height;
+  const D = cab.dimensions.depth;
+  const inner = W - 2 * T;
+  const RAIL_D = 0.100;
+  const fid = cab.finishId;
+  return [
+    { id: cab.id + '_sl', w: T,     h: H, d: D,      elemType: 'cabinet_side', finishId: fid },
+    { id: cab.id + '_sr', w: T,     h: H, d: D,      elemType: 'cabinet_side', finishId: fid },
+    { id: cab.id + '_b',  w: inner, h: T, d: D,      elemType: 'cabinet_top',  finishId: fid },
+    { id: cab.id + '_rF', w: inner, h: T, d: RAIL_D, elemType: 'drawerbox_rail', finishId: fid },
+    { id: cab.id + '_rB', w: inner, h: T, d: RAIL_D, elemType: 'drawerbox_rail', finishId: fid },
   ];
 }
 
@@ -226,7 +267,7 @@ function hingesForFront(el: BoxElement): number {
 }
 
 // ── Main data hook ─────────────────────────────────────────────────────────────
-function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinishes: FinishOption[], handles: HandleOption[]) {
+function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinishes: FinishOption[], handles: HandleOption[], drawerSystems: DrawerSystemOption[]) {
   return useMemo(() => {
     const korpusPanels: PanelEntry[] = [];
     const obiciePanels: PanelEntry[] = [];
@@ -234,9 +275,13 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const hdfFinishIds = new Set(hdfFinishes.map(f => f.id));
     const defaultHdfFinishId = hdfFinishes[0]?.id;
 
+    const drawerSystemGroupMap = new Map<string, { id: string; label: string; count: number; unitPrice: number; cost: number }>();
+
     for (const el of elements) {
       if (el.type === 'cabinet') {
         korpusPanels.push(...getCabinetStructPanels(el));
+      } else if (el.type === 'boxkuchenny') {
+        korpusPanels.push(...getBoxKuchennyStructPanels(el));
       } else if (el.type === 'board') {
         korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'board', finishId: el.finishId });
       } else if (el.type === 'shelf') {
@@ -261,8 +306,17 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
       } else if (el.type === 'drawer') {
         const { korpus, hdf, face } = getDrawerPanels(el);
         korpusPanels.push(...korpus);
-        hdfPanels.push({ ...hdf, elemType: 'hdf', finishId: defaultHdfFinishId });
+        if (hdf) hdfPanels.push({ ...hdf, elemType: 'hdf', finishId: defaultHdfFinishId });
         obiciePanels.push(face);
+        if (el.drawerSystemType) {
+          const spec = drawerSystems.find(s => s.id === el.drawerSystemType);
+          if (spec) {
+            const key = spec.id;
+            const g = drawerSystemGroupMap.get(key);
+            if (g) { g.count++; g.cost += spec.price; }
+            else drawerSystemGroupMap.set(key, { id: key, label: spec.label, count: 1, unitPrice: spec.price, cost: spec.price });
+          }
+        }
       } else if (el.type === 'front') {
         obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'front', finishId: el.finishId });
       } else if (el.type === 'plinth') {
@@ -278,6 +332,8 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
         korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'cabinet_top', finishId: el.finishId });
       }
     }
+
+    const drawerSystemGroups = Array.from(drawerSystemGroupMap.values());
 
     const korpusGrouped = groupPanels(korpusPanels);
     const obicieGrouped = groupPanels(obiciePanels);
@@ -299,11 +355,11 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const plytaAreaByFinish  = new Map(korpusAreaByFinish);
     for (const [fid, area] of obicieAreaByFinish) plytaAreaByFinish.set(fid, (plytaAreaByFinish.get(fid) ?? 0) + area);
 
-    // Hardware counts
+    // Hardware counts (system drawers excluded — their slides are included in the system)
     const rodCount      = elements.filter(e => e.type === 'rod').length;
     const hingeCount    = elements.filter(e => e.type === 'front').reduce((s, e) => s + hingesForFront(e), 0);
-    const slideCount    = elements.filter(e => e.type === 'drawer' && !e.pushToOpen).length;
-    const ptoSlideCount = elements.filter(e => e.type === 'drawer' && !!e.pushToOpen).length;
+    const slideCount    = elements.filter(e => e.type === 'drawer' && !e.pushToOpen && !e.drawerSystemType).length;
+    const ptoSlideCount = elements.filter(e => e.type === 'drawer' && !!e.pushToOpen && !e.drawerSystemType).length;
     const couplingCount = slideCount + ptoSlideCount;
     const frontsWithHandle = elements.filter(e => (e.type === 'front' || e.type === 'drawer') && elementHasHandle(e));
     const legCount      = elements.filter(e => e.type === 'leg').length * 4;
@@ -342,13 +398,14 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const handleGroups      = Array.from(handleGroupMap.values());
     const costHandles       = handleGroups.reduce((s, g) => s + g.cost, 0);
     const costLegs          = legCount      * PRICE_LEG;
+    const costDrawerSystems = drawerSystemGroups.reduce((s, g) => s + g.cost, 0);
 
     const grandTotal =
       costKorpus + costObicie + costHdf +
       costCutKorpus + costCutObicie + costCutHdf +
       costEdgeSvcKorpus + costEdgeSvcObicie +
       costOkleinaK + costOkleinaO +
-      costRods + costHinges + costSlides + costPtoSlides + costTipOn + costCouplings + costHandles + costLegs;
+      costRods + costHinges + costSlides + costPtoSlides + costTipOn + costCouplings + costHandles + costLegs + costDrawerSystems;
 
     return {
       hasUnknownFinish:
@@ -362,14 +419,16 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
       totalKorpusEdge, totalObicieEdge,
       hdfAreaByFinish, plytaAreaByFinish,
       rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, legCount,
+      drawerSystemGroups,
       costKorpus, costObicie, costHdf,
       costCutKorpus, costCutObicie, costCutHdf,
       costEdgeSvcKorpus, costEdgeSvcObicie,
       costOkleinaK, costOkleinaO,
       costRods, costHinges, costSlides, costPtoSlides, costTipOn, costCouplings, costHandles, costLegs,
+      costDrawerSystems,
       grandTotal,
     };
-  }, [elements, finishes, hdfFinishes, handles]);
+  }, [elements, finishes, hdfFinishes, handles, drawerSystems]);
 }
 
 // ── Summary tab sub-components ─────────────────────────────────────────────────
@@ -437,7 +496,8 @@ const FinishGroupedSections: React.FC<{ baseTitle: string; panels: GroupedPanel[
 const AdditionalSection: React.FC<{
   rodCount: number; hingeCount: number; slideCount: number; ptoSlideCount: number;
   couplingCount: number; handleGroups: Array<{ label: string; count: number; warning?: boolean }>; legCount: number;
-}> = ({ rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, legCount }) => {
+  drawerSystemGroups: Array<{ label: string; count: number; unitPrice: number }>;
+}> = ({ rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, legCount, drawerSystemGroups }) => {
   const items: Array<{ name: string; qty: number; note?: string; warning?: boolean }> = [];
   if (rodCount > 0)       items.push({ name: 'Drążki',              qty: rodCount });
   if (hingeCount > 0)     items.push({ name: 'Zawiasy',             qty: hingeCount,    note: 'na drzwi (wg wysokości drzwi)' });
@@ -445,6 +505,7 @@ const AdditionalSection: React.FC<{
   if (ptoSlideCount > 0)  items.push({ name: 'Prowadnice push to open', qty: ptoSlideCount, note: '1 zestaw na szufladę' });
   if (ptoSlideCount > 0)  items.push({ name: 'TIP-ON BLUMOTION', qty: ptoSlideCount, note: '1 na szufladę' });
   if (couplingCount > 0)  items.push({ name: 'Sprzęgła',            qty: couplingCount, note: '1 zestaw na szufladę' });
+  for (const g of drawerSystemGroups) items.push({ name: `Szuflada ${g.label}`, qty: g.count, note: `${g.unitPrice.toFixed(2)} zł/szt.` });
   for (const g of handleGroups) items.push({ name: g.label, qty: g.count, note: '1 na drzwi', warning: g.warning });
   if (legCount > 0)       items.push({ name: 'Nóżki',               qty: legCount,      note: '4 na box' });
 
@@ -479,6 +540,7 @@ const SummaryTab: React.FC<{ data: ReturnType<typeof useOrderData>; finishes: Fi
       couplingCount={data.couplingCount}
       handleGroups={data.handleGroups}
       legCount={data.legCount}
+      drawerSystemGroups={data.drawerSystemGroups}
     />
   </div>
 );
@@ -628,7 +690,7 @@ const CostTab: React.FC<{
 }> = ({ data, fin, setFin, finishes, hdfFinishes }) => {
   const hardwareSubtotal =
     data.costRods + data.costHinges + data.costSlides + data.costPtoSlides + data.costTipOn +
-    data.costCouplings + data.costHandles + data.costLegs;
+    data.costCouplings + data.costHandles + data.costLegs + data.costDrawerSystems;
 
   return (
     <div className="om-tab-content">
@@ -658,6 +720,7 @@ const CostTab: React.FC<{
         {data.ptoSlideCount > 0 && <CostRow label="Prowadnice push to open" qty={data.ptoSlideCount} unit="szt." price={PRICE_PTO_SLIDE} cost={data.costPtoSlides} />}
         {data.ptoSlideCount > 0 && <CostRow label="TIP-ON BLUMOTION"        qty={data.ptoSlideCount} unit="szt." price={PRICE_TIPON}     cost={data.costTipOn} />}
         {data.couplingCount > 0 && <CostRow label="Sprzęgła"               qty={data.couplingCount} unit="szt." price={PRICE_COUPLING} cost={data.costCouplings} />}
+        {data.drawerSystemGroups.map(g => <CostRow key={g.id} label={`Szuflada ${g.label}`} qty={g.count} unit="szt." price={g.unitPrice} cost={g.cost} />)}
         {data.handleGroups.map(g => <CostRow key={g.id} label={g.label} qty={g.count} unit="szt." price={g.unitPrice} cost={g.cost} warning={g.warning} />)}
         {data.legCount > 0     && <CostRow label="Nóżki"               qty={data.legCount}      unit="szt." price={PRICE_LEG}      cost={data.costLegs} />}
         {hardwareSubtotal === 0 && <div className="om-empty-row">brak</div>}
@@ -714,6 +777,7 @@ function generatePdf(data: ReturnType<typeof useOrderData>, finishes: FinishOpti
   if (data.ptoSlideCount > 0)  addonRows.push(['Prowadnice push to open',  `${data.ptoSlideCount} szt.`, '1 zestaw na szufladę']);
   if (data.ptoSlideCount > 0)  addonRows.push(['TIP-ON BLUMOTION',         `${data.ptoSlideCount} szt.`, '1 na szufladę']);
   if (data.couplingCount > 0)  addonRows.push(['Sprzęgła',                 `${data.couplingCount} szt.`, '1 zestaw na szufladę']);
+  for (const g of data.drawerSystemGroups) addonRows.push([`Szuflada ${g.label}`, `${g.count} szt.`, `${g.unitPrice.toFixed(2)} zł/szt.`]);
   for (const g of data.handleGroups) addonRows.push([g.label, `${g.count} szt.`, '1 na drzwi']);
   if (data.legCount > 0)       addonRows.push(['Nóżki',                    `${data.legCount} szt.`,      '4 na box']);
 
@@ -738,13 +802,13 @@ function generatePdf(data: ReturnType<typeof useOrderData>, finishes: FinishOpti
 
 type ModalTab = 'summary' | 'cost';
 
-const OrderModal: React.FC<Props> = ({ elements, handles }) => {
+const OrderModal: React.FC<Props> = ({ elements, handles, drawerSystems }) => {
   const [open, setOpen] = useState(false);
   const [tab, setTab]   = useState<ModalTab>('summary');
   const finishesBase    = useFinishes();
   const finishesHdf     = useFinishes('hdf', false);
   const finishes        = useMemo(() => [...finishesBase, ...finishesHdf], [finishesBase, finishesHdf]);
-  const data            = useOrderData(elements, finishes, finishesHdf, handles);
+  const data            = useOrderData(elements, finishes, finishesHdf, handles, drawerSystems);
 
   const [fin, setFin] = useState<FinancialState>({
     transport: 0,
@@ -755,7 +819,7 @@ const OrderModal: React.FC<Props> = ({ elements, handles }) => {
     customerPriceManual: false,
   });
 
-  const hasCabinets = elements.some(e => e.type === 'cabinet');
+  const hasCabinets = elements.some(e => e.type === 'cabinet' || e.type === 'boxkuchenny' || e.type === 'drawerbox');
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

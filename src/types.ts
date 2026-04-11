@@ -10,6 +10,17 @@ export interface BoxDimensions {
   depth: number;
 }
 
+export interface DrawerSystemOption {
+  id: string;
+  label: string;
+  brand: string;
+  depth: number;
+  height: number;
+  price: number;
+}
+
+export const DRAWER_SYSTEM_FRONT_EXTRA = 0.030;
+
 export interface BoxElement {
   id: string;
   name: string;
@@ -34,6 +45,7 @@ export interface BoxElement {
   frontHeight?: number;         // only for drawer: manual front height override
   parentIsDrawerbox?: boolean;  // only for drawer: true when parent is a drawerbox
   externalFront?: boolean;      // only for drawer: when in normal cabinet, front flush with cabinet face and wider
+  drawerSystemType?: string;    // only for drawer: key into DRAWER_SYSTEM_TYPES for system drawers (e.g. modernbox_pro_550_h86)
   pushToOpen?: boolean;         // only for drawer: push-to-open mechanism
   finishId?: string;            // optional: selected finish/veneer from Firebase
   frontFinishId?: string;       // only for drawer: separate finish for the front face panel

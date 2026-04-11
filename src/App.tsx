@@ -4,6 +4,7 @@ import { useThreeScene } from './useThreeScene';
 import { HDF_GRAY } from './builders';
 import { useFinishes } from './hooks/useFinishes';
 import { useHandles } from './hooks/useHandles';
+import { useDrawerSystems } from './hooks/useDrawerSystems';
 import { useHistory } from './hooks/useHistory';
 import { useDragHandlers } from './hooks/useDragHandlers';
 import { useElementActions } from './hooks/useElementActions';
@@ -31,6 +32,7 @@ const App: React.FC = () => {
   const finishes = useFinishes();
   const hdfFinishes = useFinishes('hdf', false);
   const handles = useHandles();
+  const drawerSystems = useDrawerSystems();
   const finishColorMap = useMemo(() => new Map([...finishes, ...hdfFinishes].filter(f => f.colorHex).map(f => [f.id, f.colorHex!])), [finishes, hdfFinishes]);
   const { savedModels, loading: modelsLoading, saveModel, deleteModel, overwriteModel } = useSavedModels();
   const [rulerMode, setRulerMode] = useState(false);
@@ -151,7 +153,7 @@ const App: React.FC = () => {
     handleDividerSwitchSlot,
     handleRotateCabinet,
     handleClearAll,
-  } = useElementActions({ setElements, setSelectedId, setMultiSelectedIds, boardSizeRef, dividerYHintRef, dragDeltaRef, detachedFromRef, finishColorMap, defaultHdfFinishId: hdfFinishes[0]?.id });
+  } = useElementActions({ setElements, setSelectedId, setMultiSelectedIds, boardSizeRef, dividerYHintRef, dragDeltaRef, detachedFromRef, finishColorMap, defaultHdfFinishId: hdfFinishes[0]?.id, drawerSystems });
 
   useKeyboard({ selectedId, multiSelectedIds, handleDelete, elements, setElements, setMultiSelectedIds, undo, redo, handleDividerSwitchSlot, onCtrlSave: handleCtrlSave });
 
@@ -273,7 +275,7 @@ const App: React.FC = () => {
           rulerDistance={rulerDistance}
           onToggleRuler={toggleRuler}
         />
-        <OrderModal elements={elements} handles={handles} />
+        <OrderModal elements={elements} handles={handles} drawerSystems={drawerSystems} />
         <div className="undo-redo-fab">
           <button
             className="undo-redo-btn"
@@ -319,6 +321,7 @@ const App: React.FC = () => {
           onDrawerFrontFinishChange={handleDrawerFrontFinishChange}
           handles={handles}
           onHandleChange={handleHandleChange}
+          drawerSystems={drawerSystems}
         />
       </aside>
     </div>
