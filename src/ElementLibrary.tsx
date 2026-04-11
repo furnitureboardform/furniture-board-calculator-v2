@@ -502,8 +502,7 @@ const ElementLibrary: React.FC<Props> = ({
             </li>
             {countertop ? renderItem(countertop, true) : (
               <li className="element-item element-item--add" onClick={() => {
-                const first = countertops[0];
-                onAddCountertopToCabinet(cab.id, first?.thicknessMm, first?.id);
+                onAddCountertopToCabinet(cab.id);
               }}>
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
@@ -614,8 +613,7 @@ const ElementLibrary: React.FC<Props> = ({
             </li>
             {countertop ? renderItem(countertop, true) : (
               <li className="element-item element-item--add" onClick={() => {
-                const first = countertops[0];
-                onAddCountertopToCabinet(box.id, first?.thicknessMm, first?.id);
+                onAddCountertopToCabinet(box.id);
               }}>
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
@@ -871,8 +869,7 @@ const ElementLibrary: React.FC<Props> = ({
                     const grpCt = elements.find((e) => e.type === 'countertop' && e.cabinetId === grp.id);
                     return grpCt ? renderItem(grpCt, true) : (
                       <li className="element-item element-item--add" onClick={() => {
-                        const first = countertops[0];
-                        onAddCountertopToGroup(grp.id, first?.thicknessMm, first?.id);
+                        onAddCountertopToGroup(grp.id);
                       }}>
                         <span className="element-indent-line" />
                         <span className="element-add-icon">＋</span>
