@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { DEFAULT_COUNTERTOP_THICKNESS_MM } from '../constants';
+import { extractDominantColor } from './colorUtils';
 
 export interface CountertopOption {
   id: string;
@@ -10,27 +11,39 @@ export interface CountertopOption {
   thicknessMm: number;
   pricePln: number;
   imageBase64?: string;
+  colorHex?: string;
 }
 
 export function useCountertops() {
   const [countertops, setCountertops] = useState<CountertopOption[]>([]);
 
   useEffect(() => {
+    let mounted = true;
     getDocs(query(collection(db, 'countertops'), orderBy('createdAt')))
-      .then((snap) => {
-        setCountertops(snap.docs.map((d) => {
-          const raw = d.data();
+      .then(async (snap) => {
+        const raw = snap.docs.map((d) => {
+          const data = d.data();
           return {
             id: d.id,
-            label: String(raw.label ?? ''),
-            brand: String(raw.brand ?? ''),
-            thicknessMm: Number(raw.thicknessMm ?? DEFAULT_COUNTERTOP_THICKNESS_MM),
-            pricePln: Number(raw.pricePln ?? 0),
-            imageBase64: raw.imageBase64 ?? undefined,
+            label: String(data.label ?? ''),
+            brand: String(data.brand ?? ''),
+            thicknessMm: Number(data.thicknessMm ?? DEFAULT_COUNTERTOP_THICKNESS_MM),
+            pricePln: Number(data.pricePln ?? 0),
+            imageBase64: data.imageBase64 ?? undefined,
+            colorHex: data.colorHex ?? undefined,
           } as CountertopOption;
+        });
+        const withColors = await Promise.all(raw.map(async (c) => {
+          if (c.imageBase64 && !c.colorHex) {
+            const colorHex = await extractDominantColor(c.imageBase64, '#8b6914');
+            return { ...c, colorHex };
+          }
+          return c;
         }));
+        if (mounted) setCountertops(withColors);
       })
       .catch((err) => console.error('useCountertops:', err));
+    return () => { mounted = false; };
   }, []);
 
   return countertops;

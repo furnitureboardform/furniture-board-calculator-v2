@@ -37,6 +37,7 @@ const App: React.FC = () => {
   const drawerSystems = useDrawerSystems();
   const countertops = useCountertops();
   const finishColorMap = useMemo(() => new Map([...finishes, ...hdfFinishes].filter(f => f.colorHex).map(f => [f.id, f.colorHex!])), [finishes, hdfFinishes]);
+  const countertopColorMap = useMemo(() => new Map(countertops.filter(c => c.colorHex).map(c => [c.id, c.colorHex!])), [countertops]);
   const { savedModels, loading: modelsLoading, saveModel, deleteModel, overwriteModel } = useSavedModels();
   const [rulerMode, setRulerMode] = useState(false);
   const [rulerPoints, setRulerPoints] = useState<{ x: number; y: number; z: number }[]>([]);
@@ -176,6 +177,7 @@ const App: React.FC = () => {
     multiSelectedIds,
     boardSize: { width: boardSize.width / 1000, depth: boardSize.depth / 1000, height: boardSize.height / 1000 },
     finishColorMap,
+    countertopColorMap,
     onSelect: handleSelect,
     onMultiSelectToggle: handleMultiSelectToggle,
     onDimensionChange: handleDimensionDrag,
