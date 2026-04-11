@@ -11,6 +11,7 @@ import {
   plinthCounter,
   maskownicaCounter,
   groupCounter,
+  countertopCounter,
 } from './factories';
 
 export const counters = {
@@ -26,4 +27,5 @@ export const counters = {
   plinth: plinthCounter,
   maskowanica: maskownicaCounter,
   group: groupCounter,
+  countertop: countertopCounter,
 };

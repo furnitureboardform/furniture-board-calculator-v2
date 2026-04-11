@@ -1,6 +1,10 @@
 import type { BoxElement } from './types';
 import { PANEL_T, FRONT_INSET, HDF_T, HDF_INSET } from './constants';
 
+function isGroupMember(e: BoxElement, groupId: string): boolean {
+  return !!e.groupIds?.includes(groupId) && (e.type === 'cabinet' || e.type === 'boxkuchenny');
+}
+
 /** Computes position/dimensions of an HDF back panel bound to its cabinet. */
 export function computeHdfForCabinet(hdf: BoxElement, cab: BoxElement): BoxElement {
   const rot = cab.rotationY ?? 0;
@@ -150,7 +154,7 @@ export function computeFrontForCabinet(front: BoxElement, cab: BoxElement): BoxE
 export function computeFrontForGroup(front: BoxElement, allElements: BoxElement[]): BoxElement {
   const group = allElements.find((e) => e.id === front.cabinetId);
   if (!group) return front;
-  const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
+  const members = allElements.filter((e) => isGroupMember(e, group.id));
   if (members.length === 0) return front;
   const minX = Math.min(...members.map((c) => c.position.x - c.dimensions.width / 2));
   const maxX = Math.max(...members.map((c) => c.position.x + c.dimensions.width / 2));
@@ -274,7 +278,7 @@ export function computeMaskowanicaForCabinet(mask: BoxElement, cab: BoxElement, 
 export function computeMaskowanicaForGroup(mask: BoxElement, allElements: BoxElement[]): BoxElement {
   const group = allElements.find((e) => e.id === mask.cabinetId);
   if (!group) return mask;
-  const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
+  const members = allElements.filter((e) => isGroupMember(e, group.id));
   if (members.length === 0) return mask;
   const minX = Math.min(...members.map((c) => c.position.x - c.dimensions.width / 2));
   const maxX = Math.max(...members.map((c) => c.position.x + c.dimensions.width / 2));
@@ -410,7 +414,7 @@ export function computeBlendaForGroup(blenda: BoxElement, group: BoxElement, all
     };
   }
   const topBlenda = allElements.find((e) => e.type === 'blenda' && e.cabinetId === group.id && e.blendaSide === 'top' && e.blendaScope === 'group');
-  const groupMembers = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
+  const groupMembers = allElements.filter((e) => isGroupMember(e, group.id));
   const topMaskIds = new Set(allElements.filter((e) => e.type === 'maskowanica' && e.maskownicaSide === 'top' && e.cabinetId).map((e) => e.cabinetId!));
   const hasTopMask = topMaskIds.has(group.id)
     || groupMembers.some((cab) => cab.groupIds?.some((gid) => gid !== group.id && topMaskIds.has(gid)) ?? false);
@@ -520,7 +524,7 @@ export function computePlinthsForGroup(
   allElements: BoxElement[],
 ): BoxElement[] {
   const height = template.dimensions.height || 0.1;
-  const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
+  const members = allElements.filter((e) => isGroupMember(e, group.id));
   const groupLeft = group.position.x - group.dimensions.width / 2;
   const groupRight = group.position.x + group.dimensions.width / 2;
   const segments = splitAtJoints(groupLeft, groupRight, getGroupJoints(group, members));
@@ -533,7 +537,7 @@ export function computeBlendaTopForGroup(
   group: BoxElement,
   allElements: BoxElement[],
 ): BoxElement[] {
-  const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
+  const members = allElements.filter((e) => isGroupMember(e, group.id));
   const groupLeft = group.position.x - group.dimensions.width / 2;
   const groupRight = group.position.x + group.dimensions.width / 2;
   const segments = splitAtJoints(groupLeft, groupRight, getGroupJoints(group, members));
@@ -566,7 +570,7 @@ export function recomputeHorizMaskGeometry(
 ): BoxElement {
   const group = allElements.find((e) => e.id === seg.cabinetId);
   if (!group) return seg;
-  const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
+  const members = allElements.filter((e) => isGroupMember(e, group.id));
   if (members.length === 0) return seg;
   const { yPos, zPos, totalDepth } = computeHorizMaskYZDepth(seg, members);
   return {
@@ -582,7 +586,7 @@ export function computeMaskowanicasHorizForGroup(
 ): BoxElement[] {
   const group = allElements.find((e) => e.id === template.cabinetId);
   if (!group) return [computeMaskowanicaForGroup(template, allElements)];
-  const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
+  const members = allElements.filter((e) => isGroupMember(e, group.id));
   if (members.length === 0) return [computeMaskowanicaForGroup(template, allElements)];
 
   const minX = Math.min(...members.map((c) => c.position.x - c.dimensions.width / 2));
@@ -594,7 +598,7 @@ export function computeMaskowanicasHorizForGroup(
 
 /** Recompute the bounds of a group element from its member cabinets. */
 export function computeGroupBounds(group: BoxElement, allElements: BoxElement[]): BoxElement {
-  const members = allElements.filter((e) => e.groupIds?.includes(group.id) && e.type === 'cabinet');
+  const members = allElements.filter((e) => isGroupMember(e, group.id));
   if (members.length === 0) return group;
   const minX = Math.min(...members.map((c) => c.position.x - c.dimensions.width / 2));
   const maxX = Math.max(...members.map((c) => c.position.x + c.dimensions.width / 2));
@@ -606,6 +610,40 @@ export function computeGroupBounds(group: BoxElement, allElements: BoxElement[])
     ...group,
     dimensions: { width: maxX - minX, height: maxY - minY, depth: avgDepth },
     position: { x: (minX + maxX) / 2, y: minY, z: maxFaceZ - avgDepth / 2 },
+  };
+}
+
+const COUNTERTOP_DEPTH = 0.600;
+
+export function computeCountertopForCabinet(ct: BoxElement, cab: BoxElement): BoxElement {
+  const thickness = ct.dimensions.height;
+  return {
+    ...ct,
+    dimensions: { width: cab.dimensions.width, height: thickness, depth: COUNTERTOP_DEPTH },
+    position: {
+      x: cab.position.x,
+      y: cab.position.y + cab.dimensions.height,
+      z: cab.position.z + (COUNTERTOP_DEPTH - cab.dimensions.depth) / 2,
+    },
+  };
+}
+
+export function computeCountertopForGroup(ct: BoxElement, grp: BoxElement, members: BoxElement[]): BoxElement {
+  if (members.length === 0) return ct;
+  const thickness = ct.dimensions.height;
+  const topY = Math.max(...members.map((m) => m.position.y + m.dimensions.height));
+  const minX = Math.min(...members.map((m) => m.position.x - m.dimensions.width / 2));
+  const maxX = Math.max(...members.map((m) => m.position.x + m.dimensions.width / 2));
+  const avgZ = members.reduce((s, m) => s + m.position.z, 0) / members.length;
+  const maxD = Math.max(...members.map((m) => m.dimensions.depth));
+  return {
+    ...ct,
+    dimensions: { width: maxX - minX, height: thickness, depth: COUNTERTOP_DEPTH },
+    position: {
+      x: (minX + maxX) / 2,
+      y: topY,
+      z: avgZ + (COUNTERTOP_DEPTH - maxD) / 2,
+    },
   };
 }
 
@@ -683,7 +721,7 @@ export function recomputeGroups(elements: BoxElement[]): BoxElement[] {
         const existing = result5.filter(
           (s) => s.type === 'maskowanica' && s.cabinetId === linked.id && s.maskownicaSide === e.maskownicaSide
         );
-        const members = result5.filter((s) => s.groupIds?.includes(linked.id) && s.type === 'cabinet');
+        const members = result5.filter((s) => isGroupMember(s, linked.id));
         const { yPos, zPos, totalDepth } = computeHorizMaskYZDepth(e, members);
         const minX = Math.min(...members.map((c) => c.position.x - c.dimensions.width / 2));
         const maxX = Math.max(...members.map((c) => c.position.x + c.dimensions.width / 2));
@@ -703,5 +741,17 @@ export function recomputeGroups(elements: BoxElement[]): BoxElement[] {
     result6.push(e);
   }
 
-  return result6;
+  const result7 = result6.map((e) => {
+    if (e.type === 'countertop' && e.cabinetId) {
+      const linked = result6.find((g) => g.id === e.cabinetId);
+      if (linked?.type === 'group') {
+        const members = result6.filter((m) => isGroupMember(m, linked.id));
+        return computeCountertopForGroup(e, linked, members);
+      }
+      if (linked?.type === 'cabinet' || linked?.type === 'boxkuchenny') return computeCountertopForCabinet(e, linked);
+    }
+    return e;
+  });
+
+  return result7;
 }

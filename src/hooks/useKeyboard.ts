@@ -9,6 +9,7 @@ import {
   computeBlendaForCabinet,
   computeFrontForCabinet,
   computeMaskowanicaForCabinet,
+  computeCountertopForCabinet,
 } from '../computeElements';
 
 interface Params {
@@ -102,6 +103,7 @@ export function useKeyboard({ selectedId, multiSelectedIds, handleDelete, elemen
             if (c.type === 'plinth') return computePlinthForCabinet(c, newCab, allWithNew);
             if (c.type === 'blenda' && c.blendaScope === 'cabinet') return computeBlendaForCabinet(c, newCab, allWithNew);
             if (c.type === 'maskowanica') return computeMaskowanicaForCabinet(c, newCab, allWithNew);
+            if (c.type === 'countertop') return computeCountertopForCabinet(c, newCab);
             return c;
           });
           return [...prev, newCab, ...finalDescendants];

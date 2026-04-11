@@ -8,6 +8,7 @@ import {
   computeFrontForCabinet,
   computeMaskowanicaForCabinet,
   computeBlendaForCabinet,
+  computeCountertopForCabinet,
   recomputeGroups,
 } from './computeElements';
 
@@ -461,6 +462,12 @@ export function recomputeAllY(elements: BoxElement[], roomH = Infinity, skipDivi
     if (el.type !== 'maskowanica' || !el.cabinetId) continue;
     const cab = allSettled6.find((e) => e.id === el.cabinetId && e.type === 'cabinet');
     if (cab) resultMap.set(el.id, computeMaskowanicaForCabinet(el, cab, allSettled6));
+  }
+  const allSettled7 = [...resultMap.values()];
+  for (const el of allSettled7) {
+    if (el.type !== 'countertop' || !el.cabinetId) continue;
+    const cab = allSettled7.find((e) => e.id === el.cabinetId);
+    if (cab && (cab.type === 'cabinet' || cab.type === 'boxkuchenny')) resultMap.set(el.id, computeCountertopForCabinet(el, cab));
   }
   const settled = elements.map((el) => resultMap.get(el.id)!);
   return recomputeGroups(settled);

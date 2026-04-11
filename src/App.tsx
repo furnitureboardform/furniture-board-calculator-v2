@@ -5,6 +5,7 @@ import { HDF_GRAY } from './builders';
 import { useFinishes } from './hooks/useFinishes';
 import { useHandles } from './hooks/useHandles';
 import { useDrawerSystems } from './hooks/useDrawerSystems';
+import { useCountertops } from './hooks/useCountertops';
 import { useHistory } from './hooks/useHistory';
 import { useDragHandlers } from './hooks/useDragHandlers';
 import { useElementActions } from './hooks/useElementActions';
@@ -33,6 +34,7 @@ const App: React.FC = () => {
   const hdfFinishes = useFinishes('hdf', false);
   const handles = useHandles();
   const drawerSystems = useDrawerSystems();
+  const countertops = useCountertops();
   const finishColorMap = useMemo(() => new Map([...finishes, ...hdfFinishes].filter(f => f.colorHex).map(f => [f.id, f.colorHex!])), [finishes, hdfFinishes]);
   const { savedModels, loading: modelsLoading, saveModel, deleteModel, overwriteModel } = useSavedModels();
   const [rulerMode, setRulerMode] = useState(false);
@@ -152,6 +154,8 @@ const App: React.FC = () => {
     handleShelfSwitchBay,
     handleDividerSwitchSlot,
     handleRotateCabinet,
+    handleAddCountertopToCabinet,
+    handleAddCountertopToGroup,
     handleClearAll,
   } = useElementActions({ setElements, setSelectedId, setMultiSelectedIds, boardSizeRef, dividerYHintRef, dragDeltaRef, detachedFromRef, finishColorMap, defaultHdfFinishId: hdfFinishes[0]?.id, drawerSystems });
 
@@ -206,6 +210,14 @@ const App: React.FC = () => {
     setElements((prev) => prev.map((e) => e.id === id ? { ...e, frontFinishId: finishId } : e));
   };
 
+  const handleCountertopTypeChange = (id: string, countertopId: string | undefined) => {
+    const ct = countertops.find((c) => c.id === countertopId);
+    const thickness = ct ? ct.thicknessMm / 1000 : 0.028;
+    setElements((prev) => prev.map((e) =>
+      e.id === id ? { ...e, countertopId, dimensions: { ...e.dimensions, height: thickness } } : e
+    ));
+  };
+
   const rulerDistance = rulerPoints.length === 2
     ? Math.round(Math.sqrt(
         (rulerPoints[1].x - rulerPoints[0].x) ** 2 +
@@ -253,6 +265,9 @@ const App: React.FC = () => {
           onAddMaskowanicaToCabinet={handleAddMaskowanicaToCabinet}
           onAddMaskowanicaToGroup={handleAddMaskowanicaToGroup}
           onAddRearboardToCabinet={handleAddRearboardToCabinet}
+          onAddCountertopToCabinet={handleAddCountertopToCabinet}
+          onAddCountertopToGroup={handleAddCountertopToGroup}
+          countertops={countertops}
           onUngroup={handleUngroup}
           onDelete={handleDelete}
           onClearAll={handleClearAll}
@@ -275,7 +290,7 @@ const App: React.FC = () => {
           rulerDistance={rulerDistance}
           onToggleRuler={toggleRuler}
         />
-        <OrderModal elements={elements} handles={handles} drawerSystems={drawerSystems} />
+        <OrderModal elements={elements} handles={handles} drawerSystems={drawerSystems} countertops={countertops} />
         <div className="undo-redo-fab">
           <button
             className="undo-redo-btn"
@@ -322,6 +337,8 @@ const App: React.FC = () => {
           handles={handles}
           onHandleChange={handleHandleChange}
           drawerSystems={drawerSystems}
+          countertops={countertops}
+          onCountertopTypeChange={handleCountertopTypeChange}
         />
       </aside>
     </div>

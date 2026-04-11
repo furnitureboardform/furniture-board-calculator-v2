@@ -9,6 +9,7 @@ import {
   computePlinthForCabinet,
   computeFrontForCabinet,
   computeMaskowanicaForCabinet,
+  computeCountertopForCabinet,
   recomputeGroups,
 } from '../computeElements';
 import {
@@ -287,6 +288,7 @@ export function useDragHandlers({
               if (el.type === 'rearboard') return computeRearboardForCabinet(el, fitted);
               if (el.type === 'leg') return computeLegsForCabinet(el, fitted);
               if (el.type === 'maskowanica') return computeMaskowanicaForCabinet(el, fitted, withFitted);
+              if (el.type === 'countertop') return computeCountertopForCabinet(el, fitted);
               return { ...el, position: { x: el.position.x + adx, y: el.position.y + ady, z: el.position.z + adz } };
             }));
           }
@@ -311,6 +313,7 @@ export function useDragHandlers({
           if (el.type === 'leg') return computeLegsForCabinet(el, movedFinal2);
           if (el.type === 'plinth') return computePlinthForCabinet(el, movedFinal2, withCollision);
           if (el.type === 'maskowanica') return computeMaskowanicaForCabinet(el, movedFinal2, withCollision);
+          if (el.type === 'countertop') return computeCountertopForCabinet(el, movedFinal2);
           return { ...el, position: { x: el.position.x + adx, y: el.position.y + ady, z: el.position.z + adz } };
         }));
       });
@@ -457,6 +460,7 @@ export function useDragHandlers({
             if (e.type === 'rearboard') return computeRearboardForCabinet(e, movedCab);
             if (e.type === 'leg') return computeLegsForCabinet(e, movedCab);
             if (e.type === 'plinth') return computePlinthForCabinet(e, movedCab, prev);
+            if (e.type === 'countertop') return computeCountertopForCabinet(e, movedCab);
             if (e.type === 'maskowanica') return computeMaskowanicaForCabinet(e, movedCab, prev);
             return { ...e, position: { ...e.position, y: e.position.y + actualDy } };
           }));
@@ -535,6 +539,7 @@ export function useDragHandlers({
           if (el.type === 'leg') return computeLegsForCabinet(el, parent);
           if (el.type === 'plinth') return computePlinthForCabinet(el, parent, updated);
           if (el.type === 'maskowanica') return computeMaskowanicaForCabinet(el, parent, updated);
+          if (el.type === 'countertop') return computeCountertopForCabinet(el, parent);
           return { ...el, position: { ...el.position, x: el.position.x + cdx, z: el.position.z + cdz } };
         });
         return recomputeGroups(updated);

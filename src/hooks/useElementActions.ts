@@ -20,6 +20,8 @@ import {
   computeMaskowanicasHorizForGroup,
   recomputeHorizMaskGeometry,
   recomputeGroups,
+  computeCountertopForCabinet,
+  computeCountertopForGroup,
 } from '../computeElements';
 import { computeDividerBounds, computeYForBox, fitDrawerToBay, switchShelfToNextBay, switchDrawerToNextBay, switchDividerToNextSlot, DRAWER_FACE_H_DEFAULT, DRAWER_EXT_FRONT_H } from '../geometry';
 import { createBox, createShelf, createBoard, createBoxKuchenny, createSzafkaDolna } from '../factories';
@@ -378,6 +380,7 @@ export function useElementActions({
         if (e.type === 'hdf') return computeHdfForCabinet(e, liftedCab);
         if (e.type === 'rearboard') return computeRearboardForCabinet(e, liftedCab);
         if (e.type === 'plinth') return computePlinthForCabinet(e, liftedCab, prev);
+        if (e.type === 'countertop') return computeCountertopForCabinet(e, liftedCab);
         return { ...e, position: { ...e.position, y: e.position.y + h } };
       });
       const legsEl = computeLegsForCabinet(
@@ -814,6 +817,7 @@ export function useElementActions({
                 if (e.type === 'rearboard') return computeRearboardForCabinet(lowered, loweredCab);
                 if (e.type === 'plinth') return computePlinthForCabinet(lowered, loweredCab, filtered);
                 if (e.type === 'maskowanica') return computeMaskowanicaForCabinet(e, loweredCab, filtered);
+                if (e.type === 'countertop') return computeCountertopForCabinet(e, loweredCab);
                 return lowered;
               }
               return e;
@@ -919,7 +923,7 @@ export function useElementActions({
     setElements((prev) => {
       const validIds = ids.filter((id) => {
         const el = prev.find((e) => e.id === id);
-        return el?.type === 'cabinet';
+        return el?.type === 'cabinet' || el?.type === 'boxkuchenny';
       });
       if (validIds.length < 2) return prev;
       const groupId = crypto.randomUUID();
@@ -1310,6 +1314,47 @@ export function useElementActions({
     });
   }, [setElements]);
 
+  const handleAddCountertopToCabinet = useCallback((cabinetId: string, thicknessMm = 28, countertopId?: string) => {
+    setElements((prev) => {
+      const cab = prev.find((e) => e.id === cabinetId);
+      if (!cab) return prev;
+      if (prev.some((e) => e.type === 'countertop' && e.cabinetId === cabinetId)) return prev;
+      const ct: BoxElement = computeCountertopForCabinet({
+        id: crypto.randomUUID(),
+        name: `Blat ${counters.countertop++}`,
+        type: 'countertop',
+        cabinetId,
+        countertopId,
+        dimensions: { width: 0, height: thicknessMm / 1000, depth: 0 },
+        position: { x: 0, y: 0, z: 0 },
+        color: '#8B6914',
+      }, cab);
+      setSelectedId(cabinetId);
+      return [...prev, ct];
+    });
+  }, [setElements, setSelectedId]);
+
+  const handleAddCountertopToGroup = useCallback((groupId: string, thicknessMm = 28, countertopId?: string) => {
+    setElements((prev) => {
+      const grp = prev.find((e) => e.id === groupId && e.type === 'group');
+      if (!grp) return prev;
+      if (prev.some((e) => e.type === 'countertop' && e.cabinetId === groupId)) return prev;
+      const members = prev.filter((e) => e.groupIds?.includes(groupId) && (e.type === 'cabinet' || e.type === 'boxkuchenny'));
+      const ct: BoxElement = computeCountertopForGroup({
+        id: crypto.randomUUID(),
+        name: `Blat ${counters.countertop++}`,
+        type: 'countertop',
+        cabinetId: groupId,
+        countertopId,
+        dimensions: { width: 0, height: thicknessMm / 1000, depth: 0 },
+        position: { x: 0, y: 0, z: 0 },
+        color: '#8B6914',
+      }, grp, members);
+      setSelectedId(groupId);
+      return [...prev, ct];
+    });
+  }, [setElements, setSelectedId]);
+
   const handleClearAll = useCallback(() => {
     dividerYHintRef.current.clear();
     dragDeltaRef.current.clear();
@@ -1361,6 +1406,8 @@ export function useElementActions({
     handleShelfSwitchBay,
     handleDividerSwitchSlot,
     handleRotateCabinet,
+    handleAddCountertopToCabinet,
+    handleAddCountertopToGroup,
     handleClearAll,
   };
 }

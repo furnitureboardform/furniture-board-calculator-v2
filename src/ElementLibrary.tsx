@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { BoxElement } from './types';
+import type { CountertopOption } from './hooks/useCountertops';
 import './ElementLibrary.css';
 
 interface CatalogItem {
@@ -135,6 +136,9 @@ interface Props {
   onAddMaskowanicaToCabinet: (cabinetId: string, side: 'left' | 'right' | 'bottom' | 'top') => void;
   onAddMaskowanicaToGroup: (groupId: string, side: 'left' | 'right' | 'top' | 'bottom') => void;
   onAddRearboardToCabinet: (cabinetId: string) => void;
+  onAddCountertopToCabinet: (cabinetId: string, thicknessMm?: number, countertopId?: string) => void;
+  onAddCountertopToGroup: (groupId: string, thicknessMm?: number, countertopId?: string) => void;
+  countertops: CountertopOption[];
   onUngroup: (groupId: string) => void;
   onDelete: (id: string) => void;
   onClearAll: () => void;
@@ -163,6 +167,7 @@ const ElementLibrary: React.FC<Props> = ({
   onAddFrontToGroup, onAddDoubleFrontToGroup,
   onAddMaskowanicaToCabinet, onAddMaskowanicaToGroup,
   onAddRearboardToCabinet,
+  onAddCountertopToCabinet, onAddCountertopToGroup, countertops,
   onUngroup, onDelete, onClearAll,
 }) => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -211,7 +216,7 @@ const ElementLibrary: React.FC<Props> = ({
   const standaloneCabinets = elements.filter((e) => e.type === 'cabinet' && !e.groupIds?.length);
   const groups = elements.filter((e) => e.type === 'group');
   const freeShelves = elements.filter((e) => (e.type === 'shelf' || e.type === 'board' || e.type === 'rod') && !e.cabinetId);
-  const freeBoxesKuchenne = elements.filter((e) => e.type === 'boxkuchenny');
+  const freeBoxesKuchenne = elements.filter((e) => e.type === 'boxkuchenny' && !e.groupIds?.length);
 
   const canGroup = multiSelectedIds.length >= 2;
 
@@ -303,10 +308,11 @@ const ElementLibrary: React.FC<Props> = ({
   };
 
   const renderCabinet = (cab: BoxElement, extraIndent = false) => {
-    const children = elements.filter((e) => e.cabinetId === cab.id);
+    const children = elements.filter((e) => e.cabinetId === cab.id && e.type !== 'countertop');
+    const countertop = elements.find((e) => e.cabinetId === cab.id && e.type === 'countertop');
     const isSelected = cab.id === selectedId;
     const isMulti = multiSelectedIds.includes(cab.id);
-    const isExpanded = isSelected || children.some((c) => c.id === selectedId);
+    const isExpanded = isSelected || children.some((c) => c.id === selectedId) || countertop?.id === selectedId;
     return (
       <React.Fragment key={cab.id}>
         <li
@@ -489,23 +495,42 @@ const ElementLibrary: React.FC<Props> = ({
                 <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj nóżki</span>
               </li>
             )}
+            {/* Blat */}
+            <li className="element-item element-item--section">
+              <span className="element-section-line" />
+              Blat
+            </li>
+            {countertop ? renderItem(countertop, true) : (
+              <li className="element-item element-item--add" onClick={() => {
+                const first = countertops[0];
+                onAddCountertopToCabinet(cab.id, first?.thicknessMm, first?.id);
+              }}>
+                <span className="element-indent-line" />
+                <span className="element-add-icon">＋</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blat</span>
+              </li>
+            )}
           </>
         )}
       </React.Fragment>
     );
   };
 
-  const renderBoxKuchenny = (box: BoxElement) => {
-    const children = elements.filter((e) => e.cabinetId === box.id);
+  const renderBoxKuchenny = (box: BoxElement, extraIndent = false) => {
+    const children = elements.filter((e) => e.cabinetId === box.id && e.type !== 'countertop');
+    const countertop = elements.find((e) => e.cabinetId === box.id && e.type === 'countertop');
     const legs = children.filter((e) => e.type === 'leg');
     const isSelected = box.id === selectedId;
-    const isExpanded = isSelected || children.some((c) => c.id === selectedId);
+    const isMulti = multiSelectedIds.includes(box.id);
+    const isExpanded = isSelected || children.some((c) => c.id === selectedId) || countertop?.id === selectedId;
     return (
       <React.Fragment key={box.id}>
         <li
-          className={`element-item ${isSelected ? 'selected' : ''}`}
-          onClick={() => onSelect(box.id)}
+          className={`element-item ${extraIndent ? 'element-item--child' : ''} ${isSelected ? 'selected' : ''} ${isMulti ? 'multi-selected' : ''}`}
+          onClick={(e) => handleCabinetClick(e, box.id)}
         >
+          {extraIndent && <span className="element-indent-line" />}
+          {isMulti && <span className="multi-check">✓</span>}
           <span className="element-color" style={{ background: box.color }} />
           <span className="element-name">{box.name}</span>
           <button
@@ -580,6 +605,21 @@ const ElementLibrary: React.FC<Props> = ({
                 <span className="element-indent-line" />
                 <span className="element-add-icon">＋</span>
                 <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj nóżki</span>
+              </li>
+            )}
+            {/* Blat */}
+            <li className="element-item element-item--section">
+              <span className="element-section-line" />
+              Blat
+            </li>
+            {countertop ? renderItem(countertop, true) : (
+              <li className="element-item element-item--add" onClick={() => {
+                const first = countertops[0];
+                onAddCountertopToCabinet(box.id, first?.thicknessMm, first?.id);
+              }}>
+                <span className="element-indent-line" />
+                <span className="element-add-icon">＋</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blat</span>
               </li>
             )}
           </>
@@ -684,14 +724,16 @@ const ElementLibrary: React.FC<Props> = ({
       <ul className="element-list">
         {/* Groups */}
         {groups.map((grp) => {
-          const members = elements.filter((e) => e.groupIds?.includes(grp.id) && e.type === 'cabinet');
+          const members = elements.filter((e) => e.groupIds?.includes(grp.id) && (e.type === 'cabinet' || e.type === 'boxkuchenny'));
           const groupFronts = elements.filter((e) => e.type === 'front' && e.cabinetId === grp.id);
           const groupMaskowanice = elements.filter((e) => e.type === 'maskowanica' && e.cabinetId === grp.id);
           const isSelected = grp.id === selectedId;
+          const groupCountertop = elements.find((e) => e.type === 'countertop' && e.cabinetId === grp.id);
           const isExpanded = isSelected || members.some((m) => m.id === selectedId) ||
             members.some((m) => elements.some((c) => c.cabinetId === m.id && c.id === selectedId)) ||
             groupFronts.some((f) => f.id === selectedId) ||
-            groupMaskowanice.some((m) => m.id === selectedId);
+            groupMaskowanice.some((m) => m.id === selectedId) ||
+            groupCountertop?.id === selectedId;
           return (
             <React.Fragment key={grp.id}>
               <li
@@ -719,7 +761,7 @@ const ElementLibrary: React.FC<Props> = ({
                 <>
                   {groupFronts.map((f) => renderItem(f, true))}
                   {groupMaskowanice.map((m) => renderItem(m, true))}
-                  {members.map((cab) => renderCabinet(cab, true))}
+                  {members.map((m) => m.type === 'boxkuchenny' ? renderBoxKuchenny(m, true) : renderCabinet(m, true))}
 
                   {/* Section: Front */}
                   {!groupFronts.length && (
@@ -819,6 +861,25 @@ const ElementLibrary: React.FC<Props> = ({
                       <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę dolna grupy</span>
                     </li>
                   )}
+
+                  {/* Blat grupy */}
+                  <li className="element-item element-item--section">
+                    <span className="element-section-line" />
+                    Blat
+                  </li>
+                  {(() => {
+                    const grpCt = elements.find((e) => e.type === 'countertop' && e.cabinetId === grp.id);
+                    return grpCt ? renderItem(grpCt, true) : (
+                      <li className="element-item element-item--add" onClick={() => {
+                        const first = countertops[0];
+                        onAddCountertopToGroup(grp.id, first?.thicknessMm, first?.id);
+                      }}>
+                        <span className="element-indent-line" />
+                        <span className="element-add-icon">＋</span>
+                        <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blat grupy</span>
+                      </li>
+                    );
+                  })()}
                 </>
               )}
             </React.Fragment>

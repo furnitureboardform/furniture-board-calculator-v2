@@ -4,6 +4,7 @@ import type { BoxElement, DrawerSystemOption } from './types';
 import { useFinishes } from './hooks/useFinishes';
 import type { FinishOption } from './hooks/useFinishes';
 import type { HandleOption } from './hooks/useHandles';
+import type { CountertopOption } from './hooks/useCountertops';
 import { PANEL_T, HDF_T } from './constants';
 import { elementHasHandle } from './builders';
 import './OrderModal.css';
@@ -16,6 +17,7 @@ interface Props {
   elements: BoxElement[];
   handles: HandleOption[];
   drawerSystems: DrawerSystemOption[];
+  countertops: CountertopOption[];
 }
 
 // ── Prices ─────────────────────────────────────────────────────────────────────
@@ -51,7 +53,8 @@ type PanelElemType =
   | 'drawer_face'
   | 'sys_drawer_bottom'
   | 'sys_drawer_back'
-  | 'maskowanica';
+  | 'maskowanica'
+  | 'countertop';
 
 interface PanelEntry {
   id: string;
@@ -108,6 +111,7 @@ function bandedEdgeMeters(p: PanelEntry): number {
     case 'divider':
     case 'blenda':
     case 'maskowanica': return fa;          // 1 edge (height / largest dim)
+    case 'countertop':
     case 'board':       return 2 * (fa + fb); // 4 edges (all around)
     case 'cabinet_top':
     case 'shelf':       return fa;          // 1 edge (width / largest dim)
@@ -134,6 +138,7 @@ function getEdgeBanding(p: PanelEntry): string {
     case 'blenda':
     case 'maskowanica': return `Obrzeże na wysokości ${mmA} mm (1 bok)`;
     case 'divider':     return `Obrzeże na wysokości ${mmA} mm (1 bok)`;
+    case 'countertop':
     case 'board':       return 'Wszystkie obrzeża (4 strony)';
     case 'cabinet_top':
     case 'shelf':       return `Obrzeże na szerokości ${mmA} mm (1 bok)`;
@@ -267,7 +272,7 @@ function hingesForFront(el: BoxElement): number {
 }
 
 // ── Main data hook ─────────────────────────────────────────────────────────────
-function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinishes: FinishOption[], handles: HandleOption[], drawerSystems: DrawerSystemOption[]) {
+function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinishes: FinishOption[], handles: HandleOption[], drawerSystems: DrawerSystemOption[], countertops: CountertopOption[]) {
   return useMemo(() => {
     const korpusPanels: PanelEntry[] = [];
     const obiciePanels: PanelEntry[] = [];
@@ -330,6 +335,8 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
         hdfPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'hdf', finishId: hdfFid });
       } else if (el.type === 'rearboard') {
         korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'cabinet_top', finishId: el.finishId });
+      } else if (el.type === 'countertop') {
+        korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.depth, d: el.dimensions.height, elemType: 'countertop', finishId: el.finishId });
       }
     }
 
@@ -400,12 +407,26 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const costLegs          = legCount      * PRICE_LEG;
     const costDrawerSystems = drawerSystemGroups.reduce((s, g) => s + g.cost, 0);
 
+    const countertopMap = new Map(countertops.map(c => [c.id, { label: `${c.label} · ${c.brand}`, pricePln: c.pricePln }]));
+    const countertopGroupMap = new Map<string, { id: string; label: string; count: number; cost: number; unitPrice: number }>();
+    for (const el of elements.filter(e => e.type === 'countertop' && e.countertopId)) {
+      const key = el.countertopId!;
+      const ct = countertopMap.get(key);
+      const unitPrice = ct?.pricePln ?? 0;
+      const label = ct?.label ?? 'Blat';
+      const g = countertopGroupMap.get(key);
+      if (g) { g.count++; g.cost += unitPrice; }
+      else countertopGroupMap.set(key, { id: key, label, count: 1, cost: unitPrice, unitPrice });
+    }
+    const countertopGroups = Array.from(countertopGroupMap.values());
+    const costCountertops = countertopGroups.reduce((s, g) => s + g.cost, 0);
+
     const grandTotal =
       costKorpus + costObicie + costHdf +
       costCutKorpus + costCutObicie + costCutHdf +
       costEdgeSvcKorpus + costEdgeSvcObicie +
       costOkleinaK + costOkleinaO +
-      costRods + costHinges + costSlides + costPtoSlides + costTipOn + costCouplings + costHandles + costLegs + costDrawerSystems;
+      costRods + costHinges + costSlides + costPtoSlides + costTipOn + costCouplings + costHandles + costLegs + costDrawerSystems + costCountertops;
 
     return {
       hasUnknownFinish:
@@ -419,16 +440,16 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
       totalKorpusEdge, totalObicieEdge,
       hdfAreaByFinish, plytaAreaByFinish,
       rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, legCount,
-      drawerSystemGroups,
+      drawerSystemGroups, countertopGroups,
       costKorpus, costObicie, costHdf,
       costCutKorpus, costCutObicie, costCutHdf,
       costEdgeSvcKorpus, costEdgeSvcObicie,
       costOkleinaK, costOkleinaO,
       costRods, costHinges, costSlides, costPtoSlides, costTipOn, costCouplings, costHandles, costLegs,
-      costDrawerSystems,
+      costDrawerSystems, costCountertops,
       grandTotal,
     };
-  }, [elements, finishes, hdfFinishes, handles, drawerSystems]);
+  }, [elements, finishes, hdfFinishes, handles, drawerSystems, countertops]);
 }
 
 // ── Summary tab sub-components ─────────────────────────────────────────────────
@@ -497,7 +518,8 @@ const AdditionalSection: React.FC<{
   rodCount: number; hingeCount: number; slideCount: number; ptoSlideCount: number;
   couplingCount: number; handleGroups: Array<{ label: string; count: number; warning?: boolean }>; legCount: number;
   drawerSystemGroups: Array<{ label: string; count: number; unitPrice: number }>;
-}> = ({ rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, legCount, drawerSystemGroups }) => {
+  countertopGroups: Array<{ label: string; count: number; unitPrice: number }>;
+}> = ({ rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, legCount, drawerSystemGroups, countertopGroups }) => {
   const items: Array<{ name: string; qty: number; note?: string; warning?: boolean }> = [];
   if (rodCount > 0)       items.push({ name: 'Drążki',              qty: rodCount });
   if (hingeCount > 0)     items.push({ name: 'Zawiasy',             qty: hingeCount,    note: 'na drzwi (wg wysokości drzwi)' });
@@ -508,6 +530,7 @@ const AdditionalSection: React.FC<{
   for (const g of drawerSystemGroups) items.push({ name: `Szuflada ${g.label}`, qty: g.count, note: `${g.unitPrice.toFixed(2)} zł/szt.` });
   for (const g of handleGroups) items.push({ name: g.label, qty: g.count, note: '1 na drzwi', warning: g.warning });
   if (legCount > 0)       items.push({ name: 'Nóżki',               qty: legCount,      note: '4 na box' });
+  for (const g of countertopGroups) items.push({ name: `Blat: ${g.label}`, qty: g.count, note: `${g.unitPrice.toFixed(2)} zł/szt.` });
 
   return (
     <div className="om-section">
@@ -541,6 +564,7 @@ const SummaryTab: React.FC<{ data: ReturnType<typeof useOrderData>; finishes: Fi
       handleGroups={data.handleGroups}
       legCount={data.legCount}
       drawerSystemGroups={data.drawerSystemGroups}
+      countertopGroups={data.countertopGroups}
     />
   </div>
 );
@@ -690,7 +714,7 @@ const CostTab: React.FC<{
 }> = ({ data, fin, setFin, finishes, hdfFinishes }) => {
   const hardwareSubtotal =
     data.costRods + data.costHinges + data.costSlides + data.costPtoSlides + data.costTipOn +
-    data.costCouplings + data.costHandles + data.costLegs + data.costDrawerSystems;
+    data.costCouplings + data.costHandles + data.costLegs + data.costDrawerSystems + data.costCountertops;
 
   return (
     <div className="om-tab-content">
@@ -723,6 +747,7 @@ const CostTab: React.FC<{
         {data.drawerSystemGroups.map(g => <CostRow key={g.id} label={`Szuflada ${g.label}`} qty={g.count} unit="szt." price={g.unitPrice} cost={g.cost} />)}
         {data.handleGroups.map(g => <CostRow key={g.id} label={g.label} qty={g.count} unit="szt." price={g.unitPrice} cost={g.cost} warning={g.warning} />)}
         {data.legCount > 0     && <CostRow label="Nóżki"               qty={data.legCount}      unit="szt." price={PRICE_LEG}      cost={data.costLegs} />}
+        {data.countertopGroups.map(g => <CostRow key={g.id} label={`Blat: ${g.label}`} qty={g.count} unit="szt." price={g.unitPrice} cost={g.cost} />)}
         {hardwareSubtotal === 0 && <div className="om-empty-row">brak</div>}
       </CostSection>
 
@@ -780,6 +805,7 @@ function generatePdf(data: ReturnType<typeof useOrderData>, finishes: FinishOpti
   for (const g of data.drawerSystemGroups) addonRows.push([`Szuflada ${g.label}`, `${g.count} szt.`, `${g.unitPrice.toFixed(2)} zł/szt.`]);
   for (const g of data.handleGroups) addonRows.push([g.label, `${g.count} szt.`, '1 na drzwi']);
   if (data.legCount > 0)       addonRows.push(['Nóżki',                    `${data.legCount} szt.`,      '4 na box']);
+  for (const g of data.countertopGroups) addonRows.push([`Blat: ${g.label}`, `${g.count} szt.`, `${g.unitPrice.toFixed(2)} zł/szt.`]);
 
   const addonsContent: Content = addonRows.length === 0
     ? { text: 'brak', fontSize: 10 }
@@ -802,13 +828,13 @@ function generatePdf(data: ReturnType<typeof useOrderData>, finishes: FinishOpti
 
 type ModalTab = 'summary' | 'cost';
 
-const OrderModal: React.FC<Props> = ({ elements, handles, drawerSystems }) => {
+const OrderModal: React.FC<Props> = ({ elements, handles, drawerSystems, countertops }) => {
   const [open, setOpen] = useState(false);
   const [tab, setTab]   = useState<ModalTab>('summary');
   const finishesBase    = useFinishes();
   const finishesHdf     = useFinishes('hdf', false);
   const finishes        = useMemo(() => [...finishesBase, ...finishesHdf], [finishesBase, finishesHdf]);
-  const data            = useOrderData(elements, finishes, finishesHdf, handles, drawerSystems);
+  const data            = useOrderData(elements, finishes, finishesHdf, handles, drawerSystems, countertops);
 
   const [fin, setFin] = useState<FinancialState>({
     transport: 0,
