@@ -51,11 +51,9 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
   const [handleOpen, setHandleOpen] = useState(false);
   const [frontFinishOpen, setFrontFinishOpen] = useState(false);
   const [drawerTypeOpen, setDrawerTypeOpen] = useState(false);
-  const [countertopOpen, setCountertopOpen] = useState(false);
   const finishRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
   const frontFinishRef = useRef<HTMLDivElement>(null);
-  const countertopRef = useRef<HTMLDivElement>(null);
   // Local draft strings so the user can type freely
   const [drafts, setDrafts] = useState<Record<DimKey, string>>({ width: '', height: '', depth: '' });
   const [yDraft, setYDraft] = useState('');
@@ -72,7 +70,6 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
     setHandleOpen(false);
     setFrontFinishOpen(false);
     setDrawerTypeOpen(false);
-    setCountertopOpen(false);
     setDrafts({
       width: toMm(element.dimensions.width),
       height: toMm(element.dimensions.height),
@@ -605,6 +602,63 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
       })()}
 
       {onFinishChange && (() => {
+        if (element.type === 'countertop') {
+          if (!countertops || countertops.length === 0 || !onCountertopTypeChange) return null;
+          const sel = countertops.find((c) => c.id === element.countertopId);
+          return (
+            <>
+              <div className="prop-divider" />
+              <div className="prop-finish-section">
+                <span className="prop-label">Okleina</span>
+                <div
+                  className="prop-finish-dropdown"
+                  ref={finishRef}
+                  onBlur={(e) => { if (!finishRef.current?.contains(e.relatedTarget as Node)) setFinishOpen(false); }}
+                  tabIndex={-1}
+                >
+                  <button
+                    className="prop-finish-trigger"
+                    onClick={() => setFinishOpen((o) => !o)}
+                    type="button"
+                  >
+                    {sel?.imageBase64
+                      ? <img src={sel.imageBase64} alt="" className="prop-finish-thumb" />
+                      : <span className="prop-finish-no-img" />
+                    }
+                    <span className="prop-finish-trigger-label">
+                      {sel ? `${sel.label} · ${sel.brand} (${sel.thicknessMm}mm)` : 'Nieokreślony'}
+                    </span>
+                    <span className="prop-finish-arrow">{finishOpen ? '▲' : '▼'}</span>
+                  </button>
+                  {finishOpen && (
+                    <ul className="prop-finish-list">
+                      <li
+                        className={`prop-finish-item${!element.countertopId ? ' prop-finish-item--active' : ''}`}
+                        onClick={() => { onCountertopTypeChange(element.id, undefined); setFinishOpen(false); }}
+                      >
+                        <span className="prop-finish-no-img" />
+                        <span>Nieokreślony</span>
+                      </li>
+                      {countertops.map((c) => (
+                        <li
+                          key={c.id}
+                          className={`prop-finish-item${element.countertopId === c.id ? ' prop-finish-item--active' : ''}`}
+                          onClick={() => { onCountertopTypeChange(element.id, c.id); setFinishOpen(false); }}
+                        >
+                          {c.imageBase64
+                            ? <img src={c.imageBase64} alt="" className="prop-finish-thumb" />
+                            : <span className="prop-finish-no-img" />
+                          }
+                          <span>{c.label} · {c.brand} ({c.thicknessMm}mm)</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </>
+          );
+        }
         const activeFinishes = element.type === 'hdf' ? hdfFinishes : finishes;
         if (activeFinishes.length === 0) return null;
         const sel = activeFinishes.find((f) => f.id === element.finishId)
@@ -732,62 +786,6 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
 
       {element.type === 'front' && !element.noHandle && renderHandleSelector(element.handleId, element.id)}
 
-      {element.type === 'countertop' && countertops && onCountertopTypeChange && (() => {
-        const sel = countertops.find((c) => c.id === element.countertopId);
-        return (
-          <>
-            <div className="prop-divider" />
-            <div className="prop-finish-section">
-              <span className="prop-label">Typ blatu</span>
-              <div
-                className="prop-finish-dropdown"
-                ref={countertopRef}
-                onBlur={(e) => { if (!countertopRef.current?.contains(e.relatedTarget as Node)) setCountertopOpen(false); }}
-                tabIndex={-1}
-              >
-                <button
-                  className="prop-finish-trigger"
-                  onClick={() => setCountertopOpen((o) => !o)}
-                  type="button"
-                >
-                  {sel?.imageBase64
-                    ? <img src={sel.imageBase64} alt="" className="prop-finish-thumb" />
-                    : <span className="prop-finish-no-img" />
-                  }
-                  <span className="prop-finish-trigger-label">
-                    {sel ? `${sel.label} · ${sel.brand} (${sel.thicknessMm}mm)` : 'Nieokreślony'}
-                  </span>
-                  <span className="prop-finish-arrow">{countertopOpen ? '▲' : '▼'}</span>
-                </button>
-                {countertopOpen && (
-                  <ul className="prop-finish-list">
-                    <li
-                      className={`prop-finish-item${!element.countertopId ? ' prop-finish-item--active' : ''}`}
-                      onClick={() => { onCountertopTypeChange(element.id, undefined); setCountertopOpen(false); }}
-                    >
-                      <span className="prop-finish-no-img" />
-                      <span>Nieokreślony</span>
-                    </li>
-                    {countertops.map((c) => (
-                      <li
-                        key={c.id}
-                        className={`prop-finish-item${element.countertopId === c.id ? ' prop-finish-item--active' : ''}`}
-                        onClick={() => { onCountertopTypeChange(element.id, c.id); setCountertopOpen(false); }}
-                      >
-                        {c.imageBase64
-                          ? <img src={c.imageBase64} alt="" className="prop-finish-thumb" />
-                          : <span className="prop-finish-no-img" />
-                        }
-                        <span>{c.label} · {c.brand} ({c.thicknessMm}mm)</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          </>
-        );
-      })()}
     </div>
   );
 };
