@@ -23,6 +23,7 @@ React + TypeScript app for calculating furniture board cuts and generating order
 
 ## Build Errors Policy
 - **Unused variables** — delete them; never suppress with eslint-disable or prefix with `_`.
+- **Verify usage before finishing** — after every edit, scan all newly introduced variables (including destructured ones) and confirm each is referenced. If not used, remove it before calling the edit done.
 - Fix only the reported lines; don't touch surrounding code.
 
 ## Code Conventions
