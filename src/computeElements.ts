@@ -628,7 +628,8 @@ export function computeCountertopForCabinet(ct: BoxElement, cab: BoxElement): Bo
   };
 }
 
-export function computeCountertopForGroup(ct: BoxElement, grp: BoxElement, members: BoxElement[]): BoxElement {
+// TODO, czy grp mialo cos robic?
+export function computeCountertopForGroup(ct: BoxElement, _grp: BoxElement, members: BoxElement[]): BoxElement {
   if (members.length === 0) return ct;
   const thickness = ct.dimensions.height;
   const topY = Math.max(...members.map((m) => m.position.y + m.dimensions.height));
