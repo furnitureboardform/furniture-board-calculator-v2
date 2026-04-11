@@ -9,7 +9,7 @@ export interface CountertopOption {
   label: string;
   brand: string;
   thicknessMm: number;
-  pricePln: number;
+  pricePerSqmPln: number;
   imageBase64?: string;
   colorHex?: string;
 }
@@ -28,7 +28,7 @@ export function useCountertops() {
             label: String(data.label ?? ''),
             brand: String(data.brand ?? ''),
             thicknessMm: Number(data.thicknessMm ?? DEFAULT_COUNTERTOP_THICKNESS_MM),
-            pricePln: Number(data.pricePln ?? 0),
+            pricePerSqmPln: Number(data.pricePerSqmPln ?? 0),
             imageBase64: data.imageBase64 ?? undefined,
             colorHex: data.colorHex ?? undefined,
           } as CountertopOption;

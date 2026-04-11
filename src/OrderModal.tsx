@@ -21,8 +21,9 @@ interface Props {
 }
 
 // ── Prices ─────────────────────────────────────────────────────────────────────
-const PRICE_CUT_M       = 6.00;
-const PRICE_EDGE_SVC_M  = 6.00;
+const PRICE_CUT_M            = 6.00;
+const PRICE_CUT_COUNTERTOP_M = 9.00;
+const PRICE_EDGE_SVC_M       = 6.00;
 const PRICE_OKLEINA_M   = 1.00;
 const PRICE_ROD         = 15.00;
 const PRICE_HINGE       = 13.00;
@@ -409,23 +410,28 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const costLegs          = legCount      * PRICE_LEG;
     const costDrawerSystems = drawerSystemGroups.reduce((s, g) => s + g.cost, 0);
 
-    const countertopMap = new Map(countertops.map(c => [c.id, { label: `${c.label} · ${c.brand}`, pricePln: c.pricePln }]));
-    const countertopGroupMap = new Map<string, { id: string; label: string; count: number; cost: number; unitPrice: number }>();
-    for (const el of elements.filter(e => e.type === 'countertop' && e.countertopId)) {
-      const key = el.countertopId!;
+    const totalCountertopCut = countertopPanels.reduce((s, p) => s + cutMeters(p.w, p.h, p.d), 0);
+    const costCutCountertop  = totalCountertopCut * PRICE_CUT_COUNTERTOP_M;
+
+    const countertopMap = new Map(countertops.map(c => [c.id, { label: `${c.label} · ${c.brand}`, pricePerSqmPln: c.pricePerSqmPln }]));
+    const countertopGroupMap = new Map<string, { id: string; label: string; sqm: number; cost: number; unitPrice: number }>();
+    for (const p of countertopPanels) {
+      const key = p.finishId;
+      if (!key) continue;
       const ct = countertopMap.get(key);
-      const unitPrice = ct?.pricePln ?? 0;
+      const unitPrice = ct?.pricePerSqmPln ?? 0;
       const label = ct?.label ?? 'Blat';
+      const sqm = p.w * p.h;
       const g = countertopGroupMap.get(key);
-      if (g) { g.count++; g.cost += unitPrice; }
-      else countertopGroupMap.set(key, { id: key, label, count: 1, cost: unitPrice, unitPrice });
+      if (g) { g.sqm += sqm; g.cost += sqm * unitPrice; }
+      else countertopGroupMap.set(key, { id: key, label, sqm, cost: sqm * unitPrice, unitPrice });
     }
     const countertopGroups = Array.from(countertopGroupMap.values());
     const costCountertops = countertopGroups.reduce((s, g) => s + g.cost, 0);
 
     const grandTotal =
       costKorpus + costObicie + costHdf +
-      costCutKorpus + costCutObicie + costCutHdf +
+      costCutKorpus + costCutObicie + costCutHdf + costCutCountertop +
       costEdgeSvcKorpus + costEdgeSvcObicie +
       costOkleinaK + costOkleinaO +
       costRods + costHinges + costSlides + costPtoSlides + costTipOn + costCouplings + costHandles + costLegs + costDrawerSystems + costCountertops;
@@ -444,7 +450,8 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
       rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, legCount,
       drawerSystemGroups, countertopGroups,
       costKorpus, costObicie, costHdf,
-      costCutKorpus, costCutObicie, costCutHdf,
+      totalCountertopCut,
+      costCutKorpus, costCutObicie, costCutHdf, costCutCountertop,
       costEdgeSvcKorpus, costEdgeSvcObicie,
       costOkleinaK, costOkleinaO,
       costRods, costHinges, costSlides, costPtoSlides, costTipOn, costCouplings, costHandles, costLegs,
@@ -728,19 +735,25 @@ const CostTab: React.FC<{
 }> = ({ data, fin, setFin, finishes, hdfFinishes }) => {
   const hardwareSubtotal =
     data.costRods + data.costHinges + data.costSlides + data.costPtoSlides + data.costTipOn +
-    data.costCouplings + data.costHandles + data.costLegs + data.costDrawerSystems + data.costCountertops;
-
+    data.costCouplings + data.costHandles + data.costLegs + data.costDrawerSystems;
   return (
     <div className="om-tab-content">
       <FinishCostSection title="Płyta" areaByFinish={data.plytaAreaByFinish} subtotal={data.costKorpus + data.costObicie}
         finishes={finishes} defaultLabel="Płyta" />
 
+      {data.countertopGroups.length > 0 && (
+        <CostSection title="Blat" subtotal={data.costCountertops}>
+          {data.countertopGroups.map(g => <CostRow key={g.id} label={g.label} qty={g.sqm} unit="m²" price={g.unitPrice} cost={g.cost} />)}
+        </CostSection>
+      )}
+
       <FinishCostSection title="Płyta HDF" areaByFinish={data.hdfAreaByFinish} subtotal={data.costHdf}
         finishes={hdfFinishes} labelFinishes={finishes} defaultLabel="Płyta HDF" />
 
-      <CostSection title="Cięcie płyt" subtotal={data.costCutKorpus + data.costCutObicie + data.costCutHdf}>
-        <CostRow label="Cięcie płyt"  qty={data.totalKorpusCut + data.totalObicieCut} unit="m" price={PRICE_CUT_M} cost={data.costCutKorpus + data.costCutObicie} />
-        <CostRow label="Cięcie HDF"   qty={data.totalHdfCut}                          unit="m" price={PRICE_CUT_M} cost={data.costCutHdf} />
+      <CostSection title="Cięcie płyt" subtotal={data.costCutKorpus + data.costCutObicie + data.costCutHdf + data.costCutCountertop}>
+        <CostRow label="Cięcie płyt"  qty={data.totalKorpusCut + data.totalObicieCut} unit="m" price={PRICE_CUT_M}            cost={data.costCutKorpus + data.costCutObicie} />
+        {data.totalCountertopCut > 0 && <CostRow label="Cięcie blatu" qty={data.totalCountertopCut} unit="m" price={PRICE_CUT_COUNTERTOP_M} cost={data.costCutCountertop} />}
+        <CostRow label="Cięcie HDF"   qty={data.totalHdfCut}                          unit="m" price={PRICE_CUT_M}            cost={data.costCutHdf} />
       </CostSection>
 
       <CostSection
@@ -761,7 +774,6 @@ const CostTab: React.FC<{
         {data.drawerSystemGroups.map(g => <CostRow key={g.id} label={`Szuflada ${g.label}`} qty={g.count} unit="szt." price={g.unitPrice} cost={g.cost} />)}
         {data.handleGroups.map(g => <CostRow key={g.id} label={g.label} qty={g.count} unit="szt." price={g.unitPrice} cost={g.cost} warning={g.warning} />)}
         {data.legCount > 0     && <CostRow label="Nóżki"               qty={data.legCount}      unit="szt." price={PRICE_LEG}      cost={data.costLegs} />}
-        {data.countertopGroups.map(g => <CostRow key={g.id} label={`Blat: ${g.label}`} qty={g.count} unit="szt." price={g.unitPrice} cost={g.cost} />)}
         {hardwareSubtotal === 0 && <div className="om-empty-row">brak</div>}
       </CostSection>
 
@@ -819,7 +831,7 @@ function generatePdf(data: ReturnType<typeof useOrderData>, finishes: FinishOpti
   for (const g of data.drawerSystemGroups) addonRows.push([`Szuflada ${g.label}`, `${g.count} szt.`, `${g.unitPrice.toFixed(2)} zł/szt.`]);
   for (const g of data.handleGroups) addonRows.push([g.label, `${g.count} szt.`, '1 na drzwi']);
   if (data.legCount > 0)       addonRows.push(['Nóżki',                    `${data.legCount} szt.`,      '4 na box']);
-  for (const g of data.countertopGroups) addonRows.push([`Blat: ${g.label}`, `${g.count} szt.`, `${g.unitPrice.toFixed(2)} zł/szt.`]);
+  for (const g of data.countertopGroups) addonRows.push([`Blat: ${g.label}`, `${g.sqm.toFixed(2)} m²`, `${g.unitPrice.toFixed(2)} zł/m²`]);
 
   const addonsContent: Content = addonRows.length === 0
     ? { text: 'brak', fontSize: 10 }
