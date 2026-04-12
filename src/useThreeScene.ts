@@ -44,6 +44,8 @@ const BOARD_COLOR = new THREE.Color(0xffffff);
 
 const SNAP_DIST = 0.08;
 
+const NO_HEIGHT_HANDLES = new Set<BoxElement['type']>(['shelf', 'drawer', 'countertop']);
+
 function snapAndCollide(
   el: BoxElement,
   nx: number,
@@ -205,7 +207,7 @@ export function useThreeScene(
           { axis: 'width' as const, dir: 1, offset: new THREE.Vector3(width / 2, 0, 0), color: 0xff4444 },
           { axis: 'width' as const, dir: -1, offset: new THREE.Vector3(-width / 2, 0, 0), color: 0xff4444 },
         ] : []),
-        ...(element.type !== 'shelf' && element.type !== 'drawer' ? [
+        ...(!NO_HEIGHT_HANDLES.has(element.type) ? [
           { axis: 'height' as const, dir: 1, offset: new THREE.Vector3(0, height / 2, 0), color: 0x44ff44 },
           { axis: 'height' as const, dir: -1, offset: new THREE.Vector3(0, -height / 2, 0), color: 0x44ff44 },
         ] : []),
