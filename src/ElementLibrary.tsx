@@ -145,7 +145,7 @@ interface Props {
 const ClearAllConfirm: React.FC<{ onConfirm: () => void; onCancel: () => void }> = ({ onConfirm, onCancel }) => (
   <div className="clear-all-overlay" onClick={onCancel}>
     <div className="clear-all-dialog" onClick={(e) => e.stopPropagation()}>
-      <p>Usunąć wszystkie elementy z planszy?</p>
+      <p>Usunąć wszystkie elementy ze sceny?</p>
       <div className="clear-all-actions">
         <button className="clear-all-cancel" onClick={onCancel}>Anuluj</button>
         <button className="clear-all-confirm" onClick={onConfirm}>Usuń wszystko</button>
