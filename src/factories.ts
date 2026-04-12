@@ -44,6 +44,10 @@ export function createBox(): BoxElement {
   };
 }
 
+export function createBoxKuchenny(): BoxElement {
+  return { ...createBox(), dimensions: { width: 0.6, height: 0.82, depth: 0.56 } };
+}
+
 export function createBoard(): BoxElement {
   const color = COLORS[colorIndex % COLORS.length];
   return {
