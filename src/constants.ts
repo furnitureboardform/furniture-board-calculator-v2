@@ -13,5 +13,6 @@ export const HYSTERESIS_DIST = 0.15; // 150 mm before re-snap to same cabinet
 export const DIVIDER_EDGE_SNAP = 0.04; // 40 mm snap-to-edge distance for dividers
 export const DRAWER_RAIL_CLEARANCE = 0.0125; // 12.5 mm clearance per side for drawer slides
 export const DEFAULT_COUNTERTOP_THICKNESS_MM = 38; // default blat thickness when veneer is unknown
+export const DEFAULT_HDF_FINISH_LABEL = 'Biały Korpusowy 0110';
 
 export const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];

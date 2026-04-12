@@ -12,7 +12,7 @@ import { useElementActions } from './hooks/useElementActions';
 import { useKeyboard } from './hooks/useKeyboard';
 import { useSavedModels } from './hooks/useSavedModels';
 import type { BoardSize } from './types';
-import { DEFAULT_COUNTERTOP_THICKNESS_MM } from './constants';
+import { DEFAULT_COUNTERTOP_THICKNESS_MM, DEFAULT_HDF_FINISH_LABEL } from './constants';
 import ElementLibrary from './ElementLibrary';
 import PropertiesPanel from './PropertiesPanel';
 import ModelOverlay from './ModelOverlay';
@@ -39,6 +39,7 @@ const App: React.FC = () => {
   const drawerSystems = useDrawerSystems();
   const countertops = useCountertops();
   const finishColorMap = useMemo(() => new Map([...finishes, ...hdfFinishes].filter(f => f.colorHex).map(f => [f.id, f.colorHex!])), [finishes, hdfFinishes]);
+  const defaultHdfFinishId = useMemo(() => (hdfFinishes.find(f => f.label === DEFAULT_HDF_FINISH_LABEL) ?? hdfFinishes[0])?.id, [hdfFinishes]);
   const countertopColorMap = useMemo(() => new Map(countertops.filter(c => c.colorHex).map(c => [c.id, c.colorHex!])), [countertops]);
   const { savedModels, loading: modelsLoading, saveModel, deleteModel, overwriteModel } = useSavedModels();
   const [rulerMode, setRulerMode] = useState(false);
@@ -170,7 +171,7 @@ const App: React.FC = () => {
     handleAddCountertopToCabinet,
     handleAddCountertopToGroup,
     handleClearAll,
-  } = useElementActions({ setElements, setSelectedId, setMultiSelectedIds, boardSizeRef, dividerYHintRef, dragDeltaRef, detachedFromRef, finishColorMap, defaultHdfFinishId: hdfFinishes[0]?.id, drawerSystems });
+  } = useElementActions({ setElements, setSelectedId, setMultiSelectedIds, boardSizeRef, dividerYHintRef, dragDeltaRef, detachedFromRef, finishColorMap, defaultHdfFinishId, drawerSystems });
 
   useKeyboard({ selectedId, multiSelectedIds, handleDelete, elements, setElements, setMultiSelectedIds, undo, redo, handleDividerSwitchSlot, onCtrlSave: handleCtrlSave });
 

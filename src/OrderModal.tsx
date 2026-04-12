@@ -5,7 +5,7 @@ import { useFinishes } from './hooks/useFinishes';
 import type { FinishOption } from './hooks/useFinishes';
 import type { HandleOption } from './hooks/useHandles';
 import type { CountertopOption } from './hooks/useCountertops';
-import { PANEL_T, HDF_T } from './constants';
+import { PANEL_T, HDF_T, DEFAULT_HDF_FINISH_LABEL } from './constants';
 import { elementHasHandle } from './builders';
 import './OrderModal.css';
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -280,7 +280,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const hdfPanels: PanelEntry[]         = [];
     const countertopPanels: PanelEntry[]  = [];
     const hdfFinishIds = new Set(hdfFinishes.map(f => f.id));
-    const defaultHdfFinishId = hdfFinishes[0]?.id;
+    const defaultHdfFinishId = (hdfFinishes.find(f => f.label === DEFAULT_HDF_FINISH_LABEL) ?? hdfFinishes[0])?.id;
 
     const drawerSystemGroupMap = new Map<string, { id: string; label: string; count: number; unitPrice: number; cost: number }>();
 
