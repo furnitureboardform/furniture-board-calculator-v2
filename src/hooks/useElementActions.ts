@@ -1279,9 +1279,11 @@ export function useElementActions({
   const handleRotateCabinet = useCallback((cabinetId: string) => {
     setElements((prev) => {
       const cab = prev.find((e) => e.id === cabinetId);
-      if (!cab || (cab.type !== 'cabinet' && cab.type !== 'boxkuchenny')) return prev;
+      if (!cab || (cab.type !== 'cabinet' && cab.type !== 'boxkuchenny' && cab.type !== 'board')) return prev;
 
       const newRotationY = (((cab.rotationY ?? 0) + 90) % 360) as 0 | 90 | 180 | 270;
+
+      if (cab.type === 'board') return prev.map((e) => e.id === cabinetId ? { ...e, rotationY: newRotationY } : e);
 
       // Collect IDs of direct children and grandchildren (e.g. drawers inside drawerboxes)
       const directChildIds = new Set(prev.filter((e) => e.cabinetId === cabinetId).map((e) => e.id));

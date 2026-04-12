@@ -432,7 +432,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
         </>
       )}
 
-{(element.type === 'cabinet' || element.type === 'boxkuchenny') && onRotate && (
+{(element.type === 'cabinet' || element.type === 'boxkuchenny' || element.type === 'board') && onRotate && (
         <>
           <div className="prop-divider" />
           <div className="prop-row">
