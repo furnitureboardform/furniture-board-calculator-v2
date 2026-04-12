@@ -670,7 +670,7 @@ const ElementLibrary: React.FC<Props> = ({
         </label>
       </div>
       <button className="clear-all-btn" onClick={() => setShowClearConfirm(true)} title="Usuń wszystkie elementy z planszy">
-        Wyczyść planszę
+        Wyczyść scenę
       </button>
       {showClearConfirm && (
         <ClearAllConfirm
