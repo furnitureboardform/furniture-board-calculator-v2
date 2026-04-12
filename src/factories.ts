@@ -18,7 +18,6 @@ export let plinthCounter = 1;
 export let maskownicaCounter = 1;
 export let boardCounter = 1;
 export let groupCounter = 1;
-export let boxKuchennyCounter = 1;
 export let szafkaDolnaCounter = 1;
 export let countertopCounter = 1;
 
@@ -79,19 +78,6 @@ export function createSzafkaDolna(width: number): BoxElement {
     name: `Szafka dolna ${label} ${szafkaDolnaCounter++}`,
     type: 'boxkuchenny',
     dimensions: { width, height: 0.82, depth: 0.56 },
-    position: { x: 0, y: 0, z: 0 },
-    color,
-    finishId: DEFAULT_FINISH_ID,
-  };
-}
-
-export function createBoxKuchenny(): BoxElement {
-  const color = nextColor();
-  return {
-    id: crypto.randomUUID(),
-    name: `Box kuchenny ${boxKuchennyCounter++}`,
-    type: 'boxkuchenny',
-    dimensions: { width: 1, height: 1, depth: 0.6 },
     position: { x: 0, y: 0, z: 0 },
     color,
     finishId: DEFAULT_FINISH_ID,
