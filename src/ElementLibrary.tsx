@@ -627,7 +627,7 @@ const ElementLibrary: React.FC<Props> = ({
   return (
     <div className="library">
       {/* Board size */}
-      <div className="lib-section-title">Plansza</div>
+      <div className="lib-section-title">Scena</div>
       <div className="board-size-inputs">
         <label className="board-size-field">
           <span>Szer.</span>
