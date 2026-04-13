@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { BoxElement } from './types';
+import { effectiveHW, effectiveHD } from './geometry';
 import {
   rebuildPanels,
   rebuildShelf,
@@ -53,8 +54,8 @@ function snapAndCollide(
   nz: number,
   others: BoxElement[]
 ): { x: number; z: number } {
-  const W = el.dimensions.width;
-  const D = el.dimensions.depth;
+  const hw = effectiveHW(el);
+  const hd = effectiveHD(el);
   const elYMin = el.position.y;
   const elYMax = el.position.y + el.dimensions.height;
 
@@ -68,17 +69,14 @@ function snapAndCollide(
     return elYMin < o.position.y + o.dimensions.height && elYMax > o.position.y;
   });
 
-  for (const other of relevant) {
-    const oW = other.dimensions.width;
-    const oD = other.dimensions.depth;
-    const ox = other.position.x;
-    const oz = other.position.z;
+  const otherDims = relevant.map(o => ({ ohw: effectiveHW(o), ohd: effectiveHD(o), ox: o.position.x, oz: o.position.z }));
 
+  for (const { ohw, ohd, ox, oz } of otherDims) {
     const xCandidates: [number, number, number][] = [
-      [nx + W / 2, ox - oW / 2, ox - oW / 2 - W / 2],
-      [nx - W / 2, ox + oW / 2, ox + oW / 2 + W / 2],
-      [nx - W / 2, ox - oW / 2, ox - oW / 2 + W / 2],
-      [nx + W / 2, ox + oW / 2, ox + oW / 2 - W / 2],
+      [nx + hw, ox - ohw, ox - ohw - hw],
+      [nx - hw, ox + ohw, ox + ohw + hw],
+      [nx - hw, ox - ohw, ox - ohw + hw],
+      [nx + hw, ox + ohw, ox + ohw - hw],
     ];
     for (const [bf, of_, tx] of xCandidates) {
       const dist = Math.abs(bf - of_);
@@ -86,10 +84,10 @@ function snapAndCollide(
     }
 
     const zCandidates: [number, number, number][] = [
-      [nz + D / 2, oz - oD / 2, oz - oD / 2 - D / 2],
-      [nz - D / 2, oz + oD / 2, oz + oD / 2 + D / 2],
-      [nz - D / 2, oz - oD / 2, oz - oD / 2 + D / 2],
-      [nz + D / 2, oz + oD / 2, oz + oD / 2 - D / 2],
+      [nz + hd, oz - ohd, oz - ohd - hd],
+      [nz - hd, oz + ohd, oz + ohd + hd],
+      [nz - hd, oz - ohd, oz - ohd + hd],
+      [nz + hd, oz + ohd, oz + ohd - hd],
     ];
     for (const [bf, of_, tz] of zCandidates) {
       const dist = Math.abs(bf - of_);
@@ -97,21 +95,15 @@ function snapAndCollide(
     }
   }
 
-  // Collision resolution
-  for (const other of relevant) {
-    const oW = other.dimensions.width;
-    const oD = other.dimensions.depth;
-    const ox = other.position.x;
-    const oz = other.position.z;
-
-    const xOverlap = bestX + W / 2 > ox - oW / 2 && bestX - W / 2 < ox + oW / 2;
-    const zOverlap = bestZ + D / 2 > oz - oD / 2 && bestZ - D / 2 < oz + oD / 2;
+  for (const { ohw, ohd, ox, oz } of otherDims) {
+    const xOverlap = bestX + hw > ox - ohw && bestX - hw < ox + ohw;
+    const zOverlap = bestZ + hd > oz - ohd && bestZ - hd < oz + ohd;
 
     if (xOverlap && zOverlap) {
-      const penXR = bestX + W / 2 - (ox - oW / 2);
-      const penXL = ox + oW / 2 - (bestX - W / 2);
-      const penZF = bestZ + D / 2 - (oz - oD / 2);
-      const penZB = oz + oD / 2 - (bestZ - D / 2);
+      const penXR = bestX + hw - (ox - ohw);
+      const penXL = ox + ohw - (bestX - hw);
+      const penZF = bestZ + hd - (oz - ohd);
+      const penZB = oz + ohd - (bestZ - hd);
       const minPenX = Math.min(Math.abs(penXR), Math.abs(penXL));
       const minPenZ = Math.min(Math.abs(penZF), Math.abs(penZB));
       if (minPenX <= minPenZ) {

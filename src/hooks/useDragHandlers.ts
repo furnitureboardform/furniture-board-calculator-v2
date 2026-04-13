@@ -24,6 +24,8 @@ import {
   computeDrawerYBounds,
   computeStretchCollisionMax,
   clampYBoundsToObstacles,
+  effectiveHW,
+  effectiveHD,
 } from '../geometry';
 import {
   findNearCabinetHysteresis,
@@ -163,8 +165,8 @@ export function useDragHandlers({
       const clampToBoard = (el: BoxElement): { x: number; z: number } => {
         const bw = boardSizeRef.current.width / 1000;
         const bd = boardSizeRef.current.depth / 1000;
-        const rx = Math.max(0, (bw - el.dimensions.width) / 2);
-        const rz = Math.max(0, (bd - el.dimensions.depth) / 2);
+        const rx = Math.max(0, (bw - effectiveHW(el) * 2) / 2);
+        const rz = Math.max(0, (bd - effectiveHD(el) * 2) / 2);
         return {
           x: Math.max(-rx, Math.min(rx, el.position.x)),
           z: Math.max(-rz, Math.min(rz, el.position.z)),
@@ -251,8 +253,10 @@ export function useDragHandlers({
             return afterMove.map((el) => el.id === id ? { ...pushedEl, position: { ...pushedEl.position, x: clampedPos.x, z: clampedPos.z } } : el);
           }
           if (movedEl.type === 'board') {
-            const pushed = pushOutCollisions(movedAfter, afterMove);
-            const pushedEl = { ...movedAfter, position: { ...movedAfter.position, x: pushed.x, z: pushed.z } };
+            const snapped = snapToNeighbors(movedAfter, afterMove);
+            const snappedEl = { ...movedAfter, position: { ...movedAfter.position, x: snapped.x, z: snapped.z } };
+            const pushed = pushOutCollisions(snappedEl, afterMove);
+            const pushedEl = { ...snappedEl, position: { ...snappedEl.position, x: pushed.x, z: pushed.z } };
             const clampedPos = clampToBoard(pushedEl);
             return afterMove.map((el) => el.id === id ? { ...pushedEl, position: { ...pushedEl.position, x: clampedPos.x, z: clampedPos.z } } : el);
           }
@@ -516,8 +520,8 @@ export function useDragHandlers({
         prev.forEach((el) => {
           if (!idSet.has(el.id)) return;
           if (el.type === 'front' || el.type === 'hdf' || el.type === 'rearboard' || (el.cabinetId && !idSet.has(el.cabinetId))) return;
-          const hw = el.dimensions.width / 2;
-          const hd = el.dimensions.depth / 2;
+          const hw = effectiveHW(el);
+          const hd = effectiveHD(el);
           minDx = Math.max(minDx, -bw / 2 + hw - el.position.x);
           maxDx = Math.min(maxDx, bw / 2 - hw - el.position.x);
           minDz = Math.max(minDz, -bd / 2 + hd - el.position.z);

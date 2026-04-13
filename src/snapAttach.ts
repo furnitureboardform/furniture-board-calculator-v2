@@ -1,6 +1,6 @@
 import type { BoxElement } from './types';
 import { PANEL_T, SNAP_DIST, STACK_OVERLAP, ATTACH_DIST } from './constants';
-import { computeDividerBounds, clampYBoundsToObstacles } from './geometry';
+import { computeDividerBounds, clampYBoundsToObstacles, effectiveHW as ehw, effectiveHD as ehd } from './geometry';
 
 /** Like findNearCabinet but skips `avoidCabId` until the element has moved past the hysteresis zone. */
 export function findNearCabinetHysteresis(
@@ -119,14 +119,14 @@ export function snapShelfEdgeToCabinet(
 /** Snaps box XZ position so its walls touch neighbors when close enough. */
 export function snapToNeighbors(box: BoxElement, allElements: BoxElement[]): { x: number; z: number } {
   let { x, z } = box.position;
-  const hw = box.dimensions.width / 2;
-  const hd = box.dimensions.depth / 2;
+  const hw = ehw(box);
+  const hd = ehd(box);
 
   for (const other of allElements) {
     if (other.id === box.id) continue;
     if (other.cabinetId) continue;
-    const ohw = other.dimensions.width / 2;
-    const ohd = other.dimensions.depth / 2;
+    const ohw = ehw(other);
+    const ohd = ehd(other);
 
     const yOverlap =
       box.position.y < other.position.y + other.dimensions.height &&
@@ -176,12 +176,12 @@ function getBlockerAABB(
   el: BoxElement,
   allElements: BoxElement[]
 ): { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number } {
-  let minX = el.position.x - el.dimensions.width / 2;
-  let maxX = el.position.x + el.dimensions.width / 2;
+  let minX = el.position.x - ehw(el);
+  let maxX = el.position.x + ehw(el);
   let minY = el.position.y;
   let maxY = el.position.y + el.dimensions.height;
-  let minZ = el.position.z - el.dimensions.depth / 2;
-  let maxZ = el.position.z + el.dimensions.depth / 2;
+  let minZ = el.position.z - ehd(el);
+  let maxZ = el.position.z + ehd(el);
   for (const child of allElements) {
     if (child.cabinetId !== el.id) continue;
     if (!SOLID_CHILD_TYPES.has(child.type)) continue;
@@ -206,8 +206,8 @@ export function clampYToCollisions(
   dy: number,
   allElements: BoxElement[]
 ): number {
-  const elHW = el.dimensions.width / 2;
-  const elHD = el.dimensions.depth / 2;
+  const elHW = ehw(el);
+  const elHD = ehd(el);
 
   for (const other of allElements) {
     if (other.id === el.id) continue;
@@ -239,8 +239,8 @@ export function clampYToCollisions(
 export function pushOutCollisions(box: BoxElement, allElements: BoxElement[]): { x: number; z: number } {
   let x = box.position.x;
   let z = box.position.z;
-  const hw = box.dimensions.width / 2;
-  const hd = box.dimensions.depth / 2;
+  const hw = ehw(box);
+  const hd = ehd(box);
   const boxMinY = box.position.y;
   const boxMaxY = box.position.y + box.dimensions.height;
 

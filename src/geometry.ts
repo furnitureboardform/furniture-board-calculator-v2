@@ -12,6 +12,14 @@ import {
   recomputeGroups,
 } from './computeElements';
 
+export function effectiveHW(el: BoxElement): number {
+  return (el.rotationY ?? 0) % 180 !== 0 ? el.dimensions.depth / 2 : el.dimensions.width / 2;
+}
+
+export function effectiveHD(el: BoxElement): number {
+  return (el.rotationY ?? 0) % 180 !== 0 ? el.dimensions.width / 2 : el.dimensions.depth / 2;
+}
+
 /** Returns true if boxes a and b have any XZ footprint overlap. */
 export function getBoxOverlap(a: BoxElement, b: BoxElement): boolean {
   return (
