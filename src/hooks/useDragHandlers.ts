@@ -544,7 +544,7 @@ export function useDragHandlers({
           if (el.type === 'maskowanica') return computeMaskowanicaForCabinet(el, parent, updated);
           if (el.type === 'countertop') return computeCountertopForCabinet(el, parent);
           if (el.type === 'cargo') return computeCargoForParent(el, parent);
-          return { ...el, position: { ...el.position, x: el.position.x + cdx, z: el.position.z + cdz } };
+          return el; // already moved in first pass
         });
         return recomputeGroups(updated);
       });
