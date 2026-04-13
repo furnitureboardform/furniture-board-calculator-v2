@@ -17,6 +17,8 @@ export function useCargo() {
             widthMm: Number(raw.widthMm ?? 0),
             heightMm: Number(raw.heightMm ?? 0),
             depthMm: Number(raw.depthMm ?? 0),
+            heightFromMm: Number(raw.heightFromMm ?? 0),
+            heightToMm: Number(raw.heightToMm ?? 9999),
           } as CargoOption;
         }));
       })

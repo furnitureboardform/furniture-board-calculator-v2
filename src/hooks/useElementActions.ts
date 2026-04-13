@@ -1362,9 +1362,9 @@ export function useElementActions({
       const box = prev.find((e) => e.id === boxId);
       if (!box) return prev;
       if (prev.some((e) => e.type === 'cargo' && e.cabinetId === boxId)) return prev;
-      const w = cargoOption.widthMm / 1000;
-      const h = cargoOption.heightMm / 1000;
-      const d = cargoOption.depthMm / 1000;
+      const w = box.dimensions.width - 2 * PANEL_T;
+      const h = box.dimensions.height - 2 * PANEL_T;
+      const d = box.dimensions.depth;
       const cargo: BoxElement = {
         id: crypto.randomUUID(),
         name: `Cargo ${counters.cargo++}`,
@@ -1389,22 +1389,9 @@ export function useElementActions({
     setElements((prev) => {
       const el = prev.find((e) => e.id === cargoElId);
       if (!el || el.type !== 'cargo' || !el.cabinetId) return prev;
-      const box = prev.find((e) => e.id === el.cabinetId);
-      if (!box) return prev;
-      const w = newCargoOption.widthMm / 1000;
-      const h = newCargoOption.heightMm / 1000;
-      const d = newCargoOption.depthMm / 1000;
+      if (!prev.some((e) => e.id === el.cabinetId)) return prev;
       return prev.map((e) => e.id === cargoElId
-        ? {
-          ...e,
-          cargoId: newCargoOption.id,
-          dimensions: { width: w, height: h, depth: d },
-          position: {
-            x: box.position.x,
-            y: box.position.y + PANEL_T,
-            z: box.position.z,
-          },
-        }
+        ? { ...e, cargoId: newCargoOption.id }
         : e
       );
     });

@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import type { BoxElement, CargoOption } from './types';
+import { PANEL_T } from './constants';
 import './ElementLibrary.css';
+
+function pickCargoForBox(cargoOptions: CargoOption[], box: BoxElement): CargoOption {
+  const internalH = Math.round((box.dimensions.height - 2 * PANEL_T) * 1000);
+  const match = cargoOptions.find((c) => internalH >= c.heightFromMm && internalH <= c.heightToMm);
+  return match ?? cargoOptions[0];
+}
 
 interface CatalogItem {
   type: 'cabinet' | 'shelf' | 'board' | 'boxkuchenny' | 'szafkadolna60' | 'szafkadolna40' | 'szafkadolna30';
@@ -521,7 +528,7 @@ const ElementLibrary: React.FC<Props> = ({
               }
               if (cargoOptions.length > 0) {
                 return (
-                  <li className="element-item element-item--add" onClick={() => onAddCargoToBox(cab.id, cargoOptions[0])}>
+                  <li className="element-item element-item--add" onClick={() => onAddCargoToBox(cab.id, pickCargoForBox(cargoOptions, cab))}>
                     <span className="element-indent-line" />
                     <span className="element-add-icon">＋</span>
                     <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cargo</span>
@@ -663,7 +670,7 @@ const ElementLibrary: React.FC<Props> = ({
               }
               if (cargoOptions.length > 0) {
                 return (
-                  <li className="element-item element-item--add" onClick={() => onAddCargoToBox(box.id, cargoOptions[0])}>
+                  <li className="element-item element-item--add" onClick={() => onAddCargoToBox(box.id, pickCargoForBox(cargoOptions, box))}>
                     <span className="element-indent-line" />
                     <span className="element-add-icon">＋</span>
                     <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cargo</span>
