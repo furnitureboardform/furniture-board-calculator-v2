@@ -31,6 +31,7 @@ interface Props {
   onStretchWithLegsChange?: (v: boolean) => void;
   onFrontNoHandleChange?: (v: boolean) => void;
   onFrontTipOnChange?: (v: boolean) => void;
+  onFrontLoweredChange?: (v: boolean) => void;
   onRotate?: (id: string) => void;
   onFinishChange?: (id: string, finishId: string | undefined) => void;
   onDrawerFrontFinishChange?: (id: string, finishId: string | undefined) => void;
@@ -49,7 +50,7 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerExternalFrontChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onFrontTipOnChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerExternalFrontChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onFrontTipOnChange, onFrontLoweredChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange }) => {
   const [finishOpen, setFinishOpen] = useState(false);
   const [handleOpen, setHandleOpen] = useState(false);
   const [frontFinishOpen, setFrontFinishOpen] = useState(false);
@@ -360,6 +361,24 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
           </>
         );
       })()}
+
+      {element.type === 'front' && onFrontLoweredChange && (
+        <>
+          <div className="prop-divider" />
+          <div className="prop-front-state">
+            <span className="prop-label" style={{ color: '#c0c0e0' }}>Front opuszczany</span>
+            <label className="prop-toggle">
+              <input
+                type="checkbox"
+                checked={!!element.frontLowered}
+                onChange={(e) => onFrontLoweredChange(e.target.checked)}
+              />
+              <span className="prop-toggle-track" />
+              <span className="prop-toggle-text">{element.frontLowered ? 'tak' : 'nie'}</span>
+            </label>
+          </div>
+        </>
+      )}
 
       {element.type === 'front' && onOpenFrontsChange && (
         <>

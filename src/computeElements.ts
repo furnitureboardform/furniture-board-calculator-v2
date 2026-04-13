@@ -122,8 +122,9 @@ export function computeBlendaForCabinet(blenda: BoxElement, cab: BoxElement, all
 /** Computes the position/dimensions of a front panel bound to its cabinet. */
 export function computeFrontForCabinet(front: BoxElement, cab: BoxElement): BoxElement {
   const z = cab.position.z + cab.dimensions.depth / 2 + PANEL_T / 2;
-  const fullH = Math.max(0.001, cab.dimensions.height - 2 * FRONT_INSET);
-  const yPos = cab.position.y + FRONT_INSET;
+  const lowered = front.frontLowered ? 0.03 : 0;
+  const fullH = Math.max(0.001, cab.dimensions.height - 2 * FRONT_INSET + lowered);
+  const yPos = cab.position.y + FRONT_INSET - lowered;
   if (front.frontSide === 'left' || front.frontSide === 'right') {
     const leafW = Math.max(0.001, cab.dimensions.width / 2 - 2 * FRONT_INSET);
     const leftX  = cab.position.x - cab.dimensions.width / 4;
@@ -162,7 +163,8 @@ export function computeFrontForGroup(front: BoxElement, allElements: BoxElement[
   const maxY = Math.max(...members.map((c) => c.position.y + c.dimensions.height));
   const maxFaceZ = Math.max(...members.map((c) => c.position.z + c.dimensions.depth / 2));
   const totalW = maxX - minX;
-  const fullH = Math.max(0.001, (maxY - minY) - 2 * FRONT_INSET);
+  const lowered = front.frontLowered ? 0.03 : 0;
+  const fullH = Math.max(0.001, (maxY - minY) - 2 * FRONT_INSET + lowered);
   const centerX = (minX + maxX) / 2;
   const z = maxFaceZ + PANEL_T / 2;
   if (front.frontSide === 'left' || front.frontSide === 'right') {
@@ -172,7 +174,7 @@ export function computeFrontForGroup(front: BoxElement, allElements: BoxElement[
       dimensions: { width: leafW, height: fullH, depth: PANEL_T },
       position: {
         x: front.frontSide === 'left' ? centerX - totalW / 4 : centerX + totalW / 4,
-        y: minY + FRONT_INSET,
+        y: minY + FRONT_INSET - lowered,
         z,
       },
     };
@@ -184,7 +186,7 @@ export function computeFrontForGroup(front: BoxElement, allElements: BoxElement[
       height: fullH,
       depth: PANEL_T,
     },
-    position: { x: centerX, y: minY + FRONT_INSET, z },
+    position: { x: centerX, y: minY + FRONT_INSET - lowered, z },
   };
 }
 

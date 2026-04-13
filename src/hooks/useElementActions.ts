@@ -1257,6 +1257,19 @@ export function useElementActions({
     setElements((prev) => prev.map((e) => e.id === frontId ? { ...e, tipOn: value } : e));
   }, [setElements]);
 
+  const handleFrontLoweredChange = useCallback((frontId: string, value: boolean) => {
+    setElements((prev) => {
+      const front = prev.find((e) => e.id === frontId);
+      if (!front) return prev;
+      const updated = { ...front, frontLowered: value };
+      const cab = front.cabinetId ? prev.find((e) => e.id === front.cabinetId) : undefined;
+      const recomputed = cab
+        ? (cab.type === 'group' ? computeFrontForGroup(updated, prev) : computeFrontForCabinet(updated, cab))
+        : updated;
+      return prev.map((e) => e.id === frontId ? recomputed : e);
+    });
+  }, [setElements]);
+
   const handleShelfSwitchBay = useCallback((shelfId: string) => {
     setElements((prev) => {
       const shelf = prev.find((e) => e.id === shelfId);
@@ -1450,6 +1463,7 @@ export function useElementActions({
     handleStretchWithLegsChange,
     handleFrontNoHandleChange,
     handleFrontTipOnChange,
+    handleFrontLoweredChange,
     handleShelfSwitchBay,
     handleDividerSwitchSlot,
     handleRotateCabinet,
