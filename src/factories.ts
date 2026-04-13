@@ -46,7 +46,7 @@ export function createBox(): BoxElement {
 }
 
 export function createBoxKuchenny(): BoxElement {
-  return { ...createBox(), dimensions: { width: 0.6, height: 0.72, depth: 0.56 } };
+  return { ...createBox(), dimensions: { width: 0.6, height: 0.72, depth: 0.51 } };
 }
 
 export function createBoard(): BoxElement {
@@ -82,7 +82,7 @@ export function createSzafkaDolna(width: number): BoxElement {
     id: crypto.randomUUID(),
     name: `Szafka dolna ${label} ${szafkaDolnaCounter++}`,
     type: 'boxkuchenny',
-    dimensions: { width, height: 0.72, depth: 0.56 },
+    dimensions: { width, height: 0.72, depth: 0.51 },
     position: { x: 0, y: 0, z: 0 },
     color,
     finishId: DEFAULT_FINISH_ID,
