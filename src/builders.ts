@@ -9,6 +9,9 @@ const ROD_RADIUS = 0.0125;
 const LEG_RADIUS = 0.02;
 const LEG_CORNER_OFFSET = 0.03;
 const HANDLE_MAT = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3, metalness: 0.8 });
+const CARGO_CHROME_MAT = new THREE.MeshStandardMaterial({ color: new THREE.Color(0xc8c8c8), roughness: 0.2, metalness: 0.85 });
+const CARGO_WHITE_MAT  = new THREE.MeshStandardMaterial({ color: new THREE.Color(0xf2f2f2), roughness: 0.6, metalness: 0.0 });
+const CARGO_DARK_MAT   = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x3a3a3a), roughness: 0.4, metalness: 0.7 });
 
 export function elementHasHandle(e: BoxElement): boolean {
   if (e.type === 'drawer') return e.noHandle === false;
@@ -337,10 +340,7 @@ export function rebuildCargo(parent: THREE.Mesh, element: BoxElement, _color: TH
   clearChildren(parent);
   const { width, height, depth } = element.dimensions;
 
-  const metalMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(0xcccccc), roughness: 0.3, metalness: 0.7, side: THREE.DoubleSide });
-  const wireMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(0xaaaaaa), roughness: 0.4, metalness: 0.6, side: THREE.DoubleSide });
-
-  const addPanel = (w: number, h: number, d: number, px: number, py: number, pz: number, mat: THREE.MeshStandardMaterial) => {
+  const addBox = (w: number, h: number, d: number, px: number, py: number, pz: number, mat: THREE.MeshStandardMaterial) => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
     mesh.position.set(px, py, pz);
     mesh.castShadow = true;
@@ -349,38 +349,71 @@ export function rebuildCargo(parent: THREE.Mesh, element: BoxElement, _color: TH
     parent.add(mesh);
   };
 
-  // Vertical metal rails (4 corners)
-  const railW = 0.010;
-  const railD = 0.010;
-  const railMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(0xbbbbbb), roughness: 0.3, metalness: 0.8 });
-  const railXL = -width / 2 + railW / 2 + 0.005;
-  const railXR =  width / 2 - railW / 2 - 0.005;
-  const railZF =  depth / 2 - railD / 2 - 0.010;
-  const railZB = -depth / 2 + railD / 2 + 0.010;
-  addPanel(railW, height, railD, railXL, 0, railZF, railMat);
-  addPanel(railW, height, railD, railXR, 0, railZF, railMat);
-  addPanel(railW, height, railD, railXL, 0, railZB, railMat);
-  addPanel(railW, height, railD, railXR, 0, railZB, railMat);
+  const addRod = (len: number, r: number, px: number, py: number, pz: number, mat: THREE.MeshStandardMaterial, rotX = 0, rotZ = 0) => {
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 8), mat);
+    mesh.rotation.set(rotX, 0, rotZ);
+    mesh.position.set(px, py, pz);
+    mesh.castShadow = true;
+    mesh.userData = { elementId: element.id };
+    parent.add(mesh);
+  };
 
-  // Wire baskets — 3 evenly spaced
-  const basketCount = 3;
-  const basketH = 0.030;
-  const basketDepth = depth - 0.040;
-  const basketWidth = width - 0.020;
-  const slotH = height / basketCount;
+  // Two vertical side rails (front face, left & right)
+  const poleR = 0.009;
+  const poleXL = -width / 2 + 0.018;
+  const poleXR =  width / 2 - 0.018;
+  const poleZ  =  depth / 2 - 0.018;
+  addRod(height, poleR, poleXL, 0, poleZ,  CARGO_CHROME_MAT);
+  addRod(height, poleR, poleXR, 0, poleZ,  CARGO_CHROME_MAT);
+  addRod(height, poleR, poleXL, 0, -depth / 2 + 0.018, CARGO_CHROME_MAT);
+  addRod(height, poleR, poleXR, 0, -depth / 2 + 0.018, CARGO_CHROME_MAT);
+
+  // Top mounting mechanism
+  const topY = height / 2;
+  addBox(width - 0.010, 0.022, 0.055, 0, topY - 0.011, depth / 2 - 0.040, CARGO_DARK_MAT);
+  addRod(width - 0.020, 0.005, 0, topY - 0.022, depth / 2 - 0.070, CARGO_CHROME_MAT, 0, Math.PI / 2);
+
+  // Baskets
+  const basketCount = Math.min(6, Math.max(3, Math.round(height / 0.200)));
+  const slotH       = height / basketCount;
+  const shelfT      = 0.014;
+  const innerW      = width  - 0.044;
+  const innerD      = depth  - 0.050;
+  const guardH      = Math.min(0.095, slotH * 0.42);
+  const guardHBack  = guardH * 0.55;
+  const wr          = 0.0035; // wire radius
+
   for (let i = 0; i < basketCount; i++) {
-    const centerY = -height / 2 + slotH * i + slotH * 0.20;
-    const wireR = 0.003;
-    addPanel(basketWidth, wireR, wireR, 0, centerY, basketDepth / 2, wireMat);
-    addPanel(basketWidth, wireR, wireR, 0, centerY, -basketDepth / 2, wireMat);
-    addPanel(wireR, wireR, basketDepth, -basketWidth / 2, centerY, 0, wireMat);
-    addPanel(wireR, wireR, basketDepth,  basketWidth / 2, centerY, 0, wireMat);
-    // front face bar
-    addPanel(basketWidth, basketH, wireR * 2, 0, centerY + basketH / 2, basketDepth / 2 + wireR, metalMat);
-    // cross-wires
-    for (let j = 1; j <= 3; j++) {
-      const wz = -basketDepth / 2 + (basketDepth / 4) * j;
-      addPanel(wireR, wireR, wireR, -basketWidth / 2 + basketWidth * (j / 4), centerY, wz, wireMat);
+    const baseY = -height / 2 + slotH * i + 0.025;
+
+    // White bottom shelf
+    addBox(innerW, shelfT, innerD, 0, baseY + shelfT / 2, -0.005, CARGO_WHITE_MAT);
+
+    // Side guards — 2 horizontal wires per side, front-to-back
+    const sideY1 = baseY + shelfT + guardHBack * 0.45;
+    const sideY2 = baseY + shelfT + guardH;
+    addRod(innerD, wr, poleXL, sideY1, -0.005, CARGO_CHROME_MAT, Math.PI / 2);
+    addRod(innerD, wr, poleXR, sideY1, -0.005, CARGO_CHROME_MAT, Math.PI / 2);
+    addRod(innerD, wr, poleXL, sideY2, -0.005, CARGO_CHROME_MAT, Math.PI / 2);
+    addRod(innerD, wr, poleXR, sideY2, -0.005, CARGO_CHROME_MAT, Math.PI / 2);
+
+    // Front guard — lower bar + upper bar + 3 vertical connectors
+    const fz = depth / 2 - 0.018;
+    addRod(innerW, wr, 0, baseY + shelfT + wr, fz, CARGO_CHROME_MAT, 0, Math.PI / 2);
+    addRod(innerW, wr, 0, baseY + shelfT + guardH, fz, CARGO_CHROME_MAT, 0, Math.PI / 2);
+    for (let j = 0; j <= 2; j++) {
+      const fx = -innerW / 2 + (innerW / 2) * j;
+      const connH = j === 1 ? guardH : guardH * 0.65;
+      addRod(connH, wr, fx, baseY + shelfT + connH / 2, fz, CARGO_CHROME_MAT);
+    }
+
+    // Back bar
+    addRod(innerW, wr, 0, baseY + shelfT + guardHBack, -depth / 2 + 0.020, CARGO_CHROME_MAT, 0, Math.PI / 2);
+
+    // Bottom cross-wires (3 running front-to-back under shelf)
+    for (let j = 0; j <= 2; j++) {
+      const wx = -innerW / 2 + (innerW / 2) * j;
+      addRod(innerD, wr * 0.8, wx, baseY + shelfT / 2, -0.005, CARGO_CHROME_MAT, Math.PI / 2);
     }
   }
 }
