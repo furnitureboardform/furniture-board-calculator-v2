@@ -60,6 +60,7 @@ export interface BoxElement {
   finishId?: string;            // optional: selected finish/veneer from Firebase
   frontFinishId?: string;       // only for drawer: separate finish for the front face panel
   handleId?: string;            // optional: selected handle type from Firebase (for fronts)
+  tipOn?: boolean;              // only for fronts: tip-on opener instead of handle
   countertopId?: string;        // optional: selected countertop type from Firebase (for countertop elements)
   cargoId?: string;             // optional: selected cargo from Firebase (for boxkuchenny/szafkadolna)
   dimensions: BoxDimensions;

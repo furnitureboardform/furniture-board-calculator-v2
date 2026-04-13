@@ -32,6 +32,7 @@ const PRICE_PTO_SLIDE   = 123.00;
 const PRICE_TIPON       = 72.00;
 const PRICE_COUPLING    = 8.00;
 const PRICE_LEG         = 6.00;
+const PRICE_TIPON_FRONT = 16.00;
 
 const T = PANEL_T;
 
@@ -372,6 +373,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const ptoSlideCount = elements.filter(e => e.type === 'drawer' && !!e.pushToOpen && !e.drawerSystemType).length;
     const couplingCount = slideCount + ptoSlideCount;
     const frontsWithHandle = elements.filter(e => (e.type === 'front' || e.type === 'drawer') && elementHasHandle(e));
+    const tipOnFrontCount  = elements.filter(e => e.type === 'front' && !e.noHandle && !!e.tipOn).length;
     const legCount      = elements.filter(e => e.type === 'leg').length * 4;
 
     // Costs
@@ -407,6 +409,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     }
     const handleGroups      = Array.from(handleGroupMap.values());
     const costHandles       = handleGroups.reduce((s, g) => s + g.cost, 0);
+    const costTipOnFronts   = tipOnFrontCount * PRICE_TIPON_FRONT;
     const costLegs          = legCount      * PRICE_LEG;
     const costDrawerSystems = drawerSystemGroups.reduce((s, g) => s + g.cost, 0);
 
@@ -434,7 +437,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
       costCutKorpus + costCutObicie + costCutHdf + costCutCountertop +
       costEdgeSvcKorpus + costEdgeSvcObicie +
       costOkleinaK + costOkleinaO +
-      costRods + costHinges + costSlides + costPtoSlides + costTipOn + costCouplings + costHandles + costLegs + costDrawerSystems + costCountertops;
+      costRods + costHinges + costSlides + costPtoSlides + costTipOn + costCouplings + costHandles + costTipOnFronts + costLegs + costDrawerSystems + costCountertops;
 
     return {
       hasUnknownFinish:
@@ -447,14 +450,14 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
       totalKorpusCut, totalObicieCut, totalHdfCut,
       totalKorpusEdge, totalObicieEdge,
       hdfAreaByFinish, plytaAreaByFinish,
-      rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, legCount,
+      rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, tipOnFrontCount, legCount,
       drawerSystemGroups, countertopGroups,
       costKorpus, costObicie, costHdf,
       totalCountertopCut,
       costCutKorpus, costCutObicie, costCutHdf, costCutCountertop,
       costEdgeSvcKorpus, costEdgeSvcObicie,
       costOkleinaK, costOkleinaO,
-      costRods, costHinges, costSlides, costPtoSlides, costTipOn, costCouplings, costHandles, costLegs,
+      costRods, costHinges, costSlides, costPtoSlides, costTipOn, costCouplings, costHandles, costTipOnFronts, costLegs,
       costDrawerSystems, costCountertops,
       grandTotal,
     };
@@ -539,19 +542,20 @@ const CountertopGroupedSections: React.FC<{ panels: GroupedPanel[]; countertops:
 
 const AdditionalSection: React.FC<{
   rodCount: number; hingeCount: number; slideCount: number; ptoSlideCount: number;
-  couplingCount: number; handleGroups: Array<{ label: string; count: number; warning?: boolean }>; legCount: number;
+  couplingCount: number; handleGroups: Array<{ label: string; count: number; warning?: boolean }>; tipOnFrontCount: number; legCount: number;
   drawerSystemGroups: Array<{ label: string; count: number; unitPrice: number }>;
-}> = ({ rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, legCount, drawerSystemGroups }) => {
+}> = ({ rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, tipOnFrontCount, legCount, drawerSystemGroups }) => {
   const items: Array<{ name: string; qty: number; note?: string; warning?: boolean }> = [];
-  if (rodCount > 0)       items.push({ name: 'Drążki',              qty: rodCount });
-  if (hingeCount > 0)     items.push({ name: 'Zawiasy',             qty: hingeCount,    note: 'na drzwi (wg wysokości drzwi)' });
-  if (slideCount > 0)     items.push({ name: 'Prowadnice przesuwne', qty: slideCount,   note: '1 zestaw na szufladę' });
-  if (ptoSlideCount > 0)  items.push({ name: 'Prowadnice push to open', qty: ptoSlideCount, note: '1 zestaw na szufladę' });
-  if (ptoSlideCount > 0)  items.push({ name: 'TIP-ON BLUMOTION', qty: ptoSlideCount, note: '1 na szufladę' });
-  if (couplingCount > 0)  items.push({ name: 'Sprzęgła',            qty: couplingCount, note: '1 zestaw na szufladę' });
+  if (rodCount > 0)         items.push({ name: 'Drążki',              qty: rodCount });
+  if (hingeCount > 0)       items.push({ name: 'Zawiasy',             qty: hingeCount,       note: 'na drzwi (wg wysokości drzwi)' });
+  if (slideCount > 0)       items.push({ name: 'Prowadnice przesuwne', qty: slideCount,      note: '1 zestaw na szufladę' });
+  if (ptoSlideCount > 0)    items.push({ name: 'Prowadnice push to open', qty: ptoSlideCount, note: '1 zestaw na szufladę' });
+  if (ptoSlideCount > 0)    items.push({ name: 'TIP-ON BLUMOTION', qty: ptoSlideCount,       note: '1 na szufladę' });
+  if (couplingCount > 0)    items.push({ name: 'Sprzęgła',            qty: couplingCount,    note: '1 zestaw na szufladę' });
   for (const g of drawerSystemGroups) items.push({ name: `Szuflada ${g.label}`, qty: g.count, note: `${g.unitPrice.toFixed(2)} zł/szt.` });
   for (const g of handleGroups) items.push({ name: g.label, qty: g.count, note: '1 na drzwi', warning: g.warning });
-  if (legCount > 0)       items.push({ name: 'Nóżki',               qty: legCount,      note: '4 na box' });
+  if (tipOnFrontCount > 0)  items.push({ name: 'Tip-On',      qty: tipOnFrontCount,  note: '1 na front' });
+  if (legCount > 0)         items.push({ name: 'Nóżki',               qty: legCount,         note: '4 na box' });
 
   return (
     <div className="om-section">
@@ -584,6 +588,7 @@ const SummaryTab: React.FC<{ data: ReturnType<typeof useOrderData>; finishes: Fi
       ptoSlideCount={data.ptoSlideCount}
       couplingCount={data.couplingCount}
       handleGroups={data.handleGroups}
+      tipOnFrontCount={data.tipOnFrontCount}
       legCount={data.legCount}
       drawerSystemGroups={data.drawerSystemGroups}
     />
@@ -735,7 +740,7 @@ const CostTab: React.FC<{
 }> = ({ data, fin, setFin, finishes, hdfFinishes }) => {
   const hardwareSubtotal =
     data.costRods + data.costHinges + data.costSlides + data.costPtoSlides + data.costTipOn +
-    data.costCouplings + data.costHandles + data.costLegs + data.costDrawerSystems;
+    data.costCouplings + data.costHandles + data.costTipOnFronts + data.costLegs + data.costDrawerSystems;
   return (
     <div className="om-tab-content">
       <FinishCostSection title="Płyta" areaByFinish={data.plytaAreaByFinish} subtotal={data.costKorpus + data.costObicie}
@@ -773,6 +778,7 @@ const CostTab: React.FC<{
         {data.couplingCount > 0 && <CostRow label="Sprzęgła"               qty={data.couplingCount} unit="szt." price={PRICE_COUPLING} cost={data.costCouplings} />}
         {data.drawerSystemGroups.map(g => <CostRow key={g.id} label={`Szuflada ${g.label}`} qty={g.count} unit="szt." price={g.unitPrice} cost={g.cost} />)}
         {data.handleGroups.map(g => <CostRow key={g.id} label={g.label} qty={g.count} unit="szt." price={g.unitPrice} cost={g.cost} warning={g.warning} />)}
+        {data.tipOnFrontCount > 0 && <CostRow label="Tip-On" qty={data.tipOnFrontCount} unit="szt." price={PRICE_TIPON_FRONT} cost={data.costTipOnFronts} />}
         {data.legCount > 0     && <CostRow label="Nóżki"               qty={data.legCount}      unit="szt." price={PRICE_LEG}      cost={data.costLegs} />}
         {hardwareSubtotal === 0 && <div className="om-empty-row">brak</div>}
       </CostSection>
@@ -830,6 +836,7 @@ function generatePdf(data: ReturnType<typeof useOrderData>, finishes: FinishOpti
   if (data.couplingCount > 0)  addonRows.push(['Sprzęgła',                 `${data.couplingCount} szt.`, '1 zestaw na szufladę']);
   for (const g of data.drawerSystemGroups) addonRows.push([`Szuflada ${g.label}`, `${g.count} szt.`, `${g.unitPrice.toFixed(2)} zł/szt.`]);
   for (const g of data.handleGroups) addonRows.push([g.label, `${g.count} szt.`, '1 na drzwi']);
+  if (data.tipOnFrontCount > 0) addonRows.push(['Tip-On',           `${data.tipOnFrontCount} szt.`, '1 na front']);
   if (data.legCount > 0)       addonRows.push(['Nóżki',                    `${data.legCount} szt.`,      '4 na box']);
   for (const g of data.countertopGroups) addonRows.push([`Blat: ${g.label}`, `${g.sqm.toFixed(2)} m²`, `${g.unitPrice.toFixed(2)} zł/m²`]);
 

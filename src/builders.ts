@@ -14,6 +14,7 @@ const CARGO_WHITE_MAT  = new THREE.MeshStandardMaterial({ color: new THREE.Color
 const CARGO_DARK_MAT   = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x3a3a3a), roughness: 0.4, metalness: 0.7 });
 
 export function elementHasHandle(e: BoxElement): boolean {
+  if (e.tipOn) return false;
   if (e.type === 'drawer') return e.noHandle === false;
   return !e.noHandle;
 }

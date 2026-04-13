@@ -1253,6 +1253,10 @@ export function useElementActions({
     setElements((prev) => prev.map((e) => e.id === frontId ? { ...e, noHandle: value } : e));
   }, [setElements]);
 
+  const handleFrontTipOnChange = useCallback((frontId: string, value: boolean) => {
+    setElements((prev) => prev.map((e) => e.id === frontId ? { ...e, tipOn: value } : e));
+  }, [setElements]);
+
   const handleShelfSwitchBay = useCallback((shelfId: string) => {
     setElements((prev) => {
       const shelf = prev.find((e) => e.id === shelfId);
@@ -1445,6 +1449,7 @@ export function useElementActions({
     handleMaskownicaNiepelnaChange,
     handleStretchWithLegsChange,
     handleFrontNoHandleChange,
+    handleFrontTipOnChange,
     handleShelfSwitchBay,
     handleDividerSwitchSlot,
     handleRotateCabinet,

@@ -167,6 +167,7 @@ const App: React.FC = () => {
     handleMaskownicaNiepelnaChange,
     handleStretchWithLegsChange,
     handleFrontNoHandleChange,
+    handleFrontTipOnChange,
     handleShelfSwitchBay,
     handleDividerSwitchSlot,
     handleRotateCabinet,
@@ -349,6 +350,7 @@ const App: React.FC = () => {
           onMaskownicaNiepelnaChange={(v) => selectedElement && handleMaskownicaNiepelnaChange(selectedElement.id, v)}
           onStretchWithLegsChange={(v) => selectedElement && handleStretchWithLegsChange(selectedElement.id, v)}
           onFrontNoHandleChange={(v) => selectedElement && handleFrontNoHandleChange(selectedElement.id, v)}
+          onFrontTipOnChange={(v) => selectedElement && handleFrontTipOnChange(selectedElement.id, v)}
           onShelfSwitchBay={handleShelfSwitchBay}
           onDividerSwitchSlot={handleDividerSwitchSlot}
           onRotate={(id) => handleRotateCabinet(id)}

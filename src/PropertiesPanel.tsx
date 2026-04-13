@@ -30,6 +30,7 @@ interface Props {
   onMaskownicaNiepelnaChange?: (v: boolean) => void;
   onStretchWithLegsChange?: (v: boolean) => void;
   onFrontNoHandleChange?: (v: boolean) => void;
+  onFrontTipOnChange?: (v: boolean) => void;
   onRotate?: (id: string) => void;
   onFinishChange?: (id: string, finishId: string | undefined) => void;
   onDrawerFrontFinishChange?: (id: string, finishId: string | undefined) => void;
@@ -48,7 +49,7 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerExternalFrontChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerExternalFrontChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onFrontTipOnChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange }) => {
   const [finishOpen, setFinishOpen] = useState(false);
   const [handleOpen, setHandleOpen] = useState(false);
   const [frontFinishOpen, setFrontFinishOpen] = useState(false);
@@ -379,19 +380,24 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
         </>
       )}
 
-      {element.type === 'front' && onFrontNoHandleChange && (
+      {element.type === 'front' && onFrontNoHandleChange && onFrontTipOnChange && (
         <>
           <div className="prop-front-state">
-            <span className="prop-label" style={{ color: '#c0c0e0' }}>Uchwyt</span>
-            <label className="prop-toggle">
-              <input
-                type="checkbox"
-                checked={!element.noHandle}
-                onChange={(e) => onFrontNoHandleChange(!e.target.checked)}
-              />
-              <span className="prop-toggle-track" />
-              <span className="prop-toggle-text">{element.noHandle ? 'brak' : 'tak'}</span>
-            </label>
+            <span className="prop-label" style={{ color: '#c0c0e0' }}>Otwieranie</span>
+            <select
+              className="prop-select"
+              value={element.noHandle ? 'brak' : element.tipOn ? 'tipon' : 'uchwyt'}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === 'brak')   { onFrontNoHandleChange(true);  onFrontTipOnChange(false); }
+                if (v === 'uchwyt') { onFrontNoHandleChange(false); onFrontTipOnChange(false); }
+                if (v === 'tipon')  { onFrontNoHandleChange(false); onFrontTipOnChange(true);  }
+              }}
+            >
+              <option value="brak">brak</option>
+              <option value="uchwyt">uchwyt</option>
+              <option value="tipon">tip-on</option>
+            </select>
           </div>
           <div className="prop-divider" />
         </>
@@ -786,7 +792,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
       )}
       {element.type === 'drawer' && element.noHandle === false && renderHandleSelector(element.handleId, element.id)}
 
-      {element.type === 'front' && !element.noHandle && renderHandleSelector(element.handleId, element.id)}
+      {element.type === 'front' && !element.noHandle && !element.tipOn && renderHandleSelector(element.handleId, element.id)}
 
       {element.type === 'cargo' && cargoOptions && cargoOptions.length > 0 && onCargoIdChange && (
         <>
