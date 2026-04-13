@@ -12,6 +12,7 @@ import {
   maskownicaCounter,
   groupCounter,
   countertopCounter,
+  cargoCounter,
 } from './factories';
 
 export const counters = {
@@ -28,4 +29,5 @@ export const counters = {
   maskowanica: maskownicaCounter,
   group: groupCounter,
   countertop: countertopCounter,
+  cargo: cargoCounter,
 };

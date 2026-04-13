@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { BoxElement } from './types';
+import type { BoxElement, CargoOption } from './types';
 import './ElementLibrary.css';
 
 interface CatalogItem {
@@ -140,6 +140,8 @@ interface Props {
   onAddRearboardToCabinet: (cabinetId: string) => void;
   onAddCountertopToCabinet: (cabinetId: string, thicknessMm?: number, countertopId?: string) => void;
   onAddCountertopToGroup: (groupId: string, thicknessMm?: number, countertopId?: string) => void;
+  onAddCargoToBox: (boxId: string, cargoOption: CargoOption) => void;
+  cargoOptions: CargoOption[];
   onUngroup: (groupId: string) => void;
   onDelete: (id: string) => void;
   onClearAll: () => void;
@@ -169,6 +171,7 @@ const ElementLibrary: React.FC<Props> = ({
   onAddMaskowanicaToCabinet, onAddMaskowanicaToGroup,
   onAddRearboardToCabinet,
   onAddCountertopToCabinet, onAddCountertopToGroup,
+  onAddCargoToBox, cargoOptions,
   onUngroup, onDelete, onClearAll,
 }) => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -496,6 +499,37 @@ const ElementLibrary: React.FC<Props> = ({
                 <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj nóżki</span>
               </li>
             )}
+            {/* Cargo */}
+            {(() => {
+              const cargoEl = children.find((c) => c.type === 'cargo');
+              if (cargoEl) {
+                return (
+                  <li
+                    className={`element-item element-item--child ${cargoEl.id === selectedId ? 'selected' : ''}`}
+                    onClick={() => onSelect(cargoEl.id)}
+                  >
+                    <span className="element-indent-line" />
+                    <span className="element-color" style={{ background: cargoEl.color }} />
+                    <span className="element-name">{cargoEl.name}</span>
+                    <button
+                      className="btn-delete"
+                      onClick={(ev) => { ev.stopPropagation(); onDelete(cargoEl.id); }}
+                      title="Usuń"
+                    >✕</button>
+                  </li>
+                );
+              }
+              if (cargoOptions.length > 0) {
+                return (
+                  <li className="element-item element-item--add" onClick={() => onAddCargoToBox(cab.id, cargoOptions[0])}>
+                    <span className="element-indent-line" />
+                    <span className="element-add-icon">＋</span>
+                    <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cargo</span>
+                  </li>
+                );
+              }
+              return null;
+            })()}
             {/* Blat */}
             <li className="element-item element-item--section">
               <span className="element-section-line" />
@@ -607,6 +641,37 @@ const ElementLibrary: React.FC<Props> = ({
                 <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj nóżki</span>
               </li>
             )}
+            {/* Cargo */}
+            {(() => {
+              const cargoEl = children.find((c) => c.type === 'cargo');
+              if (cargoEl) {
+                return (
+                  <li
+                    className={`element-item element-item--child ${cargoEl.id === selectedId ? 'selected' : ''}`}
+                    onClick={() => onSelect(cargoEl.id)}
+                  >
+                    <span className="element-indent-line" />
+                    <span className="element-color" style={{ background: cargoEl.color }} />
+                    <span className="element-name">{cargoEl.name}</span>
+                    <button
+                      className="btn-delete"
+                      onClick={(ev) => { ev.stopPropagation(); onDelete(cargoEl.id); }}
+                      title="Usuń"
+                    >✕</button>
+                  </li>
+                );
+              }
+              if (cargoOptions.length > 0) {
+                return (
+                  <li className="element-item element-item--add" onClick={() => onAddCargoToBox(box.id, cargoOptions[0])}>
+                    <span className="element-indent-line" />
+                    <span className="element-add-icon">＋</span>
+                    <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cargo</span>
+                  </li>
+                );
+              }
+              return null;
+            })()}
             {/* Blat */}
             <li className="element-item element-item--section">
               <span className="element-section-line" />

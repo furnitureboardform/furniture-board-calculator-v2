@@ -6,6 +6,7 @@ import { useFinishes } from './hooks/useFinishes';
 import { useHandles } from './hooks/useHandles';
 import { useDrawerSystems } from './hooks/useDrawerSystems';
 import { useCountertops } from './hooks/useCountertops';
+import { useCargo } from './hooks/useCargo';
 import { useHistory } from './hooks/useHistory';
 import { useDragHandlers } from './hooks/useDragHandlers';
 import { useElementActions } from './hooks/useElementActions';
@@ -38,6 +39,7 @@ const App: React.FC = () => {
   const handles = useHandles();
   const drawerSystems = useDrawerSystems();
   const countertops = useCountertops();
+  const cargoOptions = useCargo();
   const finishColorMap = useMemo(() => new Map([...finishes, ...hdfFinishes].filter(f => f.colorHex).map(f => [f.id, f.colorHex!])), [finishes, hdfFinishes]);
   const defaultHdfFinishId = useMemo(() => (hdfFinishes.find(f => f.label === DEFAULT_HDF_FINISH_LABEL) ?? hdfFinishes[0])?.id, [hdfFinishes]);
   const countertopColorMap = useMemo(() => new Map(countertops.filter(c => c.colorHex).map(c => [c.id, c.colorHex!])), [countertops]);
@@ -170,6 +172,8 @@ const App: React.FC = () => {
     handleRotateCabinet,
     handleAddCountertopToCabinet,
     handleAddCountertopToGroup,
+    handleAddCargoToBox,
+    handleCargoIdChange,
     handleClearAll,
   } = useElementActions({ setElements, setSelectedId, setMultiSelectedIds, boardSizeRef, dividerYHintRef, dragDeltaRef, detachedFromRef, finishColorMap, defaultHdfFinishId, drawerSystems });
 
@@ -282,6 +286,8 @@ const App: React.FC = () => {
           onAddRearboardToCabinet={handleAddRearboardToCabinet}
           onAddCountertopToCabinet={handleAddCountertopToCabinet}
           onAddCountertopToGroup={handleAddCountertopToGroup}
+          onAddCargoToBox={handleAddCargoToBox}
+          cargoOptions={cargoOptions}
           onUngroup={handleUngroup}
           onDelete={handleDelete}
           onClearAll={handleClearAll}
@@ -353,6 +359,8 @@ const App: React.FC = () => {
           drawerSystems={drawerSystems}
           countertops={countertops}
           onCountertopTypeChange={handleCountertopTypeChange}
+          cargoOptions={cargoOptions}
+          onCargoIdChange={handleCargoIdChange}
         />
       </aside>
     </div>

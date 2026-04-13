@@ -19,12 +19,20 @@ export interface DrawerSystemOption {
   price: number;
 }
 
+export interface CargoOption {
+  id: string;
+  label: string;
+  widthMm: number;
+  heightMm: number;
+  depthMm: number;
+}
+
 export const DRAWER_SYSTEM_FRONT_EXTRA = 0.030;
 
 export interface BoxElement {
   id: string;
   name: string;
-  type: 'cabinet' | 'shelf' | 'board' | 'drawer' | 'drawerbox' | 'divider' | 'front' | 'rod' | 'leg' | 'hdf' | 'rearboard' | 'blenda' | 'plinth' | 'group' | 'maskowanica' | 'boxkuchenny' | 'countertop';
+  type: 'cabinet' | 'shelf' | 'board' | 'drawer' | 'drawerbox' | 'divider' | 'front' | 'rod' | 'leg' | 'hdf' | 'rearboard' | 'blenda' | 'plinth' | 'group' | 'maskowanica' | 'boxkuchenny' | 'countertop' | 'cargo';
   cabinetId?: string; // if set, element is locked inside this cabinet (or group for groupFront)
   groupIds?: string[];  // for cabinets: which groups they belong to (a cabinet can belong to multiple groups)
   frontSide?: 'left' | 'right'; // only for double-door fronts
@@ -51,6 +59,7 @@ export interface BoxElement {
   frontFinishId?: string;       // only for drawer: separate finish for the front face panel
   handleId?: string;            // optional: selected handle type from Firebase (for fronts)
   countertopId?: string;        // optional: selected countertop type from Firebase (for countertop elements)
+  cargoId?: string;             // optional: selected cargo from Firebase (for boxkuchenny/szafkadolna)
   dimensions: BoxDimensions;
   position: { x: number; y: number; z: number };
   color: string;

@@ -333,6 +333,58 @@ export function rebuildCountertop(parent: THREE.Mesh, element: BoxElement, color
   parent.add(panel);
 }
 
+export function rebuildCargo(parent: THREE.Mesh, element: BoxElement, _color: THREE.Color, _emissive: THREE.Color) {
+  clearChildren(parent);
+  const { width, height, depth } = element.dimensions;
+
+  const metalMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(0xcccccc), roughness: 0.3, metalness: 0.7, side: THREE.DoubleSide });
+  const wireMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(0xaaaaaa), roughness: 0.4, metalness: 0.6, side: THREE.DoubleSide });
+
+  const addPanel = (w: number, h: number, d: number, px: number, py: number, pz: number, mat: THREE.MeshStandardMaterial) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    mesh.position.set(px, py, pz);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.userData = { elementId: element.id };
+    parent.add(mesh);
+  };
+
+  // Vertical metal rails (4 corners)
+  const railW = 0.010;
+  const railD = 0.010;
+  const railMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(0xbbbbbb), roughness: 0.3, metalness: 0.8 });
+  const railXL = -width / 2 + railW / 2 + 0.005;
+  const railXR =  width / 2 - railW / 2 - 0.005;
+  const railZF =  depth / 2 - railD / 2 - 0.010;
+  const railZB = -depth / 2 + railD / 2 + 0.010;
+  addPanel(railW, height, railD, railXL, 0, railZF, railMat);
+  addPanel(railW, height, railD, railXR, 0, railZF, railMat);
+  addPanel(railW, height, railD, railXL, 0, railZB, railMat);
+  addPanel(railW, height, railD, railXR, 0, railZB, railMat);
+
+  // Wire baskets — 3 evenly spaced
+  const basketCount = 3;
+  const basketH = 0.030;
+  const basketDepth = depth - 0.040;
+  const basketWidth = width - 0.020;
+  const slotH = height / basketCount;
+  for (let i = 0; i < basketCount; i++) {
+    const centerY = -height / 2 + slotH * i + slotH * 0.20;
+    const wireR = 0.003;
+    addPanel(basketWidth, wireR, wireR, 0, centerY, basketDepth / 2, wireMat);
+    addPanel(basketWidth, wireR, wireR, 0, centerY, -basketDepth / 2, wireMat);
+    addPanel(wireR, wireR, basketDepth, -basketWidth / 2, centerY, 0, wireMat);
+    addPanel(wireR, wireR, basketDepth,  basketWidth / 2, centerY, 0, wireMat);
+    // front face bar
+    addPanel(basketWidth, basketH, wireR * 2, 0, centerY + basketH / 2, basketDepth / 2 + wireR, metalMat);
+    // cross-wires
+    for (let j = 1; j <= 3; j++) {
+      const wz = -basketDepth / 2 + (basketDepth / 4) * j;
+      addPanel(wireR, wireR, wireR, -basketWidth / 2 + basketWidth * (j / 4), centerY, wz, wireMat);
+    }
+  }
+}
+
 export function rebuildLeg(parent: THREE.Mesh, element: BoxElement, _color: THREE.Color, _emissive: THREE.Color) {
   clearChildren(parent);
   const { width, height, depth } = element.dimensions;

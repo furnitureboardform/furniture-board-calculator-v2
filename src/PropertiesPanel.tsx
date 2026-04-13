@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { BoxElement, BoxDimensions, DrawerSystemOption } from './types';
+import type { BoxElement, BoxDimensions, DrawerSystemOption, CargoOption } from './types';
 import { DRAWER_SYSTEM_FRONT_EXTRA } from './types';
 import type { FinishOption } from './hooks/useFinishes';
 import type { HandleOption } from './hooks/useHandles';
@@ -38,6 +38,8 @@ interface Props {
   drawerSystems?: DrawerSystemOption[];
   countertops?: CountertopOption[];
   onCountertopTypeChange?: (id: string, countertopId: string | undefined) => void;
+  cargoOptions?: CargoOption[];
+  onCargoIdChange?: (cargoElId: string, cargoOption: CargoOption) => void;
 }
 
 type DimKey = keyof BoxDimensions;
@@ -46,7 +48,7 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerExternalFrontChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerExternalFrontChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange }) => {
   const [finishOpen, setFinishOpen] = useState(false);
   const [handleOpen, setHandleOpen] = useState(false);
   const [frontFinishOpen, setFrontFinishOpen] = useState(false);
@@ -785,6 +787,27 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
       {element.type === 'drawer' && element.noHandle === false && renderHandleSelector(element.handleId, element.id)}
 
       {element.type === 'front' && !element.noHandle && renderHandleSelector(element.handleId, element.id)}
+
+      {element.type === 'cargo' && cargoOptions && cargoOptions.length > 0 && onCargoIdChange && (
+        <>
+          <div className="prop-divider" />
+          <div className="prop-finish-section">
+            <span className="prop-label">Model cargo</span>
+            <select
+              className="prop-cargo-select"
+              value={element.cargoId ?? ''}
+              onChange={(e) => {
+                const opt = cargoOptions.find((c) => c.id === e.target.value);
+                if (opt) onCargoIdChange(element.id, opt);
+              }}
+            >
+              {cargoOptions.map((c) => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+        </>
+      )}
 
     </div>
   );

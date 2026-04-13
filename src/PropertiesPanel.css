@@ -272,6 +272,17 @@
   background: #1a3a5a;
 }
 
+.prop-cargo-select {
+  width: 100%;
+  background: #1e2a3a;
+  color: #c8d0e0;
+  border: 1px solid #3a4a5a;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
 /* Finish/veneer selector */
 .prop-finish-section {
   display: flex;

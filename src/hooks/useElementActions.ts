@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type React from 'react';
-import type { BoxElement, DrawerSystemOption } from '../types';
+import type { BoxElement, DrawerSystemOption, CargoOption } from '../types';
 import { DRAWER_SYSTEM_FRONT_EXTRA } from '../types';
 import { PANEL_T, DRAWER_RAIL_CLEARANCE, FRONT_INSET, DEFAULT_COUNTERTOP_THICKNESS_MM } from '../constants';
 import { HDF_GRAY } from '../builders';
@@ -1357,6 +1357,59 @@ export function useElementActions({
     });
   }, [setElements, setSelectedId]);
 
+  const handleAddCargoToBox = useCallback((boxId: string, cargoOption: CargoOption) => {
+    setElements((prev) => {
+      const box = prev.find((e) => e.id === boxId);
+      if (!box) return prev;
+      if (prev.some((e) => e.type === 'cargo' && e.cabinetId === boxId)) return prev;
+      const w = cargoOption.widthMm / 1000;
+      const h = cargoOption.heightMm / 1000;
+      const d = cargoOption.depthMm / 1000;
+      const cargo: BoxElement = {
+        id: crypto.randomUUID(),
+        name: `Cargo ${counters.cargo++}`,
+        type: 'cargo',
+        cabinetId: boxId,
+        cargoId: cargoOption.id,
+        dimensions: { width: w, height: h, depth: d },
+        position: {
+          x: box.position.x,
+          y: box.position.y + PANEL_T,
+          z: box.position.z,
+        },
+        color: box.color,
+        finishId: box.finishId,
+      };
+      setSelectedId(boxId);
+      return [...prev, cargo];
+    });
+  }, [setElements, setSelectedId]);
+
+  const handleCargoIdChange = useCallback((cargoElId: string, newCargoOption: CargoOption) => {
+    setElements((prev) => {
+      const el = prev.find((e) => e.id === cargoElId);
+      if (!el || el.type !== 'cargo' || !el.cabinetId) return prev;
+      const box = prev.find((e) => e.id === el.cabinetId);
+      if (!box) return prev;
+      const w = newCargoOption.widthMm / 1000;
+      const h = newCargoOption.heightMm / 1000;
+      const d = newCargoOption.depthMm / 1000;
+      return prev.map((e) => e.id === cargoElId
+        ? {
+          ...e,
+          cargoId: newCargoOption.id,
+          dimensions: { width: w, height: h, depth: d },
+          position: {
+            x: box.position.x,
+            y: box.position.y + PANEL_T,
+            z: box.position.z,
+          },
+        }
+        : e
+      );
+    });
+  }, [setElements]);
+
   const handleClearAll = useCallback(() => {
     dividerYHintRef.current.clear();
     dragDeltaRef.current.clear();
@@ -1410,6 +1463,8 @@ export function useElementActions({
     handleRotateCabinet,
     handleAddCountertopToCabinet,
     handleAddCountertopToGroup,
+    handleAddCargoToBox,
+    handleCargoIdChange,
     handleClearAll,
   };
 }

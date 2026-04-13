@@ -10,6 +10,7 @@ import {
   computeFrontForCabinet,
   computeMaskowanicaForCabinet,
   computeCountertopForCabinet,
+  computeCargoForParent,
   recomputeGroups,
 } from '../computeElements';
 import {
@@ -289,6 +290,7 @@ export function useDragHandlers({
               if (el.type === 'leg') return computeLegsForCabinet(el, fitted);
               if (el.type === 'maskowanica') return computeMaskowanicaForCabinet(el, fitted, withFitted);
               if (el.type === 'countertop') return computeCountertopForCabinet(el, fitted);
+              if (el.type === 'cargo') return computeCargoForParent(el, fitted);
               return { ...el, position: { x: el.position.x + adx, y: el.position.y + ady, z: el.position.z + adz } };
             }));
           }
@@ -314,6 +316,7 @@ export function useDragHandlers({
           if (el.type === 'plinth') return computePlinthForCabinet(el, movedFinal2, withCollision);
           if (el.type === 'maskowanica') return computeMaskowanicaForCabinet(el, movedFinal2, withCollision);
           if (el.type === 'countertop') return computeCountertopForCabinet(el, movedFinal2);
+          if (el.type === 'cargo') return computeCargoForParent(el, movedFinal2);
           return { ...el, position: { x: el.position.x + adx, y: el.position.y + ady, z: el.position.z + adz } };
         }));
       });
@@ -540,6 +543,7 @@ export function useDragHandlers({
           if (el.type === 'plinth') return computePlinthForCabinet(el, parent, updated);
           if (el.type === 'maskowanica') return computeMaskowanicaForCabinet(el, parent, updated);
           if (el.type === 'countertop') return computeCountertopForCabinet(el, parent);
+          if (el.type === 'cargo') return computeCargoForParent(el, parent);
           return { ...el, position: { ...el.position, x: el.position.x + cdx, z: el.position.z + cdz } };
         });
         return recomputeGroups(updated);

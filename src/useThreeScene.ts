@@ -18,6 +18,7 @@ import {
   rebuildMaskowanica,
   rebuildBoxKuchenny,
   rebuildCountertop,
+  rebuildCargo,
 } from './builders';
 
 interface UseThreeSceneOptions {
@@ -245,6 +246,7 @@ export function useThreeScene(
       else if (element.type === 'maskowanica') rebuildMaskowanica(mesh, element, color, emissive);
       else if (element.type === 'boxkuchenny') rebuildBoxKuchenny(mesh, element, color, emissive);
       else if (element.type === 'countertop') rebuildCountertop(mesh, element, color, emissive);
+      else if (element.type === 'cargo') rebuildCargo(mesh, element, color, emissive);
       else rebuildPanels(mesh, element, color, emissive);
     },
     []
