@@ -84,6 +84,8 @@ export function useDragHandlers({
                 ? roomH - el.position.y
                 : el.position.y + oldVal;
             }
+          }
+          if (!el.cabinetId || el.type === 'countertop') {
             maxAllowed = Math.min(maxAllowed, computeStretchCollisionMax(el, axis, dir, prev));
           }
 

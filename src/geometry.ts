@@ -294,7 +294,7 @@ export function switchDividerToNextSlot(divider: BoxElement, allElements: BoxEle
   };
 }
 
-const STRETCH_BLOCKER_TYPES = new Set<BoxElement['type']>(['cabinet', 'shelf', 'board', 'boxkuchenny']);
+const STRETCH_BLOCKER_TYPES = new Set<BoxElement['type']>(['cabinet', 'shelf', 'board', 'boxkuchenny', 'countertop']);
 
 /**
  * Returns the maximum allowed dimension when stretching `el` along `axis` in direction `dir`,
@@ -309,11 +309,13 @@ export function computeStretchCollisionMax(
 ): number {
   let max = Infinity;
   const EPS = 0.001;
+  const groupIds = new Set<string>(elements.filter((e) => e.type === 'group').map((e) => e.id));
 
   for (const other of elements) {
     if (other.id === el.id) continue;
     const isMaskowanica = other.type === 'maskowanica';
-    if (other.cabinetId && !isMaskowanica) continue;
+    const isGroupCountertop = other.type === 'countertop' && other.cabinetId != null && groupIds.has(other.cabinetId);
+    if (other.cabinetId && !isMaskowanica && !isGroupCountertop) continue;
     if (!isMaskowanica && !STRETCH_BLOCKER_TYPES.has(other.type)) continue;
 
     if (axis === 'width') {

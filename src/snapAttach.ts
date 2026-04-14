@@ -168,8 +168,14 @@ export function snapToNeighbors(box: BoxElement, allElements: BoxElement[]): { x
   return { x, z };
 }
 
-const MOVE_BLOCKER_TYPES = new Set<BoxElement['type']>(['cabinet', 'shelf', 'board', 'boxkuchenny']);
-const SOLID_CHILD_TYPES = new Set<BoxElement['type']>(['maskowanica', 'blenda', 'plinth']);
+const MOVE_BLOCKER_TYPES = new Set<BoxElement['type']>(['cabinet', 'shelf', 'board', 'boxkuchenny', 'countertop']);
+const SOLID_CHILD_TYPES = new Set<BoxElement['type']>(['maskowanica', 'blenda', 'plinth', 'countertop']);
+
+function isBoundChild(el: BoxElement, groupIds: Set<string>): boolean {
+  if (!el.cabinetId) return false;
+  if (el.type === 'countertop' && groupIds.has(el.cabinetId)) return false;
+  return true;
+}
 
 /** Returns the effective AABB of el including its solid children (maskowanica, blenda, plinth). */
 function getBlockerAABB(
@@ -208,10 +214,11 @@ export function clampYToCollisions(
 ): number {
   const elHW = ehw(el);
   const elHD = ehd(el);
+  const groupIds = new Set<string>(allElements.filter((e) => e.type === 'group').map((e) => e.id));
 
   for (const other of allElements) {
     if (other.id === el.id) continue;
-    if (other.cabinetId) continue;
+    if (isBoundChild(other, groupIds)) continue;
     if (!MOVE_BLOCKER_TYPES.has(other.type)) continue;
 
     const aabb = getBlockerAABB(other, allElements);
@@ -243,10 +250,11 @@ export function pushOutCollisions(box: BoxElement, allElements: BoxElement[]): {
   const hd = ehd(box);
   const boxMinY = box.position.y;
   const boxMaxY = box.position.y + box.dimensions.height;
+  const groupIds = new Set<string>(allElements.filter((e) => e.type === 'group').map((e) => e.id));
 
   for (const other of allElements) {
     if (other.id === box.id) continue;
-    if (other.cabinetId) continue;
+    if (isBoundChild(other, groupIds)) continue;
     if (!MOVE_BLOCKER_TYPES.has(other.type)) continue;
 
     const aabb = getBlockerAABB(other, allElements);
@@ -262,7 +270,7 @@ export function pushOutCollisions(box: BoxElement, allElements: BoxElement[]): {
     const overlapZ = (hd + otherHD) - Math.abs(z - otherCZ);
     if (overlapX <= 0 || overlapZ <= 0) continue;
 
-    if (overlapX > STACK_OVERLAP && overlapZ > STACK_OVERLAP) continue;
+    if (other.type !== 'countertop' && overlapX > STACK_OVERLAP && overlapZ > STACK_OVERLAP) continue;
 
     if (overlapX <= overlapZ) {
       x += overlapX * (x >= otherCX ? 1 : -1);
