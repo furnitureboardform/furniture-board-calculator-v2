@@ -55,9 +55,11 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
   const [handleOpen, setHandleOpen] = useState(false);
   const [frontFinishOpen, setFrontFinishOpen] = useState(false);
   const [drawerTypeOpen, setDrawerTypeOpen] = useState(false);
+  const [cargoOpen, setCargoOpen] = useState(false);
   const finishRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
   const frontFinishRef = useRef<HTMLDivElement>(null);
+  const cargoRef = useRef<HTMLDivElement>(null);
   // Local draft strings so the user can type freely
   const [drafts, setDrafts] = useState<Record<DimKey, string>>({ width: '', height: '', depth: '' });
   const [yDraft, setYDraft] = useState('');
@@ -74,6 +76,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
     setHandleOpen(false);
     setFrontFinishOpen(false);
     setDrawerTypeOpen(false);
+    setCargoOpen(false);
     setDrafts({
       width: toMm(element.dimensions.width),
       height: toMm(element.dimensions.height),
@@ -105,6 +108,10 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
       </div>
     );
   }
+
+  const cargoParentBox = element.type === 'cargo' ? elements?.find((e) => e.id === element.cabinetId) : undefined;
+  const cargoInternalH = cargoParentBox ? Math.round((cargoParentBox.dimensions.height - 2 * PANEL_T) * 1000) : null;
+  const selCargo = element.type === 'cargo' ? cargoOptions?.find((c) => c.id === element.cargoId) : undefined;
 
   const getCommonHandleId = (parentId: string) => {
     const fronts = elements?.filter((e) => e.type === 'front' && e.cabinetId === parentId) ?? [];
@@ -818,18 +825,41 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
           <div className="prop-divider" />
           <div className="prop-finish-section">
             <span className="prop-label">Model cargo</span>
-            <select
-              className="prop-cargo-select"
-              value={element.cargoId ?? ''}
-              onChange={(e) => {
-                const opt = cargoOptions.find((c) => c.id === e.target.value);
-                if (opt) onCargoIdChange(element.id, opt);
-              }}
+            <div
+              className="prop-finish-dropdown"
+              ref={cargoRef}
+              tabIndex={0}
+              onBlur={(e) => { if (!cargoRef.current?.contains(e.relatedTarget as Node)) setCargoOpen(false); }}
             >
-              {cargoOptions.map((c) => (
-                <option key={c.id} value={c.id}>{c.label}</option>
-              ))}
-            </select>
+              <button
+                className="prop-finish-trigger"
+                onClick={() => setCargoOpen((o) => !o)}
+              >
+                <span className="prop-finish-trigger-label">{selCargo?.label ?? '—'}</span>
+                <span className="prop-finish-arrow">{cargoOpen ? '▲' : '▼'}</span>
+              </button>
+              {cargoOpen && (
+                <ul className="prop-finish-list prop-cargo-list">
+                  {cargoOptions.map((c) => {
+                    const fits = cargoInternalH === null || (cargoInternalH >= c.heightFromMm && cargoInternalH <= c.heightToMm);
+                    return (
+                      <li
+                        key={c.id}
+                        className={`prop-finish-item${element.cargoId === c.id ? ' prop-finish-item--active' : ''}${!fits ? ' prop-cargo-item--disabled' : ''}`}
+                        data-tooltip={fits ? undefined : `Cargo nie pasuje do tej szafki (wys. wewnętrzna: ${cargoInternalH}mm, wymagane: ${c.heightFromMm}–${c.heightToMm}mm)`}
+                        onClick={() => {
+                          if (!fits) return;
+                          onCargoIdChange(element.id, c);
+                          setCargoOpen(false);
+                        }}
+                      >
+                        {c.label}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
           </div>
         </>
       )}

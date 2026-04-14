@@ -272,15 +272,40 @@
   background: #1a3a5a;
 }
 
-.prop-cargo-select {
-  width: 100%;
-  background: #1e2a3a;
-  color: #c8d0e0;
-  border: 1px solid #3a4a5a;
+.prop-finish-list.prop-cargo-list {
+  overflow: visible;
+}
+
+.prop-finish-item.prop-cargo-item--disabled,
+.prop-finish-item.prop-cargo-item--disabled:hover {
+  cursor: not-allowed;
+  color: #606878;
+  background: transparent;
+  position: relative;
+}
+
+.prop-cargo-item--disabled[data-tooltip]::after {
+  content: attr(data-tooltip);
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  z-index: 9999;
+  background: #1e1e2e;
+  color: #ffffff;
+  border: 1px solid #3a3a4a;
   border-radius: 4px;
   padding: 5px 8px;
-  font-size: 12px;
-  cursor: pointer;
+  font-size: 11px;
+  max-width: 250px;
+  width: max-content;
+  white-space: normal;
+  pointer-events: none;
+  line-height: 1.4;
+}
+
+.prop-cargo-item--disabled[data-tooltip]:hover::after {
+  display: block;
 }
 
 /* Finish/veneer selector */
