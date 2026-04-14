@@ -13,6 +13,10 @@ import {
 import { db } from '../lib/firebase';
 import type { BoardSize, BoxElement } from '../types';
 
+function stripUndefined<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj));
+}
+
 export interface SavedModel {
   id: string;
   name: string;
@@ -48,10 +52,9 @@ export function useSavedModels() {
   }, []);
 
   const saveModel = async (name: string, elements: BoxElement[], boardSize?: BoardSize) => {
+    const payload = stripUndefined({ name, elements, boardSize });
     const docRef = await addDoc(collection(db, 'models'), {
-      name,
-      elements,
-      boardSize,
+      ...payload,
       createdAt: serverTimestamp(),
     });
     const newModel: SavedModel = { id: docRef.id, name, createdAt: new Date(), elements, boardSize };
@@ -65,7 +68,8 @@ export function useSavedModels() {
   };
 
   const overwriteModel = async (id: string, elements: BoxElement[], boardSize?: BoardSize) => {
-    await setDoc(doc(db, 'models', id), { elements, boardSize }, { merge: true });
+    const payload = stripUndefined({ elements, boardSize });
+    await setDoc(doc(db, 'models', id), payload, { merge: true });
     setSavedModels((prev) =>
       prev.map((m) => (m.id === id ? { ...m, elements, boardSize } : m))
     );

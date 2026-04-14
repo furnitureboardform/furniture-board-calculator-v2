@@ -1257,6 +1257,10 @@ export function useElementActions({
     setElements((prev) => prev.map((e) => e.id === frontId ? { ...e, tipOn: value } : e));
   }, [setElements]);
 
+  const handleFrontWysowChange = useCallback((frontId: string, value: boolean) => {
+    setElements((prev) => prev.map((e) => e.id === frontId ? { ...e, wysow: value } : e));
+  }, [setElements]);
+
   const handleFrontLoweredChange = useCallback((frontId: string, value: boolean) => {
     setElements((prev) => {
       const front = prev.find((e) => e.id === frontId);
@@ -1463,6 +1467,7 @@ export function useElementActions({
     handleStretchWithLegsChange,
     handleFrontNoHandleChange,
     handleFrontTipOnChange,
+    handleFrontWysowChange,
     handleFrontLoweredChange,
     handleShelfSwitchBay,
     handleDividerSwitchSlot,

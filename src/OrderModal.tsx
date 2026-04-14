@@ -378,12 +378,12 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
 
     // Hardware counts (system drawers excluded — their slides are included in the system)
     const rodCount      = elements.filter(e => e.type === 'rod').length;
-    const hingeCount    = elements.filter(e => e.type === 'front').reduce((s, e) => s + hingesForFront(e), 0);
+    const hingeCount    = elements.filter(e => e.type === 'front' && !e.wysow).reduce((s, e) => s + hingesForFront(e), 0);
     const slideCount    = elements.filter(e => e.type === 'drawer' && !e.pushToOpen && !e.drawerSystemType).length;
     const ptoSlideCount = elements.filter(e => e.type === 'drawer' && !!e.pushToOpen && !e.drawerSystemType).length;
     const couplingCount = slideCount + ptoSlideCount;
     const frontsWithHandle = elements.filter(e => (e.type === 'front' || e.type === 'drawer') && elementHasHandle(e));
-    const tipOnFrontCount  = elements.filter(e => e.type === 'front' && !e.noHandle && !!e.tipOn).length;
+    const tipOnFrontCount  = elements.filter(e => e.type === 'front' && !e.wysow && !e.noHandle && !!e.tipOn).length;
     const legCount      = elements.filter(e => e.type === 'leg').length * 4;
 
     // Costs

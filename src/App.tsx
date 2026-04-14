@@ -168,6 +168,7 @@ const App: React.FC = () => {
     handleStretchWithLegsChange,
     handleFrontNoHandleChange,
     handleFrontTipOnChange,
+    handleFrontWysowChange,
     handleFrontLoweredChange,
     handleShelfSwitchBay,
     handleDividerSwitchSlot,
@@ -352,6 +353,7 @@ const App: React.FC = () => {
           onStretchWithLegsChange={(v) => selectedElement && handleStretchWithLegsChange(selectedElement.id, v)}
           onFrontNoHandleChange={(v) => selectedElement && handleFrontNoHandleChange(selectedElement.id, v)}
           onFrontTipOnChange={(v) => selectedElement && handleFrontTipOnChange(selectedElement.id, v)}
+          onFrontWysowChange={(v) => selectedElement && handleFrontWysowChange(selectedElement.id, v)}
           onFrontLoweredChange={(v) => selectedElement && handleFrontLoweredChange(selectedElement.id, v)}
           onShelfSwitchBay={handleShelfSwitchBay}
           onDividerSwitchSlot={handleDividerSwitchSlot}
