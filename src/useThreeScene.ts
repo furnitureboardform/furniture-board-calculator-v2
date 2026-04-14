@@ -623,14 +623,20 @@ export function useThreeScene(
           let delta = 0;
           if (entry.axis === 'height') {
             delta = (-dy / container.clientHeight) * 5 * entry.dir;
-          } else if (entry.axis === 'width') {
-            delta = (dx / container.clientWidth) * 5 * entry.dir;
           } else {
-            // depth: project world Z direction to screen space, use dot product with mouse movement
+            // Project the actual world direction of the axis (accounting for element rotation) to screen space
+            const el = optionsRef.current.elements.find((e) => e.id === entry.elementId);
+            const rotRad = (el?.rotationY ?? 0) * Math.PI / 180;
+            const cosR = Math.round(Math.cos(rotRad));
+            const sinR = Math.round(Math.sin(rotRad));
+            // THREE.js rot.y: local +X → world (cosR,0,-sinR), local +Z → world (sinR,0,cosR)
+            const worldDir = entry.axis === 'width'
+              ? new THREE.Vector3(cosR, 0, -sinR)
+              : new THREE.Vector3(sinR, 0, cosR);
             const origin = new THREE.Vector3(0, 0, 0).project(camera);
-            const zTip = new THREE.Vector3(0, 0, 1).project(camera);
-            const sdx = zTip.x - origin.x;
-            const sdy = zTip.y - origin.y;
+            const tip = worldDir.project(camera);
+            const sdx = tip.x - origin.x;
+            const sdy = tip.y - origin.y;
             const len = Math.sqrt(sdx * sdx + sdy * sdy);
             if (len > 0) {
               const mdx = (dx / container.clientWidth) * 2;

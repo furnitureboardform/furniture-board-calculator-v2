@@ -57,28 +57,37 @@ export function useDragHandlers({
 }: Params) {
   const handleDimensionDrag = useCallback(
     (id: string, axis: 'width' | 'height' | 'depth', delta: number, dir: number) => {
-      const posAxis: Record<'width' | 'height' | 'depth', 'x' | 'y' | 'z'> = {
-        width: 'x',
-        height: 'y',
-        depth: 'z',
-      };
       setElementsRaw((prev) => {
         const updated = prev.map((el) => {
           if (el.id !== id) return el;
           if (el.drawerSystemType) return el;
           const oldVal = el.dimensions[axis];
-          const pa = posAxis[axis];
+          const rotRad = (el.rotationY ?? 0) * Math.PI / 180;
+          const cosR = Math.round(Math.cos(rotRad));
+          const sinR = Math.round(Math.sin(rotRad));
 
           let maxAllowed = Infinity;
           if (!el.cabinetId) {
             const { width: bwMm, depth: bdMm, height: bhMm } = boardSizeRef.current;
             const bw = bwMm / 1000; const bd = bdMm / 1000; const roomH = bhMm / 1000;
             if (axis === 'width') {
-              const fixedEdge = el.position.x - dir * oldVal / 2;
-              maxAllowed = dir > 0 ? (bw / 2 - fixedEdge) : (fixedEdge + bw / 2);
+              // THREE.js rot.y: local +X → world (cosR, 0, -sinR)
+              if (cosR !== 0) {
+                const fixedEdge = el.position.x - dir * cosR * oldVal / 2;
+                maxAllowed = dir * cosR > 0 ? (bw / 2 - fixedEdge) : (fixedEdge + bw / 2);
+              } else {
+                const fixedEdge = el.position.z + dir * sinR * oldVal / 2;
+                maxAllowed = dir * sinR > 0 ? (fixedEdge + bd / 2) : (bd / 2 - fixedEdge);
+              }
             } else if (axis === 'depth') {
-              const fixedEdge = el.position.z - dir * oldVal / 2;
-              maxAllowed = dir > 0 ? (bd / 2 - fixedEdge) : (fixedEdge + bd / 2);
+              // THREE.js rot.y: local +Z → world (sinR, 0, cosR)
+              if (sinR !== 0) {
+                const fixedEdge = el.position.x - dir * sinR * oldVal / 2;
+                maxAllowed = dir * sinR > 0 ? (bw / 2 - fixedEdge) : (fixedEdge + bw / 2);
+              } else {
+                const fixedEdge = el.position.z - dir * cosR * oldVal / 2;
+                maxAllowed = dir * cosR > 0 ? (bd / 2 - fixedEdge) : (fixedEdge + bd / 2);
+              }
             } else if (axis === 'height') {
               maxAllowed = dir > 0
                 ? roomH - el.position.y
@@ -91,17 +100,25 @@ export function useDragHandlers({
 
           const newVal = Math.max(0.1, Math.min(maxAllowed, oldVal + delta));
           const actualDelta = newVal - oldVal;
-          const newPosVal = axis === 'height'
-            ? (dir > 0 ? el.position.y : el.position.y + oldVal - newVal)
-            : el.position[pa] + actualDelta / 2 * dir;
+          const newPos = { ...el.position };
+          if (axis === 'height') {
+            newPos.y = dir > 0 ? el.position.y : el.position.y + oldVal - newVal;
+          } else if (axis === 'width') {
+            newPos.x = el.position.x + actualDelta / 2 * dir * cosR;
+            newPos.z = el.position.z - actualDelta / 2 * dir * sinR;
+          } else {
+            newPos.x = el.position.x + actualDelta / 2 * dir * sinR;
+            newPos.z = el.position.z + actualDelta / 2 * dir * cosR;
+          }
           const withDelta = {
             ...el,
             dimensions: { ...el.dimensions, [axis]: newVal },
-            position: { ...el.position, [pa]: newPosVal },
+            position: newPos,
           };
           if (el.type === 'shelf' && (axis === 'width' || axis === 'depth')) {
             const snap = snapShelfEdgeToCabinet(withDelta, axis, dir, prev);
             if (snap) {
+              const pa = axis === 'width' ? 'x' : 'z';
               return {
                 ...withDelta,
                 dimensions: { ...withDelta.dimensions, [axis]: snap.dim },
