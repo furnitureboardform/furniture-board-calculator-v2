@@ -111,6 +111,8 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
 
   const cargoParentBox = element.type === 'cargo' ? elements?.find((e) => e.id === element.cabinetId) : undefined;
   const cargoInternalH = cargoParentBox ? Math.round((cargoParentBox.dimensions.height - 2 * PANEL_T) * 1000) : null;
+  const cargoInternalW = cargoParentBox ? Math.round((cargoParentBox.dimensions.width - 2 * PANEL_T) * 1000) : null;
+  const cargoBoxDepth = cargoParentBox ? Math.round(cargoParentBox.dimensions.depth * 1000) : null;
   const selCargo = element.type === 'cargo' ? cargoOptions?.find((c) => c.id === element.cargoId) : undefined;
 
   const getCommonHandleId = (parentId: string) => {
@@ -841,12 +843,19 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
               {cargoOpen && (
                 <ul className="prop-finish-list prop-cargo-list">
                   {cargoOptions.map((c) => {
-                    const fits = cargoInternalH === null || (cargoInternalH >= c.heightFromMm && cargoInternalH <= c.heightToMm);
+                    const fitsH = cargoInternalH === null || (cargoInternalH >= c.heightFromMm && cargoInternalH <= c.heightToMm);
+                    const fitsD = cargoBoxDepth === null || cargoBoxDepth >= c.depthMm;
+                    const fitsW = cargoInternalW === null || cargoInternalW >= c.widthMm + 10;
+                    const fits = fitsH && fitsD && fitsW;
+                    const reasons: string[] = [];
+                    if (!fitsH) reasons.push(`wys. wewnętrzna: ${cargoInternalH}mm, wymagana: ${c.heightFromMm}–${c.heightToMm}mm`);
+                    if (!fitsD) reasons.push(`głębokość szafki: ${cargoBoxDepth}mm, wymagana: min. ${c.depthMm}mm`);
+                    if (!fitsW) reasons.push(`szer. wewnętrzna: ${cargoInternalW}mm, wymagana: min. ${c.widthMm + 10}mm`);
                     return (
                       <li
                         key={c.id}
                         className={`prop-finish-item${element.cargoId === c.id ? ' prop-finish-item--active' : ''}${!fits ? ' prop-cargo-item--disabled' : ''}`}
-                        data-tooltip={fits ? undefined : `Cargo nie pasuje do tej szafki (wys. wewnętrzna: ${cargoInternalH}mm, wymagane: ${c.heightFromMm}–${c.heightToMm}mm)`}
+                        data-tooltip={fits ? undefined : `Cargo nie pasuje do tej szafki (${reasons.join('; ')})`}
                         onClick={() => {
                           if (!fits) return;
                           onCargoIdChange(element.id, c);
