@@ -312,7 +312,7 @@ const App: React.FC = () => {
           rulerDistance={rulerDistance}
           onToggleRuler={toggleRuler}
         />
-        <OrderModal elements={elements} handles={handles} drawerSystems={drawerSystems} countertops={countertops} />
+        <OrderModal elements={elements} handles={handles} drawerSystems={drawerSystems} countertops={countertops} cargoOptions={cargoOptions} />
         <div className="undo-redo-fab">
           <button
             className="undo-redo-btn"

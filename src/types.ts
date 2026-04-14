@@ -27,6 +27,7 @@ export interface CargoOption {
   depthMm: number;
   heightFromMm: number;
   heightToMm: number;
+  pricePln?: number;
 }
 
 export const DRAWER_SYSTEM_FRONT_EXTRA = 0.030;

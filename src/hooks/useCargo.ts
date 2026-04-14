@@ -19,6 +19,7 @@ export function useCargo() {
             depthMm: Number(raw.depthMm ?? 0),
             heightFromMm: Number(raw.heightFromMm ?? 0),
             heightToMm: Number(raw.heightToMm ?? 9999),
+            pricePln: raw.pricePln !== undefined ? Number(raw.pricePln) : undefined,
           } as CargoOption;
         }));
       })
