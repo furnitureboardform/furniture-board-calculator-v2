@@ -536,21 +536,19 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
         return (
           <>
             <div className="prop-divider" />
-            {!isSystem && (
-              <div className="prop-front-state">
-                <span className="prop-label" style={{ color: '#c0c0e0' }}>Dostosuj front</span>
-                <label className="prop-toggle">
-                  <input
-                    type="checkbox"
-                    checked={!!element.adjustedFrontHeight}
-                    onChange={(e) => onDrawerAdjustFrontChange(e.target.checked)}
-                  />
-                  <span className="prop-toggle-track" />
-                  <span className="prop-toggle-text">{element.adjustedFrontHeight ? 'tak' : 'nie'}</span>
-                </label>
-              </div>
-            )}
-            {(isSystem || !element.adjustedFrontHeight) && (
+            <div className="prop-front-state">
+              <span className="prop-label" style={{ color: '#c0c0e0' }}>Dostosuj front</span>
+              <label className="prop-toggle">
+                <input
+                  type="checkbox"
+                  checked={!!element.adjustedFrontHeight}
+                  onChange={(e) => onDrawerAdjustFrontChange(e.target.checked)}
+                />
+                <span className="prop-toggle-track" />
+                <span className="prop-toggle-text">{element.adjustedFrontHeight ? 'tak' : 'nie'}</span>
+              </label>
+            </div>
+            {(!isSystem || element.adjustedFrontHeight) && (
               <div className="prop-row">
                 <label className="prop-label" style={{ color: '#44ff44' }}>Wys. frontu</label>
                 <input

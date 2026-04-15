@@ -15,5 +15,6 @@ export const DRAWER_RAIL_CLEARANCE = 0.0125; // 12.5 mm clearance per side for d
 export const DRAWER_BOX_REAR_OFFSET = 0.024; // 24 mm rear offset for drawer box bottom panel
 export const DEFAULT_COUNTERTOP_THICKNESS_MM = 38; // default blat thickness when veneer is unknown
 export const DEFAULT_HDF_FINISH_LABEL = 'Biały Korpusowy 0110';
+export const BOX_OVERLAY_Y_OFFSET = 0.016; // 16 mm drop of overlay front face relative to box center
 
 export const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];

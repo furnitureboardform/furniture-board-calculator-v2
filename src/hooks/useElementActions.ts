@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import type React from 'react';
 import type { BoxElement, DrawerSystemOption, CargoOption } from '../types';
 import { DRAWER_SYSTEM_FRONT_EXTRA } from '../types';
-import { PANEL_T, DRAWER_RAIL_CLEARANCE, FRONT_INSET, DEFAULT_COUNTERTOP_THICKNESS_MM } from '../constants';
+import { PANEL_T, DRAWER_RAIL_CLEARANCE, FRONT_INSET, DEFAULT_COUNTERTOP_THICKNESS_MM, BOX_OVERLAY_Y_OFFSET } from '../constants';
 import { HDF_GRAY } from '../builders';
 import {
   computeHdfForCabinet,
@@ -1080,8 +1080,21 @@ export function useElementActions({
       if (!drawer || drawer.type !== 'drawer' || !drawer.cabinetId) return prev;
       const parent = prev.find((e) => e.id === drawer.cabinetId);
       if (!parent) return prev;
+      const isBoxOverlay = !!drawer.drawerSystemType && drawer.externalFront !== false;
       if (!adjust) {
-        return prev.map((e) => e.id === drawerId ? { ...e, adjustedFrontHeight: undefined } : e);
+        let resetWidth: number | undefined = drawer.adjustedFrontWidth;
+        if (isBoxOverlay) {
+          const cab = parent.type === 'cabinet' || parent.type === 'boxkuchenny' ? parent : prev.find((e) => e.id === parent.cabinetId);
+          const systemSpec = cab ? drawerSystems.find(s => s.id === drawer.drawerSystemType) : undefined;
+          resetWidth = cab && systemSpec ? boxDrawerLayout(false, cab, systemSpec).faceW : drawer.adjustedFrontWidth;
+        }
+        return prev.map((e) => e.id === drawerId ? { ...e, adjustedFrontHeight: undefined, adjustedFrontWidth: resetWidth } : e);
+      }
+      if (isBoxOverlay) {
+        return prev.map((e) => e.id === drawerId
+          ? { ...e, adjustedFrontHeight: parent.dimensions.height - 2 * FRONT_INSET, adjustedFrontWidth: parent.dimensions.width - 2 * FRONT_INSET }
+          : e
+        );
       }
       const GAP = 0.002;
       const bottomOffset = parent.type === 'drawerbox' ? (parent.hasBottomPanel ? PANEL_T : 0) : PANEL_T;

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { BoxElement } from './types';
-import { HDF_T, DRAWER_BOX_REAR_OFFSET } from './constants';
+import { HDF_T, DRAWER_BOX_REAR_OFFSET, BOX_OVERLAY_Y_OFFSET } from './constants';
 
 const PANEL_T = 0.018;
 export const HDF_GRAY = '#8a8a8a';
@@ -113,7 +113,8 @@ export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: TH
     addPanel(metalT, boxH, depth, (bottomW / 2 + metalT / 2), 0, 0, metalMat);
     addPanel(bottomW, t, bottomD, 0, -(boxH / 2 - t / 2), 0, woodMat);
     addPanel(backW, boxH, t, 0, 0, -(depth / 2 - t / 2), woodMat);
-    const faceY = (faceH - boxH) / 2;
+    const isOverlay = element.externalFront !== false;
+    const faceY = (faceH - boxH) / 2 - (isOverlay ? BOX_OVERLAY_Y_OFFSET : 0);
     addPanel(faceW, faceH, t, 0, faceY, depth / 2 + t / 2, frontMat);
 
     if (elementHasHandle(element)) {
