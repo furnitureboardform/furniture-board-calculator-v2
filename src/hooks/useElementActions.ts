@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import type React from 'react';
 import type { BoxElement, DrawerSystemOption, CargoOption } from '../types';
 import { DRAWER_SYSTEM_FRONT_EXTRA } from '../types';
-import { PANEL_T, DRAWER_RAIL_CLEARANCE, FRONT_INSET, DEFAULT_COUNTERTOP_THICKNESS_MM, BOX_OVERLAY_Y_OFFSET } from '../constants';
+import { PANEL_T, DRAWER_RAIL_CLEARANCE, FRONT_INSET, DEFAULT_COUNTERTOP_THICKNESS_MM } from '../constants';
 import { HDF_GRAY } from '../builders';
 import {
   computeHdfForCabinet,
