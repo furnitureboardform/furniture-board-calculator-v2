@@ -113,11 +113,12 @@ export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: TH
     addPanel(metalT, boxH, depth, (bottomW / 2 + metalT / 2), 0, 0, metalMat);
     addPanel(bottomW, t, bottomD, 0, -(boxH / 2 - t / 2), 0, woodMat);
     addPanel(backW, boxH, t, 0, 0, -(depth / 2 - t / 2), woodMat);
-    addPanel(faceW, faceH, t, 0, 0, depth / 2 + t / 2, frontMat);
+    const faceY = (faceH - boxH) / 2;
+    addPanel(faceW, faceH, t, 0, faceY, depth / 2 + t / 2, frontMat);
 
     if (elementHasHandle(element)) {
       const handleLength = Math.min(faceW * 0.4, 0.150);
-      addHandle(parent, new THREE.BoxGeometry(handleLength, 0.012, 0.012), 0, 0, depth / 2 + t + 0.007, element.id);
+      addHandle(parent, new THREE.BoxGeometry(handleLength, 0.012, 0.012), 0, faceY, depth / 2 + t + 0.007, element.id);
     }
     return;
   }
