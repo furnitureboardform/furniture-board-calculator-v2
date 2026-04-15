@@ -28,13 +28,18 @@ function addHandle(parent: THREE.Mesh, geo: THREE.BoxGeometry, x: number, y: num
 }
 
 /** Remove non-handle children from a parent mesh, disposing geometry and material. */
+function disposeMesh(c: THREE.Object3D) {
+  if (c instanceof THREE.Mesh) {
+    c.geometry.dispose();
+    const mat = c.material as THREE.MeshStandardMaterial | THREE.MeshStandardMaterial[];
+    Array.isArray(mat) ? mat.forEach(m => m.dispose()) : mat.dispose();
+  }
+  c.children.slice().forEach(disposeMesh);
+}
+
 function clearChildren(parent: THREE.Mesh) {
   parent.children.slice().filter((c) => !c.userData.isHandle).forEach((c) => {
-    if (c instanceof THREE.Mesh) {
-      c.geometry.dispose();
-      const mat = c.material as THREE.MeshStandardMaterial | THREE.MeshStandardMaterial[];
-      Array.isArray(mat) ? mat.forEach(m => m.dispose()) : mat.dispose();
-    }
+    disposeMesh(c);
     parent.remove(c);
   });
 }
@@ -84,6 +89,11 @@ export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: TH
   clearChildren(parent);
   const { width, height, depth } = element.dimensions;
   const t = PANEL_T;
+  const openOffset = element.drawerOpen ? depth * 0.75 : 0;
+
+  const group = new THREE.Group();
+  group.userData = { elementId: element.id };
+  parent.add(group);
 
   if (element.drawerSystemType) {
     const boxH = height;
@@ -101,7 +111,7 @@ export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: TH
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       mesh.userData = { elementId: element.id };
-      parent.add(mesh);
+      group.add(mesh);
     };
     const woodMat = makeMat(color);
     const frontMat = makeMat(frontColor ?? color);
@@ -119,8 +129,9 @@ export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: TH
 
     if (elementHasHandle(element)) {
       const handleLength = Math.min(faceW * 0.4, 0.150);
-      addHandle(parent, new THREE.BoxGeometry(handleLength, 0.012, 0.012), 0, faceY, depth / 2 + t + 0.007, element.id);
+      addHandle(parent, new THREE.BoxGeometry(handleLength, 0.012, 0.012), 0, faceY, depth / 2 + t + 0.007 + openOffset, element.id);
     }
+    group.position.z = openOffset;
     return;
   }
 
@@ -142,7 +153,7 @@ export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: TH
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     mesh.userData = { elementId: element.id };
-    parent.add(mesh);
+    group.add(mesh);
   };
   const hdf = HDF_T;
   const bottomW = width - 0.004;
@@ -158,14 +169,19 @@ export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: TH
   addPanel(faceW, faceH, t, 0, faceY, depth / 2 + t / 2, frontColor);
   if (elementHasHandle(element)) {
     const handleLength = Math.min(faceW * 0.4, 0.150);
-    addHandle(parent, new THREE.BoxGeometry(handleLength, 0.012, 0.012), 0, faceY, depth / 2 + t + 0.007, element.id);
+    addHandle(parent, new THREE.BoxGeometry(handleLength, 0.012, 0.012), 0, faceY, depth / 2 + t + 0.007 + openOffset, element.id);
   }
+  group.position.z = openOffset;
 }
 
 export function rebuildDrawerbox(parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) {
   clearChildren(parent);
   const { width, height, depth } = element.dimensions;
   const t = PANEL_T;
+  const group = new THREE.Group();
+  group.userData = { elementId: element.id };
+  group.position.z = element.drawerOpen ? depth * 0.75 : 0;
+  parent.add(group);
   const makeMat = () => new THREE.MeshStandardMaterial({ color, emissive, roughness: 0.4, metalness: 0.05, side: THREE.DoubleSide });
   const addP = (w: number, h: number, d: number, px: number, py: number, pz: number) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), makeMat());
@@ -173,7 +189,7 @@ export function rebuildDrawerbox(parent: THREE.Mesh, element: BoxElement, color:
     m.castShadow = true;
     m.receiveShadow = true;
     m.userData = { elementId: element.id };
-    parent.add(m);
+    group.add(m);
   };
   addP(t, height, depth, -(width / 2 - t / 2), 0, 0);
   addP(t, height, depth, (width / 2 - t / 2), 0, 0);

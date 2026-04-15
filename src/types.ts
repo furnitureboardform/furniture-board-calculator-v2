@@ -66,6 +66,7 @@ export interface BoxElement {
   frontLowered?: boolean;       // only for fronts: lower front by 30mm and extend board height by 30mm
   countertopId?: string;        // optional: selected countertop type from Firebase (for countertop elements)
   cargoId?: string;             // optional: selected cargo from Firebase (for boxkuchenny/szafkadolna)
+  drawerOpen?: boolean;         // only for drawer/drawerbox: visually pull out in 3D view
   dimensions: BoxDimensions;
   position: { x: number; y: number; z: number };
   color: string;

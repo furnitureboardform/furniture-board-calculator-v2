@@ -24,6 +24,7 @@ interface Props {
   onDrawerAdjustFrontChange?: (adj: boolean) => void;
   onDrawerFrontHeightChange?: (h: number) => void;
   onDrawerPushToOpenChange?: (v: boolean) => void;
+  onDrawerOpenChange?: (v: boolean) => void;
   onDrawerExternalFrontChange?: (v: string) => void;
   onDrawerInsetChange?: (v: boolean) => void;
   onShelfSwitchBay?: (id: string) => void;
@@ -52,7 +53,7 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerExternalFrontChange, onDrawerInsetChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onFrontTipOnChange, onFrontWysowChange, onFrontLoweredChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerOpenChange, onDrawerExternalFrontChange, onDrawerInsetChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onFrontTipOnChange, onFrontWysowChange, onFrontLoweredChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange }) => {
   const [finishOpen, setFinishOpen] = useState(false);
   const [handleOpen, setHandleOpen] = useState(false);
   const [frontFinishOpen, setFrontFinishOpen] = useState(false);
@@ -604,6 +605,23 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
               />
               <span className="prop-toggle-track" />
               <span className="prop-toggle-text">{element.pushToOpen ? 'tak' : 'nie'}</span>
+            </label>
+          </div>
+        </>
+      )}
+      {(element.type === 'drawer' || element.type === 'drawerbox') && onDrawerOpenChange && (
+        <>
+          <div className="prop-divider" />
+          <div className="prop-front-state">
+            <span className="prop-label" style={{ color: '#c0c0e0' }}>Wysunięcie (3D)</span>
+            <label className="prop-toggle">
+              <input
+                type="checkbox"
+                checked={!!element.drawerOpen}
+                onChange={(e) => onDrawerOpenChange(e.target.checked)}
+              />
+              <span className="prop-toggle-track" />
+              <span className="prop-toggle-text">{element.drawerOpen ? 'otwarta' : 'zamknięta'}</span>
             </label>
           </div>
         </>

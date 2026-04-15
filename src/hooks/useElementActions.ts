@@ -1132,6 +1132,10 @@ export function useElementActions({
     setElements((prev) => prev.map((e) => e.id === drawerId ? { ...e, pushToOpen: value } : e));
   }, [setElements]);
 
+  const handleDrawerOpenChange = useCallback((drawerId: string, value: boolean) => {
+    setElements((prev) => prev.map((e) => e.id === drawerId ? { ...e, drawerOpen: value } : e));
+  }, [setElements]);
+
   const handleDrawerExternalFrontChange = useCallback((drawerId: string, value: string) => {
     setElements((prev) => {
       const drawer = prev.find((e) => e.id === drawerId);
@@ -1505,6 +1509,7 @@ export function useElementActions({
     handleDrawerAdjustFrontChange,
     handleDrawerFrontHeightChange,
     handleDrawerPushToOpenChange,
+    handleDrawerOpenChange,
     handleDrawerExternalFrontChange,
     handleDrawerInsetChange,
     handleMaskownicaNiepelnaChange,

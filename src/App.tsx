@@ -163,6 +163,7 @@ const App: React.FC = () => {
     handleDrawerAdjustFrontChange,
     handleDrawerFrontHeightChange,
     handleDrawerPushToOpenChange,
+    handleDrawerOpenChange,
     handleDrawerExternalFrontChange,
     handleDrawerInsetChange,
     handleMaskownicaNiepelnaChange,
@@ -349,6 +350,7 @@ const App: React.FC = () => {
           onDrawerAdjustFrontChange={(adj) => selectedElement && handleDrawerAdjustFrontChange(selectedElement.id, adj)}
           onDrawerFrontHeightChange={(h) => selectedElement && handleDrawerFrontHeightChange(selectedElement.id, h)}
           onDrawerPushToOpenChange={(v) => selectedElement && handleDrawerPushToOpenChange(selectedElement.id, v)}
+          onDrawerOpenChange={(v) => selectedElement && handleDrawerOpenChange(selectedElement.id, v)}
           onDrawerExternalFrontChange={(v) => selectedElement && handleDrawerExternalFrontChange(selectedElement.id, v)}
           onDrawerInsetChange={(v) => selectedElement && handleDrawerInsetChange(selectedElement.id, v)}
           onMaskownicaNiepelnaChange={(v) => selectedElement && handleMaskownicaNiepelnaChange(selectedElement.id, v)}
