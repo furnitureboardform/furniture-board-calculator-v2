@@ -53,7 +53,7 @@ export interface BoxElement {
   hasSidePanels?: boolean;  // only for drawerbox: whether side blenda panels are shown
   adjustedFrontWidth?: number;  // only for drawer: override outer front face width
   adjustedFrontHeight?: number; // only for drawer: auto-calculated height (Dostosuj front switch)
-  frontHeight?: number;         // only for drawer: manual front height override
+  frontHeight?: number;         // for drawer/drawerbox: manual front height override
   parentIsDrawerbox?: boolean;  // only for drawer: true when parent is a drawerbox
   externalFront?: boolean;      // only for drawer: when in normal cabinet, front flush with cabinet face and wider
   drawerSystemType?: string;    // only for drawer: key into DRAWER_SYSTEM_TYPES for system drawers (e.g. modernbox_pro_550_h86)

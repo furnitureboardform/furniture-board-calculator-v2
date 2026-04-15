@@ -90,6 +90,9 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
       const defaultFH = sysSpec ? Math.round((sysSpec.height + DRAWER_SYSTEM_FRONT_EXTRA) * 1000).toString() : '170';
       setFrontHeightDraft(element.adjustedFrontHeight ? toMm(element.adjustedFrontHeight) : element.frontHeight ? toMm(element.frontHeight) : defaultFH);
     }
+    if (element.type === 'drawerbox') {
+      setFrontHeightDraft(element.frontHeight ? toMm(element.frontHeight) : '170');
+    }
     if (element.type === 'divider') {
       const cab = getDividerCab();
       if (cab) {
@@ -525,9 +528,6 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
         </>
       )}
       {element.type === 'drawer' && element.cabinetId && onDrawerAdjustFrontChange && (() => {
-        const par = elements?.find((e) => e.id === element.cabinetId);
-        if (!par) return null;
-        const isSystem = !!element.drawerSystemType;
         const commitFrontHeight = () => {
           const m = fromMm(frontHeightDraft);
           if (isNaN(m) || m <= 0) { setFrontHeightDraft(element.adjustedFrontHeight ? toMm(element.adjustedFrontHeight) : ''); return; }
@@ -548,22 +548,46 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
                 <span className="prop-toggle-text">{element.adjustedFrontHeight ? 'tak' : 'nie'}</span>
               </label>
             </div>
-            {(!isSystem || element.adjustedFrontHeight) && (
-              <div className="prop-row">
-                <label className="prop-label" style={{ color: '#44ff44' }}>Wys. frontu</label>
-                <input
-                  className="prop-input"
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={frontHeightDraft}
-                  onChange={(e) => setFrontHeightDraft(e.target.value)}
-                  onBlur={commitFrontHeight}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { commitFrontHeight(); (e.target as HTMLInputElement).blur(); } }}
-                />
-                <span className="prop-unit">mm</span>
-              </div>
-            )}
+            <div className="prop-row">
+              <label className="prop-label" style={{ color: '#44ff44' }}>Wys. frontu</label>
+              <input
+                className="prop-input"
+                type="number"
+                min={1}
+                step={1}
+                value={frontHeightDraft}
+                onChange={(e) => setFrontHeightDraft(e.target.value)}
+                onBlur={commitFrontHeight}
+                onKeyDown={(e) => { if (e.key === 'Enter') { commitFrontHeight(); (e.target as HTMLInputElement).blur(); } }}
+              />
+              <span className="prop-unit">mm</span>
+            </div>
+          </>
+        );
+      })()}
+      {element.type === 'drawerbox' && onDrawerFrontHeightChange && (() => {
+        const commitFrontHeight = () => {
+          const m = fromMm(frontHeightDraft);
+          if (isNaN(m) || m <= 0) { setFrontHeightDraft(element.frontHeight ? toMm(element.frontHeight) : '170'); return; }
+          onDrawerFrontHeightChange(m);
+        };
+        return (
+          <>
+            <div className="prop-divider" />
+            <div className="prop-row">
+              <label className="prop-label" style={{ color: '#44ff44' }}>Wys. frontu</label>
+              <input
+                className="prop-input"
+                type="number"
+                min={1}
+                step={1}
+                value={frontHeightDraft}
+                onChange={(e) => setFrontHeightDraft(e.target.value)}
+                onBlur={commitFrontHeight}
+                onKeyDown={(e) => { if (e.key === 'Enter') { commitFrontHeight(); (e.target as HTMLInputElement).blur(); } }}
+              />
+              <span className="prop-unit">mm</span>
+            </div>
           </>
         );
       })()}

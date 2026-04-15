@@ -1121,7 +1121,11 @@ export function useElementActions({
   }, [setElements]);
 
   const handleDrawerFrontHeightChange = useCallback((drawerId: string, faceH: number) => {
-    setElements((prev) => prev.map((e) => e.id === drawerId ? { ...e, frontHeight: faceH } : e));
+    setElements((prev) => prev.map((e) => {
+      if (e.id === drawerId) return { ...e, frontHeight: faceH };
+      if (e.type === 'drawer' && e.cabinetId === drawerId) return { ...e, frontHeight: faceH };
+      return e;
+    }));
   }, [setElements]);
 
   const handleDrawerPushToOpenChange = useCallback((drawerId: string, value: boolean) => {
