@@ -855,7 +855,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
       )}
       {element.type === 'drawer' && element.noHandle === false && renderHandleSelector(element.handleId, element.id)}
 
-      {element.type === 'front' && !element.noHandle && !element.tipOn && renderHandleSelector(element.handleId, element.id)}
+      {element.type === 'front' && !element.tipOn && (!element.noHandle || element.wysow) && renderHandleSelector(element.handleId, element.id)}
 
       {element.type === 'cargo' && cargoOptions && cargoOptions.length > 0 && onCargoIdChange && (
         <>

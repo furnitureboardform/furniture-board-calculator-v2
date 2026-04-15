@@ -14,8 +14,8 @@ const CARGO_WHITE_MAT  = new THREE.MeshStandardMaterial({ color: new THREE.Color
 const CARGO_DARK_MAT   = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x3a3a3a), roughness: 0.4, metalness: 0.7 });
 
 export function elementHasHandle(e: BoxElement): boolean {
-  if (e.wysow) return false;
   if (e.tipOn) return false;
+  if (e.wysow) return true;
   if (e.type === 'drawer') return e.noHandle === false;
   return !e.noHandle;
 }
@@ -240,9 +240,14 @@ export function rebuildFront(parent: THREE.Mesh, element: BoxElement, color: THR
   parent.add(panel);
 
   if (elementHasHandle(element)) {
-    const handleLength = Math.min(height * 0.4, 0.128);
-    const handleX = element.frontSide === 'right' ? -(width / 2 - 0.05) : width / 2 - 0.05;
-    addHandle(parent, new THREE.BoxGeometry(0.012, handleLength, 0.012), handleX, 0, depth / 2 + 0.007, element.id);
+    if (element.wysow) {
+      const handleLength = Math.min(width * 0.4, 0.150);
+      addHandle(parent, new THREE.BoxGeometry(handleLength, 0.012, 0.012), 0, 0, depth / 2 + 0.007, element.id);
+    } else {
+      const handleLength = Math.min(height * 0.4, 0.128);
+      const handleX = element.frontSide === 'right' ? -(width / 2 - 0.05) : width / 2 - 0.05;
+      addHandle(parent, new THREE.BoxGeometry(0.012, handleLength, 0.012), handleX, 0, depth / 2 + 0.007, element.id);
+    }
   }
 }
 
