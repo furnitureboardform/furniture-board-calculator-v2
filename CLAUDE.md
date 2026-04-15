@@ -3,8 +3,7 @@
 React + TypeScript app for calculating furniture board cuts and generating order reports.
 
 ## Stack
-- React 18, TypeScript, Vite
-- Key files: `src/types.ts`, `src/App.tsx`, `src/builders.ts`, `src/computeElements.ts`
+React 18, TypeScript, Vite — logic in `src/builders.ts`, `src/computeElements.ts`, `src/factories.ts`; types in `src/types.ts`.
 
 ## Response Rules (follow strictly to minimize token usage)
 
@@ -20,6 +19,8 @@ React + TypeScript app for calculating furniture board cuts and generating order
 10. **Polish language** — respond in Polish unless code/commands require English.
 11. **No Co-Authored-By** — never add `Co-Authored-By: Claude` or any Claude/Anthropic attribution to commit messages.
 12. **Code review before commit/push** — before every `git commit` or `git push`, run the `simplify` skill to review changed code for quality issues, then fix any found problems before proceeding.
+13. **No TodoWrite for simple tasks** — skip TodoWrite when the task fits in 1–3 edits.
+14. **No inline explanations** — don't narrate what a code change does unless asked.
 
 ## Build Errors Policy
 - **Unused variables** — delete them; never suppress with eslint-disable or prefix with `_`.
