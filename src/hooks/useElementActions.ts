@@ -27,6 +27,17 @@ import { computeDividerBounds, computeYForBox, fitDrawerToBay, switchShelfToNext
 import { createBox, createBoxKuchenny, createShelf, createBoard, createSzafkaDolna } from '../factories';
 import { counters } from '../elementCounters';
 
+function boxDrawerLayout(isInset: boolean, cab: BoxElement, systemSpec: DrawerSystemOption) {
+  const faceW = isInset
+    ? Math.max(0.01, cab.dimensions.width - 2 * PANEL_T - 2 * FRONT_INSET)
+    : Math.max(0.001, cab.dimensions.width - 0.004);
+  const posZ = isInset
+    ? cab.position.z + cab.dimensions.depth / 2 - systemSpec.depth / 2 - PANEL_T
+    : cab.position.z + cab.dimensions.depth / 2 - systemSpec.depth / 2;
+  const frontH = isInset ? systemSpec.height : systemSpec.height + DRAWER_SYSTEM_FRONT_EXTRA;
+  return { faceW, posZ, frontH };
+}
+
 interface Params {
   setElements: React.Dispatch<React.SetStateAction<BoxElement[]>>;
   setSelectedId: React.Dispatch<React.SetStateAction<string | null>>;
@@ -1115,15 +1126,13 @@ export function useElementActions({
       const systemSpec = drawerSystems.find(s => s.id === value);
 
       if (systemSpec) {
-        const faceW = Math.max(0.001, cab.dimensions.width - 0.004);
+        const isInset = drawer.externalFront === false;
+        const { faceW, posZ, frontH } = boxDrawerLayout(isInset, cab, systemSpec);
         const innerW = Math.max(0.01, cab.dimensions.width - 2 * PANEL_T);
-        const posZ = cab.position.z + cab.dimensions.depth / 2 - systemSpec.depth / 2;
-        const frontH = systemSpec.height + DRAWER_SYSTEM_FRONT_EXTRA;
         return prev.map((e) => e.id === drawerId
           ? {
             ...drawer,
             drawerSystemType: value,
-            externalFront: true,
             adjustedFrontWidth: faceW,
             adjustedFrontHeight: undefined,
             frontHeight: frontH,
@@ -1170,6 +1179,23 @@ export function useElementActions({
       };
       const fitted = fitDrawerToBay(restored, prev);
       return prev.map((e) => e.id === drawerId ? fitted : e);
+    });
+  }, [setElements, drawerSystems]);
+
+  const handleDrawerInsetChange = useCallback((drawerId: string, isInset: boolean) => {
+    setElements((prev) => {
+      const drawer = prev.find((e) => e.id === drawerId);
+      if (!drawer || drawer.type !== 'drawer' || !drawer.cabinetId) return prev;
+      const cab = prev.find((e) => e.id === drawer.cabinetId);
+      if (!cab || (cab.type !== 'cabinet' && cab.type !== 'boxkuchenny')) return prev;
+      const systemSpec = drawerSystems.find(s => s.id === drawer.drawerSystemType);
+      if (!systemSpec) return prev;
+      if (drawer.externalFront === !isInset) return prev;
+      const { faceW, posZ, frontH } = boxDrawerLayout(isInset, cab, systemSpec);
+      return prev.map((e) => e.id === drawerId
+        ? { ...drawer, externalFront: !isInset, adjustedFrontWidth: faceW, frontHeight: frontH, position: { ...drawer.position, z: posZ } }
+        : e
+      );
     });
   }, [setElements, drawerSystems]);
 
@@ -1463,6 +1489,7 @@ export function useElementActions({
     handleDrawerFrontHeightChange,
     handleDrawerPushToOpenChange,
     handleDrawerExternalFrontChange,
+    handleDrawerInsetChange,
     handleMaskownicaNiepelnaChange,
     handleStretchWithLegsChange,
     handleFrontNoHandleChange,

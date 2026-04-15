@@ -25,6 +25,7 @@ interface Props {
   onDrawerFrontHeightChange?: (h: number) => void;
   onDrawerPushToOpenChange?: (v: boolean) => void;
   onDrawerExternalFrontChange?: (v: string) => void;
+  onDrawerInsetChange?: (v: boolean) => void;
   onShelfSwitchBay?: (id: string) => void;
   onDividerSwitchSlot?: (id: string) => void;
   onMaskownicaNiepelnaChange?: (v: boolean) => void;
@@ -51,7 +52,7 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerExternalFrontChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onFrontTipOnChange, onFrontWysowChange, onFrontLoweredChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerExternalFrontChange, onDrawerInsetChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onFrontTipOnChange, onFrontWysowChange, onFrontLoweredChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange }) => {
   const [finishOpen, setFinishOpen] = useState(false);
   const [handleOpen, setHandleOpen] = useState(false);
   const [frontFinishOpen, setFrontFinishOpen] = useState(false);
@@ -586,36 +587,62 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
         </>
       )}
       {element.type === 'drawer' && element.parentIsDrawerbox === false && onDrawerExternalFrontChange && (() => {
-        const drawerTypeValue = element.drawerSystemType ?? (element.externalFront ? 'nakladana' : 'wpuszczana');
-        const allOptions: { value: string; label: string }[] = [
-          { value: 'wpuszczana', label: 'Wpuszczana' },
-          { value: 'nakladana', label: 'Nakładana' },
-          ...(drawerSystems ?? []).map(s => ({ value: s.id, label: `${s.brand}: ${s.label}` })),
-        ];
-        const selectedLabel = allOptions.find(o => o.value === drawerTypeValue)?.label ?? '';
+        const isBox = !!element.drawerSystemType;
+        const isInset = !element.externalFront;
+        const selectedSystem = isBox ? (drawerSystems ?? []).find(s => s.id === element.drawerSystemType) : undefined;
+        const selectedSystemLabel = selectedSystem ? `${selectedSystem.brand}: ${selectedSystem.label}` : '';
         return (
           <>
             <div className="prop-divider" />
             <div className="prop-front-state" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 4 }}>
+              <span className="prop-label" style={{ color: '#c0c0e0' }}>Typ konstrukcji szuflady</span>
+              <div className="prop-drawer-toggle">
+                <button
+                  type="button"
+                  className={`prop-drawer-toggle-btn${!isBox ? ' prop-drawer-toggle-btn--active' : ''}`}
+                  onClick={() => { if (isBox) onDrawerExternalFrontChange(isInset ? 'wpuszczana' : 'nakladana'); }}
+                >Płyta</button>
+                <button
+                  type="button"
+                  className={`prop-drawer-toggle-btn${isBox ? ' prop-drawer-toggle-btn--active' : ''}`}
+                  onClick={() => { if (!isBox && drawerSystems && drawerSystems.length > 0) onDrawerExternalFrontChange(drawerSystems[0].id); }}
+                >Box</button>
+              </div>
+              {isBox && drawerSystems && drawerSystems.length > 0 && (
+                <div className="prop-dtype-dropdown" tabIndex={0} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDrawerTypeOpen(false); }}>
+                  <button type="button" className="prop-dtype-trigger" onClick={() => setDrawerTypeOpen(o => !o)}>
+                    <span className="prop-dtype-trigger-label">{selectedSystemLabel}</span>
+                    <span className="prop-finish-arrow">{drawerTypeOpen ? '▲' : '▼'}</span>
+                  </button>
+                  {drawerTypeOpen && (
+                    <ul className="prop-dtype-list">
+                      {drawerSystems.map(s => (
+                        <li
+                          key={s.id}
+                          className={`prop-dtype-item${s.id === element.drawerSystemType ? ' prop-dtype-item--active' : ''}`}
+                          onClick={() => { onDrawerExternalFrontChange(s.id); setDrawerTypeOpen(false); }}
+                        >
+                          {s.brand}: {s.label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="prop-front-state" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 4 }}>
               <span className="prop-label" style={{ color: '#c0c0e0' }}>Typ szuflady</span>
-              <div className="prop-dtype-dropdown" tabIndex={0} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDrawerTypeOpen(false); }}>
-                <button type="button" className="prop-dtype-trigger" onClick={() => setDrawerTypeOpen(o => !o)}>
-                  <span className="prop-dtype-trigger-label">{selectedLabel}</span>
-                  <span className="prop-finish-arrow">{drawerTypeOpen ? '▲' : '▼'}</span>
-                </button>
-                {drawerTypeOpen && (
-                  <ul className="prop-dtype-list">
-                    {allOptions.map(opt => (
-                      <li
-                        key={opt.value}
-                        className={`prop-dtype-item${opt.value === drawerTypeValue ? ' prop-dtype-item--active' : ''}`}
-                        onClick={() => { onDrawerExternalFrontChange(opt.value); setDrawerTypeOpen(false); }}
-                      >
-                        {opt.label}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+              <div className="prop-drawer-toggle">
+                <button
+                  type="button"
+                  className={`prop-drawer-toggle-btn${isInset ? ' prop-drawer-toggle-btn--active' : ''}`}
+                  onClick={() => { if (!isInset) { if (isBox) onDrawerInsetChange?.(true); else onDrawerExternalFrontChange('wpuszczana'); } }}
+                >Wpuszczana</button>
+                <button
+                  type="button"
+                  className={`prop-drawer-toggle-btn${!isInset ? ' prop-drawer-toggle-btn--active' : ''}`}
+                  onClick={() => { if (isInset) { if (isBox) onDrawerInsetChange?.(false); else onDrawerExternalFrontChange('nakladana'); } }}
+                >Nakładana</button>
               </div>
             </div>
           </>

@@ -272,6 +272,33 @@
   background: #1a3a5a;
 }
 
+.prop-drawer-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.prop-drawer-toggle-btn {
+  flex: 1;
+  padding: 5px 0;
+  background: #1e1e2e;
+  color: #888;
+  border: 1px solid #3a3a4a;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.prop-drawer-toggle-btn--active {
+  background: #1a3a5a;
+  color: #4ab4f8;
+  border-color: #1a8ad4;
+}
+
+.prop-drawer-toggle-btn:hover:not(.prop-drawer-toggle-btn--active) {
+  background: #2a2a3e;
+  color: #cccccc;
+}
+
 .prop-finish-list.prop-cargo-list {
   overflow: visible;
 }
