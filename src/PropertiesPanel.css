@@ -272,6 +272,37 @@
   background: #1a3a5a;
 }
 
+.prop-dtype-item--disabled,
+.prop-dtype-item--disabled:hover {
+  cursor: not-allowed;
+  color: #606878;
+  background: transparent;
+  position: relative;
+}
+
+.prop-dtype-item--disabled[data-tooltip]::after {
+  content: attr(data-tooltip);
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  z-index: 300;
+  background: #1e1e2e;
+  border: 1px solid #444;
+  color: #cccccc;
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  white-space: normal;
+  pointer-events: none;
+  line-height: 1.4;
+  min-width: 180px;
+}
+
+.prop-dtype-item--disabled[data-tooltip]:hover::after {
+  display: block;
+}
+
 .prop-drawer-toggle {
   display: flex;
   gap: 4px;

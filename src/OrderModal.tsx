@@ -5,7 +5,7 @@ import { useFinishes } from './hooks/useFinishes';
 import type { FinishOption } from './hooks/useFinishes';
 import type { HandleOption } from './hooks/useHandles';
 import type { CountertopOption } from './hooks/useCountertops';
-import { PANEL_T, HDF_T, DEFAULT_HDF_FINISH_LABEL } from './constants';
+import { PANEL_T, HDF_T, DEFAULT_HDF_FINISH_LABEL, DRAWER_BOX_REAR_OFFSET } from './constants';
 import { elementHasHandle } from './builders';
 import './OrderModal.css';
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -166,7 +166,7 @@ function getDrawerPanels(drawer: BoxElement): { korpus: PanelEntry[]; hdf: Panel
 
   if (drawer.drawerSystemType) {
     const bottomW = W - 0.042;
-    const bottomD = D - 0.024;
+    const bottomD = D - DRAWER_BOX_REAR_OFFSET;
     const backW = bottomW - 0.012;
     const faceW = drawer.adjustedFrontWidth ?? (W + 2 * T - 0.004);
     const faceH = drawer.adjustedFrontHeight ?? drawer.frontHeight ?? (H + 0.030);

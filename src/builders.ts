@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { BoxElement } from './types';
-import { HDF_T } from './constants';
+import { HDF_T, DRAWER_BOX_REAR_OFFSET } from './constants';
 
 const PANEL_T = 0.018;
 export const HDF_GRAY = '#8a8a8a';
@@ -90,7 +90,7 @@ export function rebuildDrawer(parent: THREE.Mesh, element: BoxElement, color: TH
     const faceW = element.adjustedFrontWidth ?? (width + 2 * t - 0.004);
     const faceH = element.adjustedFrontHeight ?? element.frontHeight ?? (boxH + 0.030);
     const bottomW = width - 0.042;
-    const bottomD = depth - 0.024;
+    const bottomD = depth - DRAWER_BOX_REAR_OFFSET;
     const backW = bottomW - 0.012;
 
     const makeMat = (c: THREE.Color, opts?: { metalness?: number; roughness?: number }) =>

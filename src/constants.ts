@@ -12,6 +12,7 @@ export const DIVIDER_DETACH_DIST = 1.00; // 1000 mm Z drag needed to detach divi
 export const HYSTERESIS_DIST = 0.15; // 150 mm before re-snap to same cabinet
 export const DIVIDER_EDGE_SNAP = 0.04; // 40 mm snap-to-edge distance for dividers
 export const DRAWER_RAIL_CLEARANCE = 0.0125; // 12.5 mm clearance per side for drawer slides
+export const DRAWER_BOX_REAR_OFFSET = 0.024; // 24 mm rear offset for drawer box bottom panel
 export const DEFAULT_COUNTERTOP_THICKNESS_MM = 38; // default blat thickness when veneer is unknown
 export const DEFAULT_HDF_FINISH_LABEL = 'Biały Korpusowy 0110';
 

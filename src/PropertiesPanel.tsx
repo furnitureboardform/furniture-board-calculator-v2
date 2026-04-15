@@ -4,7 +4,7 @@ import { DRAWER_SYSTEM_FRONT_EXTRA } from './types';
 import type { FinishOption } from './hooks/useFinishes';
 import type { HandleOption } from './hooks/useHandles';
 import type { CountertopOption } from './hooks/useCountertops';
-import { PANEL_T } from './constants';
+import { PANEL_T, DRAWER_BOX_REAR_OFFSET } from './constants';
 import './PropertiesPanel.css';
 
 interface Props {
@@ -591,6 +591,8 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
         const isInset = !element.externalFront;
         const selectedSystem = isBox ? (drawerSystems ?? []).find(s => s.id === element.drawerSystemType) : undefined;
         const selectedSystemLabel = selectedSystem ? `${selectedSystem.brand}: ${selectedSystem.label}` : '';
+        const drawerParent = element.cabinetId ? elements?.find((e) => e.id === element.cabinetId) : undefined;
+        const drawerBoxDepthMm = drawerParent ? Math.round((drawerParent.dimensions.depth - DRAWER_BOX_REAR_OFFSET) * 1000) : null;
         return (
           <>
             <div className="prop-divider" />
@@ -605,7 +607,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
                 <button
                   type="button"
                   className={`prop-drawer-toggle-btn${isBox ? ' prop-drawer-toggle-btn--active' : ''}`}
-                  onClick={() => { if (!isBox && drawerSystems && drawerSystems.length > 0) onDrawerExternalFrontChange(drawerSystems[0].id); }}
+                  onClick={() => { if (!isBox && drawerSystems && drawerSystems.length > 0) { const first = drawerSystems.find(s => drawerBoxDepthMm === null || Math.round(s.depth * 1000) <= drawerBoxDepthMm) ?? drawerSystems[0]; onDrawerExternalFrontChange(first.id); } }}
                 >Box</button>
               </div>
               {isBox && drawerSystems && drawerSystems.length > 0 && (
@@ -616,15 +618,20 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
                   </button>
                   {drawerTypeOpen && (
                     <ul className="prop-dtype-list">
-                      {drawerSystems.map(s => (
-                        <li
-                          key={s.id}
-                          className={`prop-dtype-item${s.id === element.drawerSystemType ? ' prop-dtype-item--active' : ''}`}
-                          onClick={() => { onDrawerExternalFrontChange(s.id); setDrawerTypeOpen(false); }}
-                        >
-                          {s.brand}: {s.label}
-                        </li>
-                      ))}
+                      {drawerSystems.map(s => {
+                        const sDepthMm = Math.round(s.depth * 1000);
+                        const fits = drawerBoxDepthMm === null || sDepthMm <= drawerBoxDepthMm;
+                        return (
+                          <li
+                            key={s.id}
+                            className={`prop-dtype-item${s.id === element.drawerSystemType ? ' prop-dtype-item--active' : ''}${!fits ? ' prop-dtype-item--disabled' : ''}`}
+                            data-tooltip={fits ? undefined : `Szuflada nie wejdzie do szafki (głębokość szuflady: ${sDepthMm}mm, dostępna: ${drawerBoxDepthMm}mm)`}
+                            onClick={() => { if (!fits) return; onDrawerExternalFrontChange(s.id); setDrawerTypeOpen(false); }}
+                          >
+                            {s.brand}: {s.label}
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </div>
