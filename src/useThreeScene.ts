@@ -268,7 +268,23 @@ export function useThreeScene(
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
+    controls.screenSpacePanning = true;
+    controls.enableZoom = false;
     controlsRef.current = controls;
+
+    const INITIAL_DISTANCE = camera.position.distanceTo(controls.target);
+    const wheelDir = new THREE.Vector3();
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      camera.getWorldDirection(wheelDir);
+      const dist = camera.position.distanceTo(controls.target);
+      controls.panSpeed = INITIAL_DISTANCE / Math.max(dist, 0.01);
+      const delta = Math.max(-1, Math.min(1, e.deltaY)) * 0.3;
+      camera.position.addScaledVector(wheelDir, -delta);
+      controls.target.addScaledVector(wheelDir, -delta);
+    };
+    renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
 
     const ambient = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambient);
@@ -314,6 +330,7 @@ export function useThreeScene(
 
     return () => {
       window.removeEventListener('resize', onResize);
+      renderer.domElement.removeEventListener('wheel', onWheel);
       cancelAnimationFrame(animFrameRef.current);
       renderer.dispose();
       container.removeChild(renderer.domElement);
