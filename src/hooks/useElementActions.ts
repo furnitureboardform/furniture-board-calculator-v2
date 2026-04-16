@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type React from 'react';
-import type { BoxElement, DrawerSystemOption, CargoOption } from '../types';
+import type { BoxElement, DrawerSystemOption, CargoOption, CornerSystemOption } from '../types';
 import { DRAWER_SYSTEM_FRONT_EXTRA } from '../types';
 import { PANEL_T, DRAWER_RAIL_CLEARANCE, FRONT_INSET, DEFAULT_COUNTERTOP_THICKNESS_MM } from '../constants';
 import { HDF_GRAY } from '../builders';
@@ -1465,6 +1465,51 @@ export function useElementActions({
     });
   }, [setElements]);
 
+  const handleAddCornerSystemToBox = useCallback((boxId: string, cornerSystemOption: CornerSystemOption, side: 'left' | 'right') => {
+    setElements((prev) => {
+      const box = prev.find((e) => e.id === boxId);
+      if (!box) return prev;
+      if (prev.some((e) => e.type === 'cornersystem' && e.cabinetId === boxId)) return prev;
+      const w = box.dimensions.width - 2 * PANEL_T;
+      const h = box.dimensions.height - 2 * PANEL_T;
+      const d = box.dimensions.depth;
+      const cs: BoxElement = {
+        id: crypto.randomUUID(),
+        name: `System narożny ${side === 'left' ? 'L' : 'P'} ${counters.cornersystem++}`,
+        type: 'cornersystem',
+        cabinetId: boxId,
+        cornerSystemId: cornerSystemOption.id,
+        cornerSystemSide: side,
+        dimensions: { width: w, height: h, depth: d },
+        position: {
+          x: box.position.x,
+          y: box.position.y + PANEL_T,
+          z: box.position.z,
+        },
+        color: box.color,
+        finishId: box.finishId,
+      };
+      setSelectedId(boxId);
+      return [...prev, cs];
+    });
+  }, [setElements, setSelectedId]);
+
+  const handleCornerSystemIdChange = useCallback((csElId: string, newOption: CornerSystemOption) => {
+    setElements((prev) => {
+      const el = prev.find((e) => e.id === csElId);
+      if (!el || el.type !== 'cornersystem' || !el.cabinetId) return prev;
+      if (!prev.some((e) => e.id === el.cabinetId)) return prev;
+      return prev.map((e) => e.id === csElId
+        ? { ...e, cornerSystemId: newOption.id }
+        : e
+      );
+    });
+  }, [setElements]);
+
+  const handleCornerSystemSideChange = useCallback((csElId: string, side: 'left' | 'right') => {
+    setElements((prev) => prev.map((e) => e.id === csElId ? { ...e, cornerSystemSide: side } : e));
+  }, [setElements]);
+
   const handleClearAll = useCallback(() => {
     dividerYHintRef.current.clear();
     dragDeltaRef.current.clear();
@@ -1525,6 +1570,9 @@ export function useElementActions({
     handleAddCountertopToGroup,
     handleAddCargoToBox,
     handleCargoIdChange,
+    handleAddCornerSystemToBox,
+    handleCornerSystemIdChange,
+    handleCornerSystemSideChange,
     handleClearAll,
   };
 }

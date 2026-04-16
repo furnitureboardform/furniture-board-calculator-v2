@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { BoxElement, CargoOption } from './types';
+import type { BoxElement, CargoOption, CornerSystemOption } from './types';
 import { PANEL_T } from './constants';
 import './ElementLibrary.css';
 
@@ -7,6 +7,12 @@ function pickCargoForBox(cargoOptions: CargoOption[], box: BoxElement): CargoOpt
   const internalH = Math.round((box.dimensions.height - 2 * PANEL_T) * 1000);
   const match = cargoOptions.find((c) => internalH >= c.heightFromMm && internalH <= c.heightToMm);
   return match ?? cargoOptions[0];
+}
+
+function pickCornerSystemForBox(options: CornerSystemOption[], box: BoxElement): CornerSystemOption {
+  const internalH = Math.round((box.dimensions.height - 2 * PANEL_T) * 1000);
+  const match = options.find((c) => internalH >= c.heightFromMm && internalH <= c.heightToMm);
+  return match ?? options[0];
 }
 
 interface CatalogItem {
@@ -149,6 +155,8 @@ interface Props {
   onAddCountertopToGroup: (groupId: string, thicknessMm?: number, countertopId?: string) => void;
   onAddCargoToBox: (boxId: string, cargoOption: CargoOption) => void;
   cargoOptions: CargoOption[];
+  onAddCornerSystemToBox: (boxId: string, option: CornerSystemOption, side: 'left' | 'right') => void;
+  cornerSystemOptions: CornerSystemOption[];
   onUngroup: (groupId: string) => void;
   onDelete: (id: string) => void;
   onClearAll: () => void;
@@ -179,6 +187,7 @@ const ElementLibrary: React.FC<Props> = ({
   onAddRearboardToCabinet,
   onAddCountertopToCabinet, onAddCountertopToGroup,
   onAddCargoToBox, cargoOptions,
+  onAddCornerSystemToBox, cornerSystemOptions,
   onUngroup, onDelete, onClearAll,
 }) => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -674,6 +683,33 @@ const ElementLibrary: React.FC<Props> = ({
                     <span className="element-indent-line" />
                     <span className="element-add-icon">＋</span>
                     <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cargo</span>
+                  </li>
+                );
+              }
+              return null;
+            })()}
+            {/* System narożny */}
+            {(() => {
+              const csEl = children.find((c) => c.type === 'cornersystem');
+              if (csEl) {
+                return (
+                  <li
+                    className={`element-item element-item--child ${csEl.id === selectedId ? 'selected' : ''}`}
+                    onClick={() => onSelect(csEl.id)}
+                  >
+                    <span className="element-indent-line" />
+                    <span className="element-color" style={{ background: csEl.color }} />
+                    <span className="element-name">{csEl.name}</span>
+                    <button className="btn-delete" onClick={(ev) => { ev.stopPropagation(); onDelete(csEl.id); }} title="Usuń">✕</button>
+                  </li>
+                );
+              }
+              if (cornerSystemOptions.length > 0) {
+                return (
+                  <li className="element-item element-item--add" onClick={() => onAddCornerSystemToBox(box.id, pickCornerSystemForBox(cornerSystemOptions, box), 'left')}>
+                    <span className="element-indent-line" />
+                    <span className="element-add-icon">＋</span>
+                    <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj system narożny</span>
                   </li>
                 );
               }

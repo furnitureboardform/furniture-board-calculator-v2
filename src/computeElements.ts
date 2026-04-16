@@ -654,6 +654,10 @@ export function computeCargoForParent(cargo: BoxElement, parent: BoxElement): Bo
   return { ...cargo, position: { x: parent.position.x, y: parent.position.y + PANEL_T, z: parent.position.z } };
 }
 
+export function computeCornerSystemForParent(cs: BoxElement, parent: BoxElement): BoxElement {
+  return { ...cs, position: { x: parent.position.x, y: parent.position.y + PANEL_T, z: parent.position.z } };
+}
+
 /** After any mutation, resync all groups and their fronts and maskowanice. */
 export function recomputeGroups(elements: BoxElement[]): BoxElement[] {
   const result = elements.map((e) => {

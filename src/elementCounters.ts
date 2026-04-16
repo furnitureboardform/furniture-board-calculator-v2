@@ -13,6 +13,7 @@ import {
   groupCounter,
   countertopCounter,
   cargoCounter,
+  cornerSystemCounter,
 } from './factories';
 
 export const counters = {
@@ -30,4 +31,5 @@ export const counters = {
   group: groupCounter,
   countertop: countertopCounter,
   cargo: cargoCounter,
+  cornersystem: cornerSystemCounter,
 };

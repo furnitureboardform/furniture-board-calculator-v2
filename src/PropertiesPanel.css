@@ -464,3 +464,24 @@
 .prop-finish-item--active {
   background: #1a3a5a;
 }
+
+.prop-side-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.prop-side-btn {
+  padding: 3px 12px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #2a2a3e;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.prop-side-btn--active {
+  background: #1a3a5a;
+  border-color: #4a8abf;
+  color: #fff;
+}

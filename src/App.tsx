@@ -7,6 +7,7 @@ import { useHandles } from './hooks/useHandles';
 import { useDrawerSystems } from './hooks/useDrawerSystems';
 import { useCountertops } from './hooks/useCountertops';
 import { useCargo } from './hooks/useCargo';
+import { useCornerSystem } from './hooks/useCornerSystem';
 import { useHistory } from './hooks/useHistory';
 import { useDragHandlers } from './hooks/useDragHandlers';
 import { useElementActions } from './hooks/useElementActions';
@@ -40,6 +41,7 @@ const App: React.FC = () => {
   const drawerSystems = useDrawerSystems();
   const countertops = useCountertops();
   const cargoOptions = useCargo();
+  const cornerSystemOptions = useCornerSystem();
   const finishColorMap = useMemo(() => new Map([...finishes, ...hdfFinishes].filter(f => f.colorHex).map(f => [f.id, f.colorHex!])), [finishes, hdfFinishes]);
   const defaultHdfFinishId = useMemo(() => (hdfFinishes.find(f => f.label === DEFAULT_HDF_FINISH_LABEL) ?? hdfFinishes[0])?.id, [hdfFinishes]);
   const countertopColorMap = useMemo(() => new Map(countertops.filter(c => c.colorHex).map(c => [c.id, c.colorHex!])), [countertops]);
@@ -179,6 +181,9 @@ const App: React.FC = () => {
     handleAddCountertopToGroup,
     handleAddCargoToBox,
     handleCargoIdChange,
+    handleAddCornerSystemToBox,
+    handleCornerSystemIdChange,
+    handleCornerSystemSideChange,
     handleClearAll,
   } = useElementActions({ setElements, setSelectedId, setMultiSelectedIds, boardSizeRef, dividerYHintRef, dragDeltaRef, detachedFromRef, finishColorMap, defaultHdfFinishId, drawerSystems });
 
@@ -293,6 +298,8 @@ const App: React.FC = () => {
           onAddCountertopToGroup={handleAddCountertopToGroup}
           onAddCargoToBox={handleAddCargoToBox}
           cargoOptions={cargoOptions}
+          onAddCornerSystemToBox={handleAddCornerSystemToBox}
+          cornerSystemOptions={cornerSystemOptions}
           onUngroup={handleUngroup}
           onDelete={handleDelete}
           onClearAll={handleClearAll}
@@ -315,7 +322,7 @@ const App: React.FC = () => {
           rulerDistance={rulerDistance}
           onToggleRuler={toggleRuler}
         />
-        <OrderModal elements={elements} handles={handles} drawerSystems={drawerSystems} countertops={countertops} cargoOptions={cargoOptions} />
+        <OrderModal elements={elements} handles={handles} drawerSystems={drawerSystems} countertops={countertops} cargoOptions={cargoOptions} cornerSystemOptions={cornerSystemOptions} />
         <div className="undo-redo-fab">
           <button
             className="undo-redo-btn"
@@ -371,6 +378,9 @@ const App: React.FC = () => {
           onCountertopTypeChange={handleCountertopTypeChange}
           cargoOptions={cargoOptions}
           onCargoIdChange={handleCargoIdChange}
+          cornerSystemOptions={cornerSystemOptions}
+          onCornerSystemIdChange={handleCornerSystemIdChange}
+          onCornerSystemSideChange={handleCornerSystemSideChange}
         />
       </aside>
     </div>

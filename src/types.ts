@@ -30,12 +30,23 @@ export interface CargoOption {
   pricePln?: number;
 }
 
+export interface CornerSystemOption {
+  id: string;
+  label: string;
+  side: 'left' | 'right';
+  widthMm: number;
+  depthMm: number;
+  heightFromMm: number;
+  heightToMm: number;
+  pricePln?: number;
+}
+
 export const DRAWER_SYSTEM_FRONT_EXTRA = 0.030;
 
 export interface BoxElement {
   id: string;
   name: string;
-  type: 'cabinet' | 'shelf' | 'board' | 'drawer' | 'drawerbox' | 'divider' | 'front' | 'rod' | 'leg' | 'hdf' | 'rearboard' | 'blenda' | 'plinth' | 'group' | 'maskowanica' | 'boxkuchenny' | 'countertop' | 'cargo';
+  type: 'cabinet' | 'shelf' | 'board' | 'drawer' | 'drawerbox' | 'divider' | 'front' | 'rod' | 'leg' | 'hdf' | 'rearboard' | 'blenda' | 'plinth' | 'group' | 'maskowanica' | 'boxkuchenny' | 'countertop' | 'cargo' | 'cornersystem';
   cabinetId?: string; // if set, element is locked inside this cabinet (or group for groupFront)
   groupIds?: string[];  // for cabinets: which groups they belong to (a cabinet can belong to multiple groups)
   frontSide?: 'left' | 'right'; // only for double-door fronts
@@ -66,6 +77,8 @@ export interface BoxElement {
   frontLowered?: boolean;       // only for fronts: lower front by 30mm and extend board height by 30mm
   countertopId?: string;        // optional: selected countertop type from Firebase (for countertop elements)
   cargoId?: string;             // optional: selected cargo from Firebase (for boxkuchenny/szafkadolna)
+  cornerSystemId?: string;      // optional: selected corner system from Firebase (for boxkuchenny)
+  cornerSystemSide?: 'left' | 'right'; // only for cornersystem: which side of the cabinet
   drawerOpen?: boolean;         // only for drawer/drawerbox: visually pull out in 3D view
   dimensions: BoxDimensions;
   position: { x: number; y: number; z: number };

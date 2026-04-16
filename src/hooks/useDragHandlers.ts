@@ -11,6 +11,7 @@ import {
   computeMaskowanicaForCabinet,
   computeCountertopForCabinet,
   computeCargoForParent,
+  computeCornerSystemForParent,
   recomputeGroups,
 } from '../computeElements';
 import {
@@ -314,6 +315,7 @@ export function useDragHandlers({
               if (el.type === 'maskowanica') return computeMaskowanicaForCabinet(el, fitted, withFitted);
               if (el.type === 'countertop') return computeCountertopForCabinet(el, fitted);
               if (el.type === 'cargo') return computeCargoForParent(el, fitted);
+              if (el.type === 'cornersystem') return computeCornerSystemForParent(el, fitted);
               return { ...el, position: { x: el.position.x + adx, y: el.position.y + ady, z: el.position.z + adz } };
             }));
           }
@@ -340,6 +342,7 @@ export function useDragHandlers({
           if (el.type === 'maskowanica') return computeMaskowanicaForCabinet(el, movedFinal2, withCollision);
           if (el.type === 'countertop') return computeCountertopForCabinet(el, movedFinal2);
           if (el.type === 'cargo') return computeCargoForParent(el, movedFinal2);
+          if (el.type === 'cornersystem') return computeCornerSystemForParent(el, movedFinal2);
           return { ...el, position: { x: el.position.x + adx, y: el.position.y + ady, z: el.position.z + adz } };
         }));
       });
@@ -567,6 +570,7 @@ export function useDragHandlers({
           if (el.type === 'maskowanica') return computeMaskowanicaForCabinet(el, parent, updated);
           if (el.type === 'countertop') return computeCountertopForCabinet(el, parent);
           if (el.type === 'cargo') return computeCargoForParent(el, parent);
+          if (el.type === 'cornersystem') return computeCornerSystemForParent(el, parent);
           return el; // already moved in first pass
         });
         return recomputeGroups(updated);

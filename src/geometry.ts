@@ -40,7 +40,7 @@ export function computeYForBox(box: BoxElement, allElements: BoxElement[], roomH
   let maxTop = 0;
   for (const other of allElements) {
     if (other.id === box.id) continue;
-    if (other.type === 'group' || other.type === 'shelf' || other.type === 'board' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'rearboard' || other.type === 'plinth' || other.type === 'maskowanica' || other.type === 'cargo') continue;
+    if (other.type === 'group' || other.type === 'shelf' || other.type === 'board' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'rearboard' || other.type === 'plinth' || other.type === 'maskowanica' || other.type === 'cargo' || other.type === 'cornersystem') continue;
     if (box.groupIds?.length && other.groupIds?.some((g) => box.groupIds!.includes(g))) continue;
     if (getBoxStackOverlap(box, other)) {
       const wouldFitBelow = box.position.y + box.dimensions.height <= other.position.y;
@@ -388,12 +388,12 @@ export function recomputeAllY(elements: BoxElement[], roomH = Infinity, skipDivi
   );
   for (const el of ordered) {
     const box = resultMap.get(el.id)!;
-    if (box.type === 'group' || box.type === 'shelf' || box.type === 'board' || box.type === 'drawer' || box.type === 'drawerbox' || box.type === 'blenda' || box.type === 'divider' || box.type === 'front' || box.type === 'rod' || box.type === 'leg' || box.type === 'hdf' || box.type === 'rearboard' || box.type === 'maskowanica' || box.type === 'cargo') continue;
+    if (box.type === 'group' || box.type === 'shelf' || box.type === 'board' || box.type === 'drawer' || box.type === 'drawerbox' || box.type === 'blenda' || box.type === 'divider' || box.type === 'front' || box.type === 'rod' || box.type === 'leg' || box.type === 'hdf' || box.type === 'rearboard' || box.type === 'maskowanica' || box.type === 'cargo' || box.type === 'cornersystem') continue;
     const elOriginalY = originalY.get(el.id) ?? 0;
     let maxTop = 0;
     for (const [id, other] of resultMap) {
       if (id === box.id) continue;
-      if (other.type === 'group' || other.type === 'shelf' || other.type === 'board' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'rearboard' || other.type === 'plinth' || other.type === 'maskowanica' || other.type === 'cargo') continue;
+      if (other.type === 'group' || other.type === 'shelf' || other.type === 'board' || other.type === 'drawer' || other.type === 'drawerbox' || other.type === 'blenda' || other.type === 'divider' || other.type === 'front' || other.type === 'rod' || other.type === 'leg' || other.type === 'hdf' || other.type === 'rearboard' || other.type === 'plinth' || other.type === 'maskowanica' || other.type === 'cargo' || other.type === 'cornersystem') continue;
       if (box.groupIds?.length && other.groupIds?.some((g) => box.groupIds!.includes(g))) continue;
       if ((originalY.get(id) ?? 0) <= elOriginalY + 0.001) {
         if (getBoxStackOverlap(box, other)) {
@@ -481,7 +481,7 @@ export function recomputeAllY(elements: BoxElement[], roomH = Infinity, skipDivi
   }
   const allSettled8 = [...resultMap.values()];
   for (const el of allSettled8) {
-    if (el.type !== 'cargo' || !el.cabinetId) continue;
+    if ((el.type !== 'cargo' && el.type !== 'cornersystem') || !el.cabinetId) continue;
     const cab = allSettled8.find((e) => e.id === el.cabinetId);
     if (cab) resultMap.set(el.id, { ...el, position: { x: cab.position.x, y: cab.position.y + PANEL_T, z: cab.position.z } });
   }

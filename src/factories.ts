@@ -21,6 +21,7 @@ export let groupCounter = 1;
 export let szafkaDolnaCounter = 1;
 export let countertopCounter = 1;
 export let cargoCounter = 1;
+export let cornerSystemCounter = 1;
 
 export function nextColor(): string {
   const color = COLORS[colorIndex % COLORS.length];

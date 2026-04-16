@@ -443,6 +443,38 @@ export function rebuildCargo(parent: THREE.Mesh, element: BoxElement, _color: TH
   }
 }
 
+export function rebuildCornerSystem(parent: THREE.Mesh, element: BoxElement, _color: THREE.Color, _emissive: THREE.Color) {
+  clearChildren(parent);
+  const { width, height } = element.dimensions;
+
+  // Central pole
+  const poleR = 0.012;
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(poleR, poleR, height, 16), CARGO_CHROME_MAT);
+  pole.userData = { elementId: element.id };
+  parent.add(pole);
+
+  // Rotating trays (lazy susan discs)
+  const trayCount = 2;
+  const trayR = Math.min(width, element.dimensions.depth) / 2 - 0.02;
+  const trayH = 0.012;
+  const spacingY = height / (trayCount + 1);
+  for (let i = 1; i <= trayCount; i++) {
+    const tray = new THREE.Mesh(new THREE.CylinderGeometry(trayR, trayR, trayH, 32), CARGO_WHITE_MAT);
+    tray.position.set(0, -height / 2 + spacingY * i, 0);
+    tray.castShadow = true;
+    tray.receiveShadow = true;
+    tray.userData = { elementId: element.id };
+    parent.add(tray);
+
+    // Rim ring
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(trayR, 0.006, 8, 32), CARGO_CHROME_MAT);
+    rim.rotation.x = Math.PI / 2;
+    rim.position.copy(tray.position);
+    rim.userData = { elementId: element.id };
+    parent.add(rim);
+  }
+}
+
 export function rebuildLeg(parent: THREE.Mesh, element: BoxElement, _color: THREE.Color, _emissive: THREE.Color) {
   clearChildren(parent);
   const { width, height, depth } = element.dimensions;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { BoxElement, BoxDimensions, DrawerSystemOption, CargoOption } from './types';
+import type { BoxElement, BoxDimensions, DrawerSystemOption, CargoOption, CornerSystemOption } from './types';
 import { DRAWER_SYSTEM_FRONT_EXTRA } from './types';
 import type { FinishOption } from './hooks/useFinishes';
 import type { HandleOption } from './hooks/useHandles';
@@ -45,6 +45,9 @@ interface Props {
   onCountertopTypeChange?: (id: string, countertopId: string | undefined) => void;
   cargoOptions?: CargoOption[];
   onCargoIdChange?: (cargoElId: string, cargoOption: CargoOption) => void;
+  cornerSystemOptions?: CornerSystemOption[];
+  onCornerSystemIdChange?: (csElId: string, option: CornerSystemOption) => void;
+  onCornerSystemSideChange?: (csElId: string, side: 'left' | 'right') => void;
 }
 
 type DimKey = keyof BoxDimensions;
@@ -53,16 +56,18 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerOpenChange, onDrawerExternalFrontChange, onDrawerInsetChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onFrontTipOnChange, onFrontWysowChange, onFrontLoweredChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerOpenChange, onDrawerExternalFrontChange, onDrawerInsetChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onFrontTipOnChange, onFrontWysowChange, onFrontLoweredChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange, cornerSystemOptions, onCornerSystemIdChange, onCornerSystemSideChange }) => {
   const [finishOpen, setFinishOpen] = useState(false);
   const [handleOpen, setHandleOpen] = useState(false);
   const [frontFinishOpen, setFrontFinishOpen] = useState(false);
   const [drawerTypeOpen, setDrawerTypeOpen] = useState(false);
   const [cargoOpen, setCargoOpen] = useState(false);
+  const [cornerSystemOpen, setCornerSystemOpen] = useState(false);
   const finishRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
   const frontFinishRef = useRef<HTMLDivElement>(null);
   const cargoRef = useRef<HTMLDivElement>(null);
+  const cornerSystemRef = useRef<HTMLDivElement>(null);
   // Local draft strings so the user can type freely
   const [drafts, setDrafts] = useState<Record<DimKey, string>>({ width: '', height: '', depth: '' });
   const [yDraft, setYDraft] = useState('');
@@ -80,6 +85,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
     setFrontFinishOpen(false);
     setDrawerTypeOpen(false);
     setCargoOpen(false);
+    setCornerSystemOpen(false);
     setDrafts({
       width: toMm(element.dimensions.width),
       height: toMm(element.dimensions.height),
@@ -120,6 +126,15 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
   const cargoInternalW = cargoParentBox ? Math.round((cargoParentBox.dimensions.width - 2 * PANEL_T) * 1000) : null;
   const cargoBoxDepth = cargoParentBox ? Math.round(cargoParentBox.dimensions.depth * 1000) : null;
   const selCargo = element.type === 'cargo' ? cargoOptions?.find((c) => c.id === element.cargoId) : undefined;
+
+  const csParentBox = element.type === 'cornersystem' ? elements?.find((e) => e.id === element.cabinetId) : undefined;
+  const csInternalH = csParentBox ? Math.round((csParentBox.dimensions.height - 2 * PANEL_T) * 1000) : null;
+  const csInternalW = csParentBox ? Math.round((csParentBox.dimensions.width - 2 * PANEL_T) * 1000) : null;
+  const csBoxDepth = csParentBox ? Math.round(csParentBox.dimensions.depth * 1000) : null;
+  const selCornerSystem = element.type === 'cornersystem' ? cornerSystemOptions?.find((c) => c.id === element.cornerSystemId) : undefined;
+  const filteredCornerSystemOptions = element.type === 'cornersystem' && cornerSystemOptions
+    ? (element.cornerSystemSide ? cornerSystemOptions.filter((c) => c.side === element.cornerSystemSide) : cornerSystemOptions)
+    : undefined;
 
   const getCommonHandleId = (parentId: string) => {
     const fronts = elements?.filter((e) => e.type === 'front' && e.cabinetId === parentId) ?? [];
@@ -937,6 +952,76 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
                           if (!fits) return;
                           onCargoIdChange(element.id, c);
                           setCargoOpen(false);
+                        }}
+                      >
+                        {c.label}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {element.type === 'cornersystem' && onCornerSystemSideChange && (
+        <>
+          <div className="prop-divider" />
+          <div className="prop-front-state">
+            <span className="prop-label">Strona</span>
+            <div className="prop-side-buttons">
+              <button
+                className={`prop-side-btn${element.cornerSystemSide === 'left' ? ' prop-side-btn--active' : ''}`}
+                onClick={() => onCornerSystemSideChange(element.id, 'left')}
+              >Lewy</button>
+              <button
+                className={`prop-side-btn${element.cornerSystemSide === 'right' ? ' prop-side-btn--active' : ''}`}
+                onClick={() => onCornerSystemSideChange(element.id, 'right')}
+              >Prawy</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {element.type === 'cornersystem' && filteredCornerSystemOptions && filteredCornerSystemOptions.length > 0 && onCornerSystemIdChange && (
+        <>
+          <div className="prop-divider" />
+          <div className="prop-finish-section">
+            <span className="prop-label">Model systemu narożnego</span>
+            <div
+              className="prop-finish-dropdown"
+              ref={cornerSystemRef}
+              tabIndex={0}
+              onBlur={(e) => { if (!cornerSystemRef.current?.contains(e.relatedTarget as Node)) setCornerSystemOpen(false); }}
+            >
+              <button
+                className="prop-finish-trigger"
+                onClick={() => setCornerSystemOpen((o) => !o)}
+              >
+                <span className="prop-finish-trigger-label">{selCornerSystem?.label ?? '—'}</span>
+                <span className="prop-finish-arrow">{cornerSystemOpen ? '▲' : '▼'}</span>
+              </button>
+              {cornerSystemOpen && (
+                <ul className="prop-finish-list prop-cargo-list">
+                  {filteredCornerSystemOptions.map((c) => {
+                    const fitsH = csInternalH === null || (csInternalH >= c.heightFromMm && csInternalH <= c.heightToMm);
+                    const fitsD = csBoxDepth === null || csBoxDepth >= c.depthMm;
+                    const fitsW = csInternalW === null || csInternalW >= c.widthMm;
+                    const fits = fitsH && fitsD && fitsW;
+                    const reasons: string[] = [];
+                    if (!fitsH) reasons.push(`wys. wewnętrzna: ${csInternalH}mm, wymagana: ${c.heightFromMm}–${c.heightToMm}mm`);
+                    if (!fitsD) reasons.push(`głębokość szafki: ${csBoxDepth}mm, wymagana: min. ${c.depthMm}mm`);
+                    if (!fitsW) reasons.push(`szer. wewnętrzna: ${csInternalW}mm, wymagana: min. ${c.widthMm}mm`);
+                    return (
+                      <li
+                        key={c.id}
+                        className={`prop-finish-item${element.cornerSystemId === c.id ? ' prop-finish-item--active' : ''}${!fits ? ' prop-cargo-item--disabled' : ''}`}
+                        data-tooltip={fits ? undefined : `System narożny nie pasuje do tej szafki (${reasons.join('; ')})`}
+                        onClick={() => {
+                          if (!fits) return;
+                          onCornerSystemIdChange(element.id, c);
+                          setCornerSystemOpen(false);
                         }}
                       >
                         {c.label}
