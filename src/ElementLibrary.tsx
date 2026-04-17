@@ -715,6 +715,21 @@ const ElementLibrary: React.FC<Props> = ({
               }
               return null;
             })()}
+            {/* Section: Blenda i cokół */}
+            {(!elements.some((e) => e.type === 'plinth' && e.cabinetId === box.id)) && (
+              <>
+                <li className="element-item element-item--section">
+                  <span className="element-section-line" />
+                  Cokół
+                </li>
+                <li className="element-item element-item--add" onClick={() => onAddPlinthToCabinet(box.id)}>
+                  <span className="element-indent-line" />
+                  <span className="element-add-icon">＋</span>
+                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cokoł</span>
+                </li>
+              </>
+            )}
+
             {/* Blat */}
             <li className="element-item element-item--section">
               <span className="element-section-line" />

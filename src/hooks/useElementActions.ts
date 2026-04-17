@@ -1356,7 +1356,7 @@ export function useElementActions({
       // Collect IDs of direct children and grandchildren (e.g. drawers inside drawerboxes)
       const directChildIds = new Set(prev.filter((e) => e.cabinetId === cabinetId).map((e) => e.id));
 
-      return prev.map((e) => {
+      const rotated = prev.map((e) => {
         if (e.id === cabinetId) return { ...e, rotationY: newRotationY };
 
         // Determine relative position of child/grandchild to cabinet center
@@ -1381,6 +1381,13 @@ export function useElementActions({
           },
         };
       });
+
+      const rotatedCab = rotated.find((e) => e.id === cabinetId)!;
+      return rotated.map((e) =>
+        e.type === 'plinth' && e.cabinetId === cabinetId
+          ? computePlinthForCabinet(e, rotatedCab, rotated)
+          : e
+      );
     });
   }, [setElements]);
 

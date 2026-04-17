@@ -74,19 +74,28 @@ export function computeLegsForCabinet(legs: BoxElement, cab: BoxElement): BoxEle
 
 /** Computes position/dimensions of the plinth (cokoł) at the front of the cabinet, at floor level. */
 export function computePlinthForCabinet(plinth: BoxElement, cab: BoxElement, allElements: BoxElement[]): BoxElement {
-  const legs = allElements.filter((e) => e.type === 'leg' && e.cabinetId === cab.id);
-  const legHeight = legs.length > 0 ? legs[0].dimensions.height : plinth.dimensions.height || 0.1;
+  const leg = allElements.find((e) => e.type === 'leg' && e.cabinetId === cab.id);
+  const legHeight = leg?.dimensions.height ?? plinth.dimensions.height ?? 0.1;
+  const rot = cab.rotationY ?? 0;
+  const halfD = cab.dimensions.depth / 2;
+  let posX = cab.position.x;
+  let posZ = cab.position.z;
+  let dimW = cab.dimensions.width;
+  if (rot === 0)        { posZ = cab.position.z + halfD + PANEL_T / 2; }
+  else if (rot === 90)  { posX = cab.position.x + halfD + PANEL_T / 2; dimW = cab.dimensions.depth; }
+  else if (rot === 180) { posZ = cab.position.z - halfD - PANEL_T / 2; }
+  else                  { posX = cab.position.x - halfD - PANEL_T / 2; dimW = cab.dimensions.depth; }
   return {
     ...plinth,
     dimensions: {
-      width: cab.dimensions.width,
+      width: dimW,
       height: legHeight,
       depth: PANEL_T,
     },
     position: {
-      x: cab.position.x,
+      x: posX,
       y: cab.position.y - legHeight,
-      z: cab.position.z + cab.dimensions.depth / 2 + PANEL_T / 2,
+      z: posZ,
     },
   };
 }

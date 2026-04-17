@@ -415,6 +415,7 @@ export function useThreeScene(
     const getCabRotY = (element: BoxElement): number => {
       if (element.type === 'cabinet' || element.type === 'boxkuchenny') return cabRotMap.get(element.id) ?? 0;
       if (element.type === 'board') return (element.rotationY ?? 0) * Math.PI / 180;
+      if (element.type === 'plinth') return 0;
       if (!element.cabinetId) return 0;
       if (cabRotMap.has(element.cabinetId)) return cabRotMap.get(element.cabinetId)!;
       // grandchild: look up parent's cabinetId
