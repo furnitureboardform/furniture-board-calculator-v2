@@ -48,6 +48,7 @@ interface Props {
   cornerSystemOptions?: CornerSystemOption[];
   onCornerSystemIdChange?: (csElId: string, option: CornerSystemOption) => void;
   onCornerSystemSideChange?: (csElId: string, side: 'left' | 'right') => void;
+  onCornerSystemModelTypeChange?: (csElId: string, modelType: string | undefined) => void;
 }
 
 type DimKey = keyof BoxDimensions;
@@ -56,18 +57,20 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerOpenChange, onDrawerExternalFrontChange, onDrawerInsetChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onFrontTipOnChange, onFrontWysowChange, onFrontLoweredChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange, cornerSystemOptions, onCornerSystemIdChange, onCornerSystemSideChange }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerOpenChange, onDrawerExternalFrontChange, onDrawerInsetChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onFrontTipOnChange, onFrontWysowChange, onFrontLoweredChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange, cornerSystemOptions, onCornerSystemIdChange, onCornerSystemSideChange, onCornerSystemModelTypeChange }) => {
   const [finishOpen, setFinishOpen] = useState(false);
   const [handleOpen, setHandleOpen] = useState(false);
   const [frontFinishOpen, setFrontFinishOpen] = useState(false);
   const [drawerTypeOpen, setDrawerTypeOpen] = useState(false);
   const [cargoOpen, setCargoOpen] = useState(false);
   const [cornerSystemOpen, setCornerSystemOpen] = useState(false);
+  const [cornerSystemModelTypeOpen, setCornerSystemModelTypeOpen] = useState(false);
   const finishRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
   const frontFinishRef = useRef<HTMLDivElement>(null);
   const cargoRef = useRef<HTMLDivElement>(null);
   const cornerSystemRef = useRef<HTMLDivElement>(null);
+  const cornerSystemModelTypeRef = useRef<HTMLDivElement>(null);
   // Local draft strings so the user can type freely
   const [drafts, setDrafts] = useState<Record<DimKey, string>>({ width: '', height: '', depth: '' });
   const [yDraft, setYDraft] = useState('');
@@ -132,8 +135,14 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
   const csInternalW = csParentBox ? Math.round((csParentBox.dimensions.width - 2 * PANEL_T) * 1000) : null;
   const csBoxDepth = csParentBox ? Math.round(csParentBox.dimensions.depth * 1000) : null;
   const selCornerSystem = element.type === 'cornersystem' ? cornerSystemOptions?.find((c) => c.id === element.cornerSystemId) : undefined;
-  const filteredCornerSystemOptions = element.type === 'cornersystem' && cornerSystemOptions
+  const csBySide = element.type === 'cornersystem' && cornerSystemOptions
     ? (element.cornerSystemSide ? cornerSystemOptions.filter((c) => c.side === element.cornerSystemSide) : cornerSystemOptions)
+    : undefined;
+  const csAvailableModelTypes = csBySide
+    ? [...new Set(csBySide.map((c) => c.modelType).filter(Boolean) as string[])]
+    : [];
+  const filteredCornerSystemOptions = csBySide
+    ? (element.type === 'cornersystem' && element.cornerSystemModelType ? csBySide.filter((c) => c.modelType === element.cornerSystemModelType) : csBySide)
     : undefined;
 
   const getCommonHandleId = (parentId: string) => {
@@ -968,17 +977,50 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
       {element.type === 'cornersystem' && onCornerSystemSideChange && (
         <>
           <div className="prop-divider" />
-          <div className="prop-front-state">
-            <span className="prop-label">Strona</span>
-            <div className="prop-side-buttons">
+          <div className="prop-front-state" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 4 }}>
+            <span className="prop-label" style={{ color: '#c0c0e0' }}>Wysuwanie systemu</span>
+            <div className="prop-drawer-toggle">
               <button
-                className={`prop-side-btn${element.cornerSystemSide === 'left' ? ' prop-side-btn--active' : ''}`}
+                type="button"
+                className={`prop-drawer-toggle-btn${element.cornerSystemSide === 'left' ? ' prop-drawer-toggle-btn--active' : ''}`}
                 onClick={() => onCornerSystemSideChange(element.id, 'left')}
               >Lewy</button>
               <button
-                className={`prop-side-btn${element.cornerSystemSide === 'right' ? ' prop-side-btn--active' : ''}`}
+                type="button"
+                className={`prop-drawer-toggle-btn${element.cornerSystemSide === 'right' ? ' prop-drawer-toggle-btn--active' : ''}`}
                 onClick={() => onCornerSystemSideChange(element.id, 'right')}
               >Prawy</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {element.type === 'cornersystem' && csAvailableModelTypes.length > 0 && onCornerSystemModelTypeChange && (
+        <>
+          <div className="prop-divider" />
+          <div className="prop-finish-section">
+            <span className="prop-label">Typ modelu</span>
+            <div
+              className="prop-dtype-dropdown"
+              ref={cornerSystemModelTypeRef}
+              tabIndex={0}
+              onBlur={(e) => { if (!cornerSystemModelTypeRef.current?.contains(e.relatedTarget as Node)) setCornerSystemModelTypeOpen(false); }}
+            >
+              <button type="button" className="prop-dtype-trigger" onClick={() => setCornerSystemModelTypeOpen((o) => !o)}>
+                <span className="prop-dtype-trigger-label">{element.cornerSystemModelType ?? '— wybierz —'}</span>
+                <span className="prop-finish-arrow">{cornerSystemModelTypeOpen ? '▲' : '▼'}</span>
+              </button>
+              {cornerSystemModelTypeOpen && (
+                <ul className="prop-dtype-list">
+                  {csAvailableModelTypes.map((mt) => (
+                    <li
+                      key={mt}
+                      className={`prop-dtype-item${element.cornerSystemModelType === mt ? ' prop-dtype-item--active' : ''}`}
+                      onClick={() => { onCornerSystemModelTypeChange(element.id, element.cornerSystemModelType === mt ? undefined : mt); setCornerSystemModelTypeOpen(false); }}
+                    >{mt}</li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         </>

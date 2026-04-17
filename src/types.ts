@@ -34,6 +34,7 @@ export interface CornerSystemOption {
   id: string;
   label: string;
   side: 'left' | 'right';
+  modelType?: string;
   widthMm: number;
   depthMm: number;
   heightFromMm: number;
@@ -79,6 +80,7 @@ export interface BoxElement {
   cargoId?: string;             // optional: selected cargo from Firebase (for boxkuchenny/szafkadolna)
   cornerSystemId?: string;      // optional: selected corner system from Firebase (for boxkuchenny)
   cornerSystemSide?: 'left' | 'right'; // only for cornersystem: which side of the cabinet
+  cornerSystemModelType?: string;      // only for cornersystem: selected modelType filter
   drawerOpen?: boolean;         // only for drawer/drawerbox: visually pull out in 3D view
   dimensions: BoxDimensions;
   position: { x: number; y: number; z: number };

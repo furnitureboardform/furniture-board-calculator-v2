@@ -184,6 +184,7 @@ const App: React.FC = () => {
     handleAddCornerSystemToBox,
     handleCornerSystemIdChange,
     handleCornerSystemSideChange,
+    handleCornerSystemModelTypeChange,
     handleClearAll,
   } = useElementActions({ setElements, setSelectedId, setMultiSelectedIds, boardSizeRef, dividerYHintRef, dragDeltaRef, detachedFromRef, finishColorMap, defaultHdfFinishId, drawerSystems });
 
@@ -381,6 +382,7 @@ const App: React.FC = () => {
           cornerSystemOptions={cornerSystemOptions}
           onCornerSystemIdChange={handleCornerSystemIdChange}
           onCornerSystemSideChange={handleCornerSystemSideChange}
+          onCornerSystemModelTypeChange={handleCornerSystemModelTypeChange}
         />
       </aside>
     </div>

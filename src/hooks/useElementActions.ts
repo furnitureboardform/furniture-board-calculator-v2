@@ -1507,7 +1507,11 @@ export function useElementActions({
   }, [setElements]);
 
   const handleCornerSystemSideChange = useCallback((csElId: string, side: 'left' | 'right') => {
-    setElements((prev) => prev.map((e) => e.id === csElId ? { ...e, cornerSystemSide: side } : e));
+    setElements((prev) => prev.map((e) => e.id === csElId ? { ...e, cornerSystemSide: side, cornerSystemModelType: undefined, cornerSystemId: undefined } : e));
+  }, [setElements]);
+
+  const handleCornerSystemModelTypeChange = useCallback((csElId: string, modelType: string | undefined) => {
+    setElements((prev) => prev.map((e) => e.id === csElId ? { ...e, cornerSystemModelType: modelType, cornerSystemId: undefined } : e));
   }, [setElements]);
 
   const handleClearAll = useCallback(() => {
@@ -1573,6 +1577,7 @@ export function useElementActions({
     handleAddCornerSystemToBox,
     handleCornerSystemIdChange,
     handleCornerSystemSideChange,
+    handleCornerSystemModelTypeChange,
     handleClearAll,
   };
 }

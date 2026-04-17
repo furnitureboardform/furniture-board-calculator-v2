@@ -14,7 +14,8 @@ export function useCornerSystem() {
           return {
             id: d.id,
             label: String(raw.label ?? raw.name ?? d.id),
-            side: raw.type === 'right' ? 'right' : 'left',
+            side: (raw.type === 'right' || raw.type === 'prawy') ? 'right' : 'left',
+            modelType: raw.modelType ? String(raw.modelType) : undefined,
             widthMm: Number(raw.widthMm ?? 0),
             depthMm: Number(raw.depthMm ?? 0),
             heightFromMm: Number(raw.heightFromMm ?? 0),
