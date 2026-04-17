@@ -443,19 +443,80 @@ export function rebuildCargo(parent: THREE.Mesh, element: BoxElement, _color: TH
   }
 }
 
+function makeRoundedRectShape(w: number, h: number, r: number): THREE.Shape {
+  const x = -w / 2, y = -h / 2;
+  const shape = new THREE.Shape();
+  shape.moveTo(x + r, y);
+  shape.lineTo(x + w - r, y);
+  shape.absarc(x + w - r, y + r, r, -Math.PI / 2, 0, false);
+  shape.lineTo(x + w, y + h - r);
+  shape.absarc(x + w - r, y + h - r, r, 0, Math.PI / 2, false);
+  shape.lineTo(x + r, y + h);
+  shape.absarc(x + r, y + h - r, r, Math.PI / 2, Math.PI, false);
+  shape.lineTo(x, y + r);
+  shape.absarc(x + r, y + r, r, Math.PI, Math.PI * 3 / 2, false);
+  return shape;
+}
+
 export function rebuildCornerSystem(parent: THREE.Mesh, element: BoxElement, _color: THREE.Color, _emissive: THREE.Color) {
   clearChildren(parent);
-  const { width, height } = element.dimensions;
+  const { width, height, depth } = element.dimensions;
+  const modelType = element.cornerSystemModelType;
 
-  // Central pole
+  if (modelType === 'nerka') {
+    const trayCount = 2;
+    const trayW = width - 0.04;
+    const trayD = depth - 0.04;
+    const cornerR = Math.min(trayW, trayD) * 0.18;
+    const trayH = 0.012;
+    const rimT = 0.006;
+    const spacingY = height / (trayCount + 1);
+
+    const poleR = 0.010;
+    const poleOffsets: [number, number][] = [[-trayW * 0.3, 0], [trayW * 0.3, 0]];
+    for (const [px, pz] of poleOffsets) {
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(poleR, poleR, height, 12), CARGO_CHROME_MAT);
+      pole.position.set(px, 0, pz);
+      pole.userData = { elementId: element.id };
+      parent.add(pole);
+    }
+
+    const trayShape = makeRoundedRectShape(trayW, trayD, cornerR);
+    const trayGeo = new THREE.ExtrudeGeometry(trayShape, { depth: trayH, bevelEnabled: false });
+    const rimCurve = new THREE.CatmullRomCurve3(
+      trayShape.getPoints(64).map((p) => new THREE.Vector3(p.x, p.y, 0)),
+      true
+    );
+    const rimGeo = new THREE.TubeGeometry(rimCurve, 64, rimT, 6, true);
+
+    for (let i = 1; i <= trayCount; i++) {
+      const y = -height / 2 + spacingY * i;
+
+      const tray = new THREE.Mesh(trayGeo, CARGO_WHITE_MAT);
+      tray.rotation.x = -Math.PI / 2;
+      tray.position.set(0, y, 0);
+      tray.castShadow = true;
+      tray.receiveShadow = true;
+      tray.userData = { elementId: element.id };
+      parent.add(tray);
+
+      const rim = new THREE.Mesh(rimGeo, CARGO_CHROME_MAT);
+      rim.rotation.x = -Math.PI / 2;
+      rim.position.set(0, y + trayH, 0);
+      rim.userData = { elementId: element.id };
+      parent.add(rim);
+    }
+    return;
+  }
+
+  // Default: rotating round trays (lazy susan)
   const poleR = 0.012;
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(poleR, poleR, height, 16), CARGO_CHROME_MAT);
   pole.userData = { elementId: element.id };
   parent.add(pole);
 
-  // Rotating trays (lazy susan discs)
   const trayCount = 2;
-  const trayR = Math.min(width, element.dimensions.depth) / 2 - 0.02;
+  const trayR = Math.min(width, depth) / 2 - 0.02;
   const trayH = 0.012;
   const spacingY = height / (trayCount + 1);
   for (let i = 1; i <= trayCount; i++) {
@@ -466,7 +527,6 @@ export function rebuildCornerSystem(parent: THREE.Mesh, element: BoxElement, _co
     tray.userData = { elementId: element.id };
     parent.add(tray);
 
-    // Rim ring
     const rim = new THREE.Mesh(new THREE.TorusGeometry(trayR, 0.006, 8, 32), CARGO_CHROME_MAT);
     rim.rotation.x = Math.PI / 2;
     rim.position.copy(tray.position);
