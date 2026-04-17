@@ -30,8 +30,8 @@ export function getBoxOverlap(a: BoxElement, b: BoxElement): boolean {
 
 /** Returns true when boxes overlap by more than STACK_OVERLAP in BOTH X and Z. */
 export function getBoxStackOverlap(a: BoxElement, b: BoxElement): boolean {
-  const ox = (a.dimensions.width + b.dimensions.width) / 2 - Math.abs(a.position.x - b.position.x);
-  const oz = (a.dimensions.depth + b.dimensions.depth) / 2 - Math.abs(a.position.z - b.position.z);
+  const ox = (effectiveHW(a) + effectiveHW(b)) - Math.abs(a.position.x - b.position.x);
+  const oz = (effectiveHD(a) + effectiveHD(b)) - Math.abs(a.position.z - b.position.z);
   return ox > STACK_OVERLAP && oz > STACK_OVERLAP;
 }
 

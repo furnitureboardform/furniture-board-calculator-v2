@@ -289,8 +289,13 @@ export function useDragHandlers({
         const prelimWithY = { ...prelim, position: { ...prelim.position, y: prelimY } };
         const withPrelimY = afterMove.map((el) => (el.id === id ? prelimWithY : el));
         const snapped = snapToNeighbors(prelimWithY, withPrelimY);
-        const afterSnap = withPrelimY.map((el) =>
+        const afterSnapRaw = withPrelimY.map((el) =>
           el.id === id ? { ...el, position: { x: snapped.x, y: 0, z: snapped.z } } : el
+        );
+        const snapRawBox = afterSnapRaw.find((e) => e.id === id)!;
+        const pushedSnap = pushOutCollisions(snapRawBox, afterSnapRaw);
+        const afterSnap = afterSnapRaw.map((el) =>
+          el.id === id ? { ...el, position: { x: pushedSnap.x, y: 0, z: pushedSnap.z } } : el
         );
         const finalBox = afterSnap.find((e) => e.id === id)!;
         const finalY = Math.max(computeYForBox(finalBox, afterSnap, roomH), movedEl.position.y);

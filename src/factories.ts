@@ -47,7 +47,16 @@ export function createBox(): BoxElement {
 }
 
 export function createBoxKuchenny(): BoxElement {
-  return { ...createBox(), dimensions: { width: 0.6, height: 0.72, depth: 0.53 } };
+  const color = nextColor();
+  return {
+    id: crypto.randomUUID(),
+    name: `Box kuchenny ${szafkaDolnaCounter++}`,
+    type: 'boxkuchenny',
+    dimensions: { width: 0.6, height: 0.72, depth: 0.53 },
+    position: { x: 0, y: 0, z: 0 },
+    color,
+    finishId: DEFAULT_FINISH_ID,
+  };
 }
 
 export function createBoard(): BoxElement {
