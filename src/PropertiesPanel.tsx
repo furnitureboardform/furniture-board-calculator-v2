@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { BoxElement, BoxDimensions, DrawerSystemOption, CargoOption, CornerSystemOption } from './types';
+import type { BoxElement, BoxDimensions, DrawerSystemOption, CargoOption, CornerSystemOption, CornerSystemSide } from './types';
 import { DRAWER_SYSTEM_FRONT_EXTRA } from './types';
 import type { FinishOption } from './hooks/useFinishes';
 import type { HandleOption } from './hooks/useHandles';
@@ -47,7 +47,7 @@ interface Props {
   onCargoIdChange?: (cargoElId: string, cargoOption: CargoOption) => void;
   cornerSystemOptions?: CornerSystemOption[];
   onCornerSystemIdChange?: (csElId: string, option: CornerSystemOption) => void;
-  onCornerSystemSideChange?: (csElId: string, side: 'left' | 'right') => void;
+  onCornerSystemSideChange?: (csElId: string, side: CornerSystemSide) => void;
   onCornerSystemModelTypeChange?: (csElId: string, modelType: string | undefined) => void;
 }
 
@@ -136,7 +136,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
   const csBoxDepth = csParentBox ? Math.round(csParentBox.dimensions.depth * 1000) : null;
   const selCornerSystem = element.type === 'cornersystem' ? cornerSystemOptions?.find((c) => c.id === element.cornerSystemId) : undefined;
   const csBySide = element.type === 'cornersystem' && cornerSystemOptions
-    ? (element.cornerSystemSide ? cornerSystemOptions.filter((c) => c.side === element.cornerSystemSide) : cornerSystemOptions)
+    ? (element.cornerSystemSide && element.cornerSystemSide !== 'both' ? cornerSystemOptions.filter((c) => c.side === element.cornerSystemSide || c.side === 'both') : cornerSystemOptions)
     : undefined;
   const csAvailableModelTypes = csBySide
     ? [...new Set(csBySide.map((c) => c.modelType).filter(Boolean) as string[])]
@@ -990,6 +990,11 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
                 className={`prop-drawer-toggle-btn${element.cornerSystemSide === 'right' ? ' prop-drawer-toggle-btn--active' : ''}`}
                 onClick={() => onCornerSystemSideChange(element.id, 'right')}
               >Prawy</button>
+              <button
+                type="button"
+                className={`prop-drawer-toggle-btn${element.cornerSystemSide === 'both' ? ' prop-drawer-toggle-btn--active' : ''}`}
+                onClick={() => onCornerSystemSideChange(element.id, 'both')}
+              >Dwustronny</button>
             </div>
           </div>
         </>

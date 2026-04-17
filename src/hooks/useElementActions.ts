@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type React from 'react';
-import type { BoxElement, DrawerSystemOption, CargoOption, CornerSystemOption } from '../types';
+import type { BoxElement, DrawerSystemOption, CargoOption, CornerSystemOption, CornerSystemSide } from '../types';
 import { DRAWER_SYSTEM_FRONT_EXTRA } from '../types';
 import { PANEL_T, DRAWER_RAIL_CLEARANCE, FRONT_INSET, DEFAULT_COUNTERTOP_THICKNESS_MM } from '../constants';
 import { HDF_GRAY } from '../builders';
@@ -1465,7 +1465,7 @@ export function useElementActions({
     });
   }, [setElements]);
 
-  const handleAddCornerSystemToBox = useCallback((boxId: string, cornerSystemOption: CornerSystemOption, side: 'left' | 'right') => {
+  const handleAddCornerSystemToBox = useCallback((boxId: string, cornerSystemOption: CornerSystemOption, side: CornerSystemSide) => {
     setElements((prev) => {
       const box = prev.find((e) => e.id === boxId);
       if (!box) return prev;
@@ -1506,7 +1506,7 @@ export function useElementActions({
     });
   }, [setElements]);
 
-  const handleCornerSystemSideChange = useCallback((csElId: string, side: 'left' | 'right') => {
+  const handleCornerSystemSideChange = useCallback((csElId: string, side: CornerSystemSide) => {
     setElements((prev) => prev.map((e) => e.id === csElId ? { ...e, cornerSystemSide: side, cornerSystemModelType: undefined, cornerSystemId: undefined } : e));
   }, [setElements]);
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { BoxElement, CargoOption, CornerSystemOption } from './types';
+import type { BoxElement, CargoOption, CornerSystemOption, CornerSystemSide } from './types';
 import { PANEL_T } from './constants';
 import './ElementLibrary.css';
 
@@ -155,7 +155,7 @@ interface Props {
   onAddCountertopToGroup: (groupId: string, thicknessMm?: number, countertopId?: string) => void;
   onAddCargoToBox: (boxId: string, cargoOption: CargoOption) => void;
   cargoOptions: CargoOption[];
-  onAddCornerSystemToBox: (boxId: string, option: CornerSystemOption, side: 'left' | 'right') => void;
+  onAddCornerSystemToBox: (boxId: string, option: CornerSystemOption, side: CornerSystemSide) => void;
   cornerSystemOptions: CornerSystemOption[];
   onUngroup: (groupId: string) => void;
   onDelete: (id: string) => void;

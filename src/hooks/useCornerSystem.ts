@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import type { CornerSystemOption } from '../types';
+import type { CornerSystemOption, CornerSystemSide } from '../types';
+
+function parseCornerSystemSide(rawType: unknown): CornerSystemSide {
+  if (rawType === 'right' || rawType === 'prawy') return 'right';
+  if (rawType === 'both' || rawType === 'dwustronny') return 'both';
+  return 'left';
+}
 
 export function useCornerSystem() {
   const [cornerSystemOptions, setCornerSystemOptions] = useState<CornerSystemOption[]>([]);
@@ -14,7 +20,7 @@ export function useCornerSystem() {
           return {
             id: d.id,
             label: String(raw.label ?? raw.name ?? d.id),
-            side: (raw.type === 'right' || raw.type === 'prawy') ? 'right' : 'left',
+            side: parseCornerSystemSide(raw.type),
             modelType: raw.modelType ? String(raw.modelType) : undefined,
             widthMm: Number(raw.widthMm ?? 0),
             depthMm: Number(raw.depthMm ?? 0),
