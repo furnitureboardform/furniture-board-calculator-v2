@@ -82,9 +82,9 @@ export function computePlinthForCabinet(plinth: BoxElement, cab: BoxElement, all
   let posZ = cab.position.z;
   let dimW = cab.dimensions.width;
   if (rot === 0)        { posZ = cab.position.z + halfD + PANEL_T / 2; }
-  else if (rot === 90)  { posX = cab.position.x + halfD + PANEL_T / 2; dimW = cab.dimensions.depth; }
+  else if (rot === 90)  { posX = cab.position.x + halfD + PANEL_T / 2; }
   else if (rot === 180) { posZ = cab.position.z - halfD - PANEL_T / 2; }
-  else                  { posX = cab.position.x - halfD - PANEL_T / 2; dimW = cab.dimensions.depth; }
+  else                  { posX = cab.position.x - halfD - PANEL_T / 2; }
   return {
     ...plinth,
     dimensions: {
