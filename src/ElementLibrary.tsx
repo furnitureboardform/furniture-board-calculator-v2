@@ -573,6 +573,10 @@ const ElementLibrary: React.FC<Props> = ({
     const isSelected = box.id === selectedId;
     const isMulti = multiSelectedIds.includes(box.id);
     const isExpanded = isSelected || children.some((c) => c.id === selectedId) || countertop?.id === selectedId;
+    const noBlendaLeft  = !elements.some((e) => e.type === 'blenda' && e.cabinetId === box.id && e.blendaScope === 'cabinet' && e.blendaSide === 'left');
+    const noBlendaRight = !elements.some((e) => e.type === 'blenda' && e.cabinetId === box.id && e.blendaScope === 'cabinet' && e.blendaSide === 'right');
+    const noMaskLeft    = !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === box.id && e.maskownicaSide === 'left');
+    const noMaskRight   = !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === box.id && e.maskownicaSide === 'right');
     return (
       <React.Fragment key={box.id}>
         <li
@@ -727,6 +731,52 @@ const ElementLibrary: React.FC<Props> = ({
                   <span className="element-add-icon">＋</span>
                   <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cokoł</span>
                 </li>
+              </>
+            )}
+
+            {(noBlendaLeft || noBlendaRight) && (
+              <>
+                <li className="element-item element-item--section">
+                  <span className="element-section-line" />
+                  Blenda
+                </li>
+                {noBlendaLeft && (
+                  <li className="element-item element-item--add" onClick={() => onAddBlendaToCabinet(box.id, 'left')}>
+                    <span className="element-indent-line" />
+                    <span className="element-add-icon">＋</span>
+                    <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę lewą</span>
+                  </li>
+                )}
+                {noBlendaRight && (
+                  <li className="element-item element-item--add" onClick={() => onAddBlendaToCabinet(box.id, 'right')}>
+                    <span className="element-indent-line" />
+                    <span className="element-add-icon">＋</span>
+                    <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę prawą</span>
+                  </li>
+                )}
+              </>
+            )}
+
+            {(noMaskLeft || noMaskRight) && (
+              <>
+                <li className="element-item element-item--section">
+                  <span className="element-section-line" />
+                  Maskownica
+                </li>
+                {noMaskLeft && (
+                  <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(box.id, 'left')}>
+                    <span className="element-indent-line" />
+                    <span className="element-add-icon">＋</span>
+                    <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę lewą</span>
+                  </li>
+                )}
+                {noMaskRight && (
+                  <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(box.id, 'right')}>
+                    <span className="element-indent-line" />
+                    <span className="element-add-icon">＋</span>
+                    <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę prawą</span>
+                  </li>
+                )}
               </>
             )}
 

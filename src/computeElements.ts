@@ -253,7 +253,7 @@ export function computeMaskowanicaForCabinet(mask: BoxElement, cab: BoxElement, 
   const TOUCH_TOL = PANEL_T * 2;
   const adjBoxes = allElements.filter((e) => {
     if (e.id === cab.id || e.cabinetId === cab.id) return false;
-    if (e.type !== 'cabinet' && e.type !== 'group') return false;
+    if (e.type !== 'cabinet' && e.type !== 'boxkuchenny' && e.type !== 'group') return false;
     const eLX = e.position.x - e.dimensions.width / 2;
     const eRX = e.position.x + e.dimensions.width / 2;
     const touchEdge = mask.maskownicaSide === 'left' ? eRX : eLX;
