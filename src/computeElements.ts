@@ -130,33 +130,43 @@ export function computeBlendaForCabinet(blenda: BoxElement, cab: BoxElement, all
 
 /** Computes the position/dimensions of a front panel bound to its cabinet. */
 export function computeFrontForCabinet(front: BoxElement, cab: BoxElement): BoxElement {
-  const z = cab.position.z + cab.dimensions.depth / 2 + PANEL_T / 2;
+  const rot = cab.rotationY ?? 0;
+  const rotated = rot === 90 || rot === 270;
+  const halfD = cab.dimensions.depth / 2;
   const lowered = front.frontLowered ? 0.03 : 0;
   const fullH = Math.max(0.001, cab.dimensions.height - 2 * FRONT_INSET + lowered);
   const yPos = cab.position.y + FRONT_INSET - lowered;
+  const faceW = cab.dimensions.width;
+
+  let posX = cab.position.x;
+  let posZ = cab.position.z;
+  if (rot === 0)        { posZ = cab.position.z + halfD + PANEL_T / 2; }
+  else if (rot === 90)  { posX = cab.position.x + halfD + PANEL_T / 2; }
+  else if (rot === 180) { posZ = cab.position.z - halfD - PANEL_T / 2; }
+  else                  { posX = cab.position.x - halfD - PANEL_T / 2; }
+
   if (front.frontSide === 'left' || front.frontSide === 'right') {
-    const leafW = Math.max(0.001, cab.dimensions.width / 2 - 2 * FRONT_INSET);
-    const leftX  = cab.position.x - cab.dimensions.width / 4;
-    const rightX = cab.position.x + cab.dimensions.width / 4;
+    const leafW = Math.max(0.001, faceW / 2 - 2 * FRONT_INSET);
+    const offset = faceW / 4;
+    const isLeft = front.frontSide === 'left';
     return {
       ...front,
       dimensions: { width: leafW, height: fullH, depth: PANEL_T },
       position: {
-        x: front.frontSide === 'left' ? leftX : rightX,
+        x: rotated ? posX : cab.position.x + (isLeft ? -offset : offset),
         y: yPos,
-        z,
+        z: rotated ? cab.position.z + (isLeft ? -offset : offset) : posZ,
       },
     };
   }
-  // Single front
   return {
     ...front,
     dimensions: {
-      width: Math.max(0.001, cab.dimensions.width - 2 * FRONT_INSET),
+      width: Math.max(0.001, faceW - 2 * FRONT_INSET),
       height: fullH,
       depth: PANEL_T,
     },
-    position: { x: cab.position.x, y: yPos, z },
+    position: { x: posX, y: yPos, z: posZ },
   };
 }
 
