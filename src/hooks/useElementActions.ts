@@ -27,6 +27,10 @@ import { computeDividerBounds, computeYForBox, fitDrawerToBay, switchShelfToNext
 import { createBox, createBoxKuchenny, createShelf, createBoard, createSzafkaDolna } from '../factories';
 import { counters } from '../elementCounters';
 
+function isSideBlendaWithStretch(e: BoxElement, cabinetId: string): boolean {
+  return e.type === 'blenda' && e.cabinetId === cabinetId && e.blendaScope === 'cabinet' && (e.blendaSide === 'left' || e.blendaSide === 'right') && !!e.stretchWithLegs;
+}
+
 function boxDrawerLayout(isInset: boolean, cab: BoxElement, systemSpec: DrawerSystemOption) {
   const faceW = isInset
     ? Math.max(0.01, cab.dimensions.width - 2 * PANEL_T - 2 * FRONT_INSET)
@@ -413,6 +417,8 @@ export function useElementActions({
           return computeMaskowanicaForCabinet(e, liftedCab, withLeg);
         if (e.type === 'maskowanica' && liftedCab.groupIds?.includes(e.cabinetId!))
           return computeMaskowanicaForGroup(e, withLeg);
+        if (isSideBlendaWithStretch(e, cabinetId))
+          return computeBlendaForCabinet(e, liftedCab, withLeg);
         return e;
       });
     });
@@ -439,7 +445,12 @@ export function useElementActions({
         lifted
       );
       setSelectedId(boxId);
-      return [...updatedPrev, legsEl];
+      const withLegBox = [...updatedPrev, legsEl];
+      return withLegBox.map((e) => {
+        if (isSideBlendaWithStretch(e, boxId))
+          return computeBlendaForCabinet(e, lifted, withLegBox);
+        return e;
+      });
     });
   }, [setElements, setSelectedId]);
 
@@ -1287,7 +1298,7 @@ export function useElementActions({
           if (parent.type === 'group') return computeMaskowanicaForGroup(patched, prev);
         }
         if (e.type === 'blenda') {
-          if (parent.type === 'cabinet') return computeBlendaForCabinet(patched, parent, prev);
+          if (parent.type === 'cabinet' || parent.type === 'boxkuchenny') return computeBlendaForCabinet(patched, parent, prev);
           if (parent.type === 'group') return computeBlendaForGroup(patched, parent, prev);
         }
         return patched;
