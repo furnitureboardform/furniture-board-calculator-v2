@@ -109,12 +109,21 @@ function getBlendaDepth(blenda: BoxElement | undefined): number {
 /** Computes position/dimensions of a standalone cabinet blenda (left/right/top). */
 export function computeBlendaForCabinet(blenda: BoxElement, cab: BoxElement, allElements: BoxElement[] = []): BoxElement {
   const d = getBlendaDepth(blenda);
-  const zFront = cab.position.z + cab.dimensions.depth / 2 + PANEL_T / 2;
+  const rot = cab.rotationY ?? 0;
+  const rotated = rot === 90 || rot === 270;
+  const halfDepth = cab.dimensions.depth / 2;
+  const halfWidth = cab.dimensions.width / 2;
+  const frontX = rot === 90  ? cab.position.x + halfDepth + PANEL_T / 2
+               : rot === 270 ? cab.position.x - halfDepth - PANEL_T / 2
+               : cab.position.x;
+  const frontZ = rot === 0   ? cab.position.z + halfDepth + PANEL_T / 2
+               : rot === 180 ? cab.position.z - halfDepth - PANEL_T / 2
+               : cab.position.z;
   if (blenda.blendaSide === 'top') {
     return {
       ...blenda,
-      dimensions: { width: cab.dimensions.width, height: d, depth: PANEL_T },
-      position: { x: cab.position.x, y: cab.position.y + cab.dimensions.height, z: zFront },
+      dimensions: { width: rotated ? cab.dimensions.depth : cab.dimensions.width, height: d, depth: PANEL_T },
+      position: { x: frontX, y: cab.position.y + cab.dimensions.height, z: frontZ },
     };
   }
   const plinth = allElements.find((e) => e.type === 'plinth' && e.cabinetId === cab.id);
@@ -123,13 +132,24 @@ export function computeBlendaForCabinet(blenda: BoxElement, cab: BoxElement, all
   const legOrPlinthH = plinth ? plinth.dimensions.height : legs ? legs.dimensions.height : 0;
   const plinthH = blenda.stretchWithLegs ? legOrPlinthH : 0;
   const topH = topBlenda ? getBlendaDepth(topBlenda) : 0;
+  const totalH = cab.dimensions.height + plinthH + topH;
+  if (rotated) {
+    // Side offset along Z because cabinet width runs in Z when rotated; mesh inherits cab rotation so dimensions stay the same.
+    const sign = (blenda.blendaSide === 'left') === (rot === 270) ? -1 : 1;
+    const zPos = cab.position.z + sign * (halfWidth + d / 2);
+    return {
+      ...blenda,
+      dimensions: { width: d, height: totalH, depth: PANEL_T },
+      position: { x: frontX, y: cab.position.y - plinthH, z: zPos },
+    };
+  }
   const xPos = blenda.blendaSide === 'left'
-    ? cab.position.x - cab.dimensions.width / 2 - d / 2
-    : cab.position.x + cab.dimensions.width / 2 + d / 2;
+    ? cab.position.x - halfWidth - d / 2
+    : cab.position.x + halfWidth + d / 2;
   return {
     ...blenda,
-    dimensions: { width: d, height: cab.dimensions.height + plinthH + topH, depth: PANEL_T },
-    position: { x: xPos, y: cab.position.y - plinthH, z: zFront },
+    dimensions: { width: d, height: totalH, depth: PANEL_T },
+    position: { x: xPos, y: cab.position.y - plinthH, z: frontZ },
   };
 }
 
