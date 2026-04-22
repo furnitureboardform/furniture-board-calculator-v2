@@ -84,6 +84,7 @@ export interface BoxElement {
   cornerSystemSide?: CornerSystemSide; // only for cornersystem: which side of the cabinet
   cornerSystemModelType?: string;      // only for cornersystem: selected modelType filter
   drawerOpen?: boolean;         // only for drawer/drawerbox: visually pull out in 3D view
+  blendaCustomDepth?: number;   // only for blenda: override the default 100mm depth (how far it protrudes)
   dimensions: BoxDimensions;
   position: { x: number; y: number; z: number };
   color: string;

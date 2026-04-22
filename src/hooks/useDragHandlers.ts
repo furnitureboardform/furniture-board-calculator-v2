@@ -157,6 +157,11 @@ export function useDragHandlers({
         }
         const updated = prev.map((e) => {
           if (e.id !== id) return e;
+          if (e.type === 'blenda' && e.cabinetId) {
+            const customDepth = Math.max(0.01, e.blendaSide === 'top' ? dims.height : dims.width);
+            if (customDepth === e.blendaCustomDepth) return e;
+            return { ...e, blendaCustomDepth: customDepth };
+          }
           if (e.type === 'drawerbox' && e.cabinetId && clampedDims.depth !== e.dimensions.depth) {
             const cab = prev.find((c) => c.id === e.cabinetId);
             if (cab) {
