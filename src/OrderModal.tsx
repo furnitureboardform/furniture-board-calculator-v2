@@ -348,7 +348,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
         const ctD = el.dimensions.height;
         const pieces = Math.ceil(ctW / COUNTERTOP_MAX_SHEET);
         for (let i = 0; i < pieces; i++) {
-          const pieceW = i < pieces - 1 ? MAX_SHEET : ctW - MAX_SHEET * (pieces - 1);
+          const pieceW = i < pieces - 1 ? COUNTERTOP_MAX_SHEET : ctW - COUNTERTOP_MAX_SHEET * (pieces - 1);
           countertopPanels.push({ id: `${el.id}_${i}`, w: pieceW, h: ctH, d: ctD, elemType: 'countertop', finishId: el.countertopId });
         }
       } else if (el.type === 'cargo' && el.cargoId) {

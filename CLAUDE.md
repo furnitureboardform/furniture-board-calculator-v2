@@ -25,6 +25,7 @@ React 18, TypeScript, Vite — logic in `src/builders.ts`, `src/computeElements.
 ## Build Errors Policy
 - **Unused variables** — delete them; never suppress with eslint-disable or prefix with `_`.
 - **Verify usage before finishing** — after every edit, scan all newly introduced variables (including destructured ones) and confirm each is referenced. If not used, remove it before calling the edit done.
+- **Use exact import names** — when referencing an imported constant, always use the exact name from the import statement; never abbreviate or shorten it (e.g. `COUNTERTOP_MAX_SHEET`, not `MAX_SHEET`).
 - Fix only the reported lines; don't touch surrounding code.
 
 ## Code Conventions
