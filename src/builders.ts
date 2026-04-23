@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { BoxElement } from './types';
-import { HDF_T, DRAWER_BOX_REAR_OFFSET, BOX_OVERLAY_Y_OFFSET } from './constants';
+import { HDF_T, DRAWER_BOX_REAR_OFFSET, BOX_OVERLAY_Y_OFFSET, COUNTERTOP_MAX_SHEET } from './constants';
 
 const PANEL_T = 0.018;
 export const HDF_GRAY = '#8a8a8a';
@@ -352,13 +352,22 @@ export function rebuildRearboard(parent: THREE.Mesh, element: BoxElement, color:
 export function rebuildCountertop(parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) {
   clearChildren(parent);
   const { width, height, depth } = element.dimensions;
-  const geo = new THREE.BoxGeometry(width, height, depth);
+  const GAP = 0.003;
+  const pieces = Math.ceil(width / COUNTERTOP_MAX_SHEET);
   const mat = new THREE.MeshStandardMaterial({ color, emissive, roughness: 0.3, metalness: 0.15, side: THREE.DoubleSide });
-  const panel = new THREE.Mesh(geo, mat);
-  panel.castShadow = true;
-  panel.receiveShadow = true;
-  panel.userData = { elementId: element.id };
-  parent.add(panel);
+  let offsetX = -width / 2;
+  for (let i = 0; i < pieces; i++) {
+    const pieceW = i < pieces - 1 ? COUNTERTOP_MAX_SHEET : width - COUNTERTOP_MAX_SHEET * (pieces - 1);
+    const renderW = i < pieces - 1 ? pieceW - GAP : pieceW;
+    const geo = new THREE.BoxGeometry(renderW, height, depth);
+    const panel = new THREE.Mesh(geo, mat);
+    panel.position.set(offsetX + renderW / 2, 0, 0);
+    panel.castShadow = true;
+    panel.receiveShadow = true;
+    panel.userData = { elementId: element.id };
+    parent.add(panel);
+    offsetX += pieceW;
+  }
 }
 
 export function rebuildCargo(parent: THREE.Mesh, element: BoxElement, _color: THREE.Color, _emissive: THREE.Color) {

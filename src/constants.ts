@@ -14,6 +14,7 @@ export const DIVIDER_EDGE_SNAP = 0.04; // 40 mm snap-to-edge distance for divide
 export const DRAWER_RAIL_CLEARANCE = 0.0125; // 12.5 mm clearance per side for drawer slides
 export const DRAWER_BOX_REAR_OFFSET = 0.024; // 24 mm rear offset for drawer box bottom panel
 export const DEFAULT_COUNTERTOP_THICKNESS_MM = 38; // default blat thickness when veneer is unknown
+export const COUNTERTOP_MAX_SHEET = 4.1;           // max sheet width for countertop splitting (metres)
 export const DEFAULT_HDF_FINISH_LABEL = 'Biały Korpusowy 0110';
 export const BOX_OVERLAY_Y_OFFSET = 0.016; // 16 mm drop of overlay front face relative to box center
 

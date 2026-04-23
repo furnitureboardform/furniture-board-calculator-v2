@@ -5,7 +5,7 @@ import { useFinishes } from './hooks/useFinishes';
 import type { FinishOption } from './hooks/useFinishes';
 import type { HandleOption } from './hooks/useHandles';
 import type { CountertopOption } from './hooks/useCountertops';
-import { PANEL_T, HDF_T, DEFAULT_HDF_FINISH_LABEL, DRAWER_BOX_REAR_OFFSET } from './constants';
+import { PANEL_T, HDF_T, DEFAULT_HDF_FINISH_LABEL, DRAWER_BOX_REAR_OFFSET, COUNTERTOP_MAX_SHEET } from './constants';
 import { elementHasHandle } from './builders';
 import './OrderModal.css';
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -239,13 +239,13 @@ function mergeGroupedPanels(a: GroupedPanel[], b: GroupedPanel[]): GroupedPanel[
 }
 
 // ── Group panels by finish + face dimensions ──────────────────────────────────
-function groupPanels(panels: PanelEntry[]): GroupedPanel[] {
+function groupPanels(panels: PanelEntry[], fixedAxes = false): GroupedPanel[] {
   const map = new Map<string, GroupedPanel>();
   for (const p of panels) {
-    const [fa, fb] = faceDims(p.w, p.h, p.d);
-    const key = `${p.finishId ?? ''}|${mmV(fa)}x${mmV(fb)}`;
+    const [fa, fb] = fixedAxes ? [mmV(p.w), mmV(p.h)] : faceDims(p.w, p.h, p.d).map(mmV) as [number, number];
+    const key = `${p.finishId ?? ''}|${fa}x${fb}`;
     if (!map.has(key)) {
-      map.set(key, { key, fa: mmV(fa), fb: mmV(fb), count: 0, edgeBanding: getEdgeBanding(p), finishId: p.finishId });
+      map.set(key, { key, fa, fb, count: 0, edgeBanding: getEdgeBanding(p), finishId: p.finishId });
     }
     map.get(key)!.count++;
   }
@@ -343,7 +343,14 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
       } else if (el.type === 'rearboard') {
         korpusPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'cabinet_top', finishId: el.finishId });
       } else if (el.type === 'countertop') {
-        countertopPanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.depth, d: el.dimensions.height, elemType: 'countertop', finishId: el.countertopId });
+        const ctW = el.dimensions.width;
+        const ctH = el.dimensions.depth;
+        const ctD = el.dimensions.height;
+        const pieces = Math.ceil(ctW / COUNTERTOP_MAX_SHEET);
+        for (let i = 0; i < pieces; i++) {
+          const pieceW = i < pieces - 1 ? MAX_SHEET : ctW - MAX_SHEET * (pieces - 1);
+          countertopPanels.push({ id: `${el.id}_${i}`, w: pieceW, h: ctH, d: ctD, elemType: 'countertop', finishId: el.countertopId });
+        }
       } else if (el.type === 'cargo' && el.cargoId) {
         const spec = cargoOptions.find(c => c.id === el.cargoId);
         const unitPrice = spec?.pricePln ?? 0;
@@ -368,7 +375,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const korpusGrouped      = groupPanels(korpusPanels);
     const obicieGrouped      = groupPanels(obiciePanels);
     const hdfGrouped         = groupPanels(hdfPanels);
-    const countertopGrouped  = groupPanels(countertopPanels);
+    const countertopGrouped  = groupPanels(countertopPanels, true);
 
     // Totals
     const totalKorpusArea = korpusPanels.reduce((s, p) => s + faceArea(p.w, p.h, p.d), 0);
