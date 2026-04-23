@@ -21,7 +21,6 @@ import ModelOverlay from './ModelOverlay';
 import OrderModal from './OrderModal';
 import './App.css';
 
-const CURRENT_MODEL_KEY = 'currentModelId';
 
 const App: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -48,27 +47,22 @@ const App: React.FC = () => {
   const { savedModels, loading: modelsLoading, saveModel, deleteModel, overwriteModel } = useSavedModels();
   const [rulerMode, setRulerMode] = useState(false);
   const [rulerPoints, setRulerPoints] = useState<{ x: number; y: number; z: number }[]>([]);
-  const [currentModelId, setCurrentModelId] = useState<string | null>(() => localStorage.getItem(CURRENT_MODEL_KEY));
+  const [currentModelId, setCurrentModelId] = useState<string | null>(null);
   const [ctrlSAction, setCtrlSAction] = useState<'new' | 'overwrite' | null>(null);
   const [ctrlSName, setCtrlSName] = useState('');
   const [ctrlSSaving, setCtrlSSaving] = useState(false);
-  const setAndPersistModelId = (id: string | null) => {
-    if (id) localStorage.setItem(CURRENT_MODEL_KEY, id);
-    else localStorage.removeItem(CURRENT_MODEL_KEY);
-    setCurrentModelId(id);
-  };
   const handleSaveModel = async (name: string) => {
     const id = await saveModel(name, elements, boardSize);
-    setAndPersistModelId(id);
+    setCurrentModelId(id);
   };
   const handleLoadModel = (model: { id: string; elements: typeof elements; boardSize?: BoardSize }) => {
     setElements(model.elements);
     if (model.boardSize) setBoardSize(model.boardSize);
-    setAndPersistModelId(model.id);
+    setCurrentModelId(model.id);
   };
   const handleOverwriteModel = async (id: string) => { await overwriteModel(id, elements, boardSize); };
   const handleDeleteModel = (id: string) => {
-    if (id === currentModelId) setAndPersistModelId(null);
+    if (id === currentModelId) setCurrentModelId(null);
     deleteModel(id);
   };
   const handleRulerClick = (pt: { x: number; y: number; z: number }) => {
