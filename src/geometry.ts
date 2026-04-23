@@ -12,6 +12,10 @@ import {
   recomputeGroups,
 } from './computeElements';
 
+export function isCabinetType(t?: string): boolean {
+  return t === 'cabinet' || t === 'boxkuchenny' || t === 'szafkadolna60' || t === 'szafkadolna40' || t === 'szafkadolna30';
+}
+
 export function effectiveHW(el: BoxElement): number {
   return (el.rotationY ?? 0) % 180 !== 0 ? el.dimensions.depth / 2 : el.dimensions.width / 2;
 }
@@ -76,7 +80,7 @@ export function fitCabinetToBelow(cabinet: BoxElement, allElements: BoxElement[]
 /** Auto-fit shelf depth (Z) to the inner depth of the cabinet it's inside. */
 export function fitShelfDepthToCabinet(shelf: BoxElement, allElements: BoxElement[]): BoxElement {
   for (const other of allElements) {
-    if (other.id === shelf.id || other.type !== 'cabinet') continue;
+    if (other.id === shelf.id || !isCabinetType(other.type)) continue;
     const yOverlap =
       shelf.position.y < other.position.y + other.dimensions.height &&
       shelf.position.y + shelf.dimensions.height > other.position.y;
@@ -115,7 +119,7 @@ function _getBays(cab: BoxElement, dividers: BoxElement[]): { left: number; righ
 /** Fits shelf width/x to the bay (between dividers) whose centre is closest to shelf.position.x. */
 export function fitShelfToBay(shelf: BoxElement, allElements: BoxElement[]): BoxElement {
   if (!shelf.cabinetId) return shelf;
-  const cab = allElements.find((e) => e.id === shelf.cabinetId && e.type === 'cabinet');
+  const cab = allElements.find((e) => e.id === shelf.cabinetId && isCabinetType(e.type));
   if (!cab) return shelf;
   const dividers = allElements.filter((e) => e.cabinetId === shelf.cabinetId && e.type === 'divider');
   if (dividers.length === 0) return shelf;

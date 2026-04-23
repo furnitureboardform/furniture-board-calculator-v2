@@ -49,7 +49,7 @@ export const DRAWER_SYSTEM_FRONT_EXTRA = 0.030;
 export interface BoxElement {
   id: string;
   name: string;
-  type: 'cabinet' | 'shelf' | 'board' | 'drawer' | 'drawerbox' | 'divider' | 'front' | 'rod' | 'leg' | 'hdf' | 'rearboard' | 'blenda' | 'plinth' | 'group' | 'maskowanica' | 'boxkuchenny' | 'countertop' | 'cargo' | 'cornersystem';
+  type: 'cabinet' | 'shelf' | 'board' | 'drawer' | 'drawerbox' | 'divider' | 'front' | 'rod' | 'leg' | 'hdf' | 'rearboard' | 'blenda' | 'plinth' | 'group' | 'maskowanica' | 'boxkuchenny' | 'szafkadolna60' | 'szafkadolna40' | 'szafkadolna30' | 'countertop' | 'cargo' | 'cornersystem';
   cabinetId?: string; // if set, element is locked inside this cabinet (or group for groupFront)
   groupIds?: string[];  // for cabinets: which groups they belong to (a cabinet can belong to multiple groups)
   frontSide?: 'left' | 'right'; // only for double-door fronts

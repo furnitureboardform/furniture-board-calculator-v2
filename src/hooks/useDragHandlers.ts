@@ -27,6 +27,7 @@ import {
   clampYBoundsToObstacles,
   effectiveHW,
   effectiveHD,
+  isCabinetType,
 } from '../geometry';
 import {
   findNearCabinetHysteresis,
@@ -36,6 +37,16 @@ import {
   pushOutCollisions,
   clampYToCollisions,
 } from '../snapAttach';
+
+function refitShelves(cabinetId: string, elements: BoxElement[]): BoxElement[] {
+  const dividers = elements.filter((d) => d.cabinetId === cabinetId && d.type === 'divider');
+  return elements.map((e) => {
+    if (e.type !== 'shelf' || e.cabinetId !== cabinetId) return e;
+    return dividers.length > 0
+      ? fitShelfToBay(fitShelfDepthToCabinet(e, elements), elements)
+      : fitShelfDepthToCabinet(e, elements);
+  });
+}
 
 interface Params {
   setElements: React.Dispatch<React.SetStateAction<BoxElement[]>>;
@@ -130,7 +141,10 @@ export function useDragHandlers({
           return withDelta;
         });
         const changedEl = updated.find((e) => e.id === id);
-        return recomputeAllY(updated, boardSizeRef.current.height / 1000, changedEl?.type === 'shelf');
+        const withShelves = isCabinetType(changedEl?.type) && (axis === 'width' || axis === 'depth')
+          ? refitShelves(id, updated)
+          : updated;
+        return recomputeAllY(withShelves, boardSizeRef.current.height / 1000, changedEl?.type === 'shelf');
       });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -178,7 +192,10 @@ export function useDragHandlers({
           }
           return { ...e, dimensions: clampedDims };
         });
-        return recomputeAllY(updated, boardSizeRef.current.height / 1000, el?.type === 'shelf');
+        const widthOrDepthChanged = isCabinetType(el?.type) &&
+          (clampedDims.width !== el!.dimensions.width || clampedDims.depth !== el!.dimensions.depth);
+        const withShelves = widthOrDepthChanged ? refitShelves(id, updated) : updated;
+        return recomputeAllY(withShelves, boardSizeRef.current.height / 1000, el?.type === 'shelf');
       });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
