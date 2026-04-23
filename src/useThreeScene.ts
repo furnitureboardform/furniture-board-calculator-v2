@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { BoxElement } from './types';
 import { effectiveHW, effectiveHD } from './geometry';
+import { getBlendaMargins } from './snapAttach';
 import {
   rebuildPanels,
   rebuildShelf,
@@ -49,6 +50,7 @@ const SNAP_DIST = 0.08;
 
 const NO_HEIGHT_HANDLES = new Set<BoxElement['type']>(['shelf', 'drawer', 'countertop']);
 
+
 function snapAndCollide(
   el: BoxElement,
   nx: number,
@@ -59,52 +61,70 @@ function snapAndCollide(
   const hd = effectiveHD(el);
   const elYMin = el.position.y;
   const elYMax = el.position.y + el.dimensions.height;
+  const isCabinet = el.type === 'cabinet' || el.type === 'boxkuchenny';
+
+  const elMargins = isCabinet ? getBlendaMargins(el, others) : { xNeg: 0, xPos: 0, zNeg: 0, zPos: 0 };
+  const hwR = hw + elMargins.xPos;
+  const hwL = hw + elMargins.xNeg;
+  const hdF = hd + elMargins.zPos;
+  const hdB = hd + elMargins.zNeg;
 
   let bestX = nx;
   let bestZ = nz;
-  let minDistX = SNAP_DIST;
-  let minDistZ = SNAP_DIST;
 
   const relevant = others.filter(o => {
-    if (o.type === 'group') return false;
+    if (o.type === 'group' || o.type === 'blenda') return false;
     return elYMin < o.position.y + o.dimensions.height && elYMax > o.position.y;
   });
 
-  const otherDims = relevant.map(o => ({ ohw: effectiveHW(o), ohd: effectiveHD(o), ox: o.position.x, oz: o.position.z }));
+  const otherDims = relevant.map(o => {
+    const om = (o.type === 'cabinet' || o.type === 'boxkuchenny') ? getBlendaMargins(o, others) : { xNeg: 0, xPos: 0, zNeg: 0, zPos: 0 };
+    return {
+      ohwL: effectiveHW(o) + om.xNeg,
+      ohwR: effectiveHW(o) + om.xPos,
+      ohdF: effectiveHD(o) + om.zPos,
+      ohdB: effectiveHD(o) + om.zNeg,
+      ox: o.position.x,
+      oz: o.position.z,
+    };
+  });
 
-  for (const { ohw, ohd, ox, oz } of otherDims) {
-    const xCandidates: [number, number, number][] = [
-      [nx + hw, ox - ohw, ox - ohw - hw],
-      [nx - hw, ox + ohw, ox + ohw + hw],
-      [nx - hw, ox - ohw, ox - ohw + hw],
-      [nx + hw, ox + ohw, ox + ohw - hw],
-    ];
-    for (const [bf, of_, tx] of xCandidates) {
-      const dist = Math.abs(bf - of_);
-      if (dist < minDistX) { minDistX = dist; bestX = tx; }
-    }
-
-    const zCandidates: [number, number, number][] = [
-      [nz + hd, oz - ohd, oz - ohd - hd],
-      [nz - hd, oz + ohd, oz + ohd + hd],
-      [nz - hd, oz - ohd, oz - ohd + hd],
-      [nz + hd, oz + ohd, oz + ohd - hd],
-    ];
-    for (const [bf, of_, tz] of zCandidates) {
-      const dist = Math.abs(bf - of_);
-      if (dist < minDistZ) { minDistZ = dist; bestZ = tz; }
+  if (!isCabinet) {
+    let minDistX = SNAP_DIST;
+    let minDistZ = SNAP_DIST;
+    for (const { ohwL, ohwR, ohdF, ohdB, ox, oz } of otherDims) {
+      const xCandidates: [number, number, number][] = [
+        [nx + hwR, ox - ohwL, ox - ohwL - hwR],
+        [nx - hwL, ox + ohwR, ox + ohwR + hwL],
+        [nx - hwL, ox - ohwL, ox - ohwL + hwL],
+        [nx + hwR, ox + ohwR, ox + ohwR - hwR],
+      ];
+      for (const [bf, of_, tx] of xCandidates) {
+        const dist = Math.abs(bf - of_);
+        if (dist < minDistX) { minDistX = dist; bestX = tx; }
+      }
+      const zCandidates: [number, number, number][] = [
+        [nz + hdF, oz - ohdB, oz - ohdB - hdF],
+        [nz - hdB, oz + ohdF, oz + ohdF + hdB],
+        [nz - hdB, oz - ohdB, oz - ohdB + hdB],
+        [nz + hdF, oz + ohdF, oz + ohdF - hdF],
+      ];
+      for (const [bf, of_, tz] of zCandidates) {
+        const dist = Math.abs(bf - of_);
+        if (dist < minDistZ) { minDistZ = dist; bestZ = tz; }
+      }
     }
   }
 
-  for (const { ohw, ohd, ox, oz } of otherDims) {
-    const xOverlap = bestX + hw > ox - ohw && bestX - hw < ox + ohw;
-    const zOverlap = bestZ + hd > oz - ohd && bestZ - hd < oz + ohd;
+  for (const { ohwL, ohwR, ohdF, ohdB, ox, oz } of otherDims) {
+    const xOverlap = bestX + hwR > ox - ohwL && bestX - hwL < ox + ohwR;
+    const zOverlap = bestZ + hdF > oz - ohdB && bestZ - hdB < oz + ohdF;
 
     if (xOverlap && zOverlap) {
-      const penXR = bestX + hw - (ox - ohw);
-      const penXL = ox + ohw - (bestX - hw);
-      const penZF = bestZ + hd - (oz - ohd);
-      const penZB = oz + ohd - (bestZ - hd);
+      const penXR = bestX + hwR - (ox - ohwL);
+      const penXL = ox + ohwR - (bestX - hwL);
+      const penZF = bestZ + hdF - (oz - ohdB);
+      const penZB = oz + ohdF - (bestZ - hdB);
       const minPenX = Math.min(Math.abs(penXR), Math.abs(penXL));
       const minPenZ = Math.min(Math.abs(penZF), Math.abs(penZB));
       if (minPenX <= minPenZ) {

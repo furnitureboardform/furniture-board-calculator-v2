@@ -119,49 +119,56 @@ export function snapShelfEdgeToCabinet(
 /** Snaps box XZ position so its walls touch neighbors when close enough. */
 export function snapToNeighbors(box: BoxElement, allElements: BoxElement[]): { x: number; z: number } {
   let { x, z } = box.position;
-  const hw = ehw(box);
-  const hd = ehd(box);
+  const base = getMovingAABB(box, allElements);
+  // margins from box.position to AABB edges (fixed, rotation-aware)
+  const mxNeg = box.position.x - base.minX; // how far AABB extends left of center
+  const mxPos = base.maxX - box.position.x;
+  const mzNeg = box.position.z - base.minZ;
+  const mzPos = base.maxZ - box.position.z;
 
   for (const other of allElements) {
     if (other.id === box.id) continue;
     if (other.cabinetId) continue;
-    const ohw = ehw(other);
-    const ohd = ehd(other);
+    const oAABB = getBlockerAABB(other, allElements);
 
     const yOverlap =
       box.position.y < other.position.y + other.dimensions.height &&
       box.position.y + box.dimensions.height > other.position.y;
     if (!yOverlap) continue;
 
-    const zGap = Math.abs(z - other.position.z) - (hd + ohd);
+    // Current AABB edges of moving box
+    const bMinX = x - mxNeg;
+    const bMaxX = x + mxPos;
+    const bMinZ = z - mzNeg;
+    const bMaxZ = z + mzPos;
+
+    const zGap = Math.max(bMinZ - oAABB.maxZ, oAABB.minZ - bMaxZ);
 
     // --- X axis ---
     if (zGap < SNAP_DIST) {
-      const gapR = (other.position.x - ohw) - (x + hw);
+      const gapR = oAABB.minX - bMaxX;
       if (gapR >= -0.001 && gapR < SNAP_DIST) { x += gapR; continue; }
-      const gapL = (x - hw) - (other.position.x + ohw);
+      const gapL = bMinX - oAABB.maxX;
       if (gapL >= -0.001 && gapL < SNAP_DIST) { x -= gapL; continue; }
-      const deltaLL = (other.position.x - ohw) - (x - hw);
+      const deltaLL = oAABB.minX - bMinX;
       if (Math.abs(deltaLL) < SNAP_DIST) { x += deltaLL; continue; }
-      const deltaRR = (other.position.x + ohw) - (x + hw);
+      const deltaRR = oAABB.maxX - bMaxX;
       if (Math.abs(deltaRR) < SNAP_DIST) { x += deltaRR; continue; }
-      const deltaCX = other.position.x - x;
-      if (Math.abs(deltaCX) < SNAP_DIST) { x += deltaCX; continue; }
     }
 
-    // --- Z axis ---
-    const xGapUpdated = Math.abs(x - other.position.x) - (hw + ohw);
-    if (xGapUpdated < SNAP_DIST) {
-      const gapF = (other.position.z - ohd) - (z + hd);
+    // --- Z axis (recompute bMinX/bMaxX after possible x change) ---
+    const bMinX2 = x - mxNeg;
+    const bMaxX2 = x + mxPos;
+    const xGap = Math.max(bMinX2 - oAABB.maxX, oAABB.minX - bMaxX2);
+    if (xGap < SNAP_DIST) {
+      const gapF = oAABB.minZ - bMaxZ;
       if (gapF >= -0.001 && gapF < SNAP_DIST) { z += gapF; continue; }
-      const gapB = (z - hd) - (other.position.z + ohd);
+      const gapB = bMinZ - oAABB.maxZ;
       if (gapB >= -0.001 && gapB < SNAP_DIST) { z -= gapB; continue; }
-      const deltaFF = (other.position.z + ohd) - (z + hd);
+      const deltaFF = oAABB.maxZ - bMaxZ;
       if (Math.abs(deltaFF) < SNAP_DIST) { z += deltaFF; continue; }
-      const deltaBB = (other.position.z - ohd) - (z - hd);
+      const deltaBB = oAABB.minZ - bMinZ;
       if (Math.abs(deltaBB) < SNAP_DIST) { z += deltaBB; continue; }
-      const deltaCZ = other.position.z - z;
-      if (Math.abs(deltaCZ) < SNAP_DIST) { z += deltaCZ; continue; }
     }
   }
 
@@ -177,6 +184,36 @@ function isBoundChild(el: BoxElement, groupIds: Set<string>): boolean {
   return true;
 }
 
+/**
+ * Returns XZ blenda margins {xNeg, xPos, zNeg, zPos} derived from cabinet geometry,
+ * independent of child.position (safe to call even when blenda positions are stale).
+ */
+export function getBlendaMargins(el: BoxElement, allElements: BoxElement[]): { xNeg: number; xPos: number; zNeg: number; zPos: number } {
+  const m = { xNeg: 0, xPos: 0, zNeg: 0, zPos: 0 };
+  if (el.type !== 'cabinet' && el.type !== 'boxkuchenny') return m;
+  const rot = el.rotationY ?? 0;
+  for (const child of allElements) {
+    if (child.cabinetId !== el.id || child.type !== 'blenda') continue;
+    if (child.blendaSide !== 'left' && child.blendaSide !== 'right') continue;
+    const d = child.blendaCustomDepth ?? 0.1;
+    if (rot === 0 || rot === 180) {
+      if (child.blendaSide === 'left') m.xNeg = Math.max(m.xNeg, d);
+      else m.xPos = Math.max(m.xPos, d);
+    } else {
+      // rot 90: left→+Z, right→-Z; rot 270: left→-Z, right→+Z
+      const leftIsPos = rot === 90;
+      if (child.blendaSide === 'left') {
+        if (leftIsPos) m.zPos = Math.max(m.zPos, d);
+        else m.zNeg = Math.max(m.zNeg, d);
+      } else {
+        if (leftIsPos) m.zNeg = Math.max(m.zNeg, d);
+        else m.zPos = Math.max(m.zPos, d);
+      }
+    }
+  }
+  return m;
+}
+
 /** Returns the effective AABB of el including its solid children (maskowanica, blenda, plinth). */
 function getBlockerAABB(
   el: BoxElement,
@@ -188,8 +225,16 @@ function getBlockerAABB(
   let maxY = el.position.y + el.dimensions.height;
   let minZ = el.position.z - ehd(el);
   let maxZ = el.position.z + ehd(el);
+  // Blenda margins: use geometry-based calculation (rotation-aware, position-independent)
+  const bm = getBlendaMargins(el, allElements);
+  minX -= bm.xNeg;
+  maxX += bm.xPos;
+  minZ -= bm.zNeg;
+  maxZ += bm.zPos;
+  // Non-blenda solid children (maskowanica, plinth, countertop): use child.position
   for (const child of allElements) {
     if (child.cabinetId !== el.id) continue;
+    if (child.type === 'blenda') continue;
     if (!SOLID_CHILD_TYPES.has(child.type)) continue;
     minX = Math.min(minX, child.position.x - child.dimensions.width / 2);
     maxX = Math.max(maxX, child.position.x + child.dimensions.width / 2);
@@ -199,6 +244,25 @@ function getBlockerAABB(
     maxZ = Math.max(maxZ, child.position.z + child.dimensions.depth / 2);
   }
   return { minX, maxX, minY, maxY, minZ, maxZ };
+}
+
+/**
+ * Like getBlockerAABB but computes blenda margins from geometry rather than child.position.
+ * Use for the dragged element whose blenda positions may not yet be updated.
+ */
+function getMovingAABB(
+  el: BoxElement,
+  allElements: BoxElement[]
+): { minX: number; maxX: number; minZ: number; maxZ: number } {
+  const hw = ehw(el);
+  const hd = ehd(el);
+  const m = getBlendaMargins(el, allElements);
+  return {
+    minX: el.position.x - hw - m.xNeg,
+    maxX: el.position.x + hw + m.xPos,
+    minZ: el.position.z - hd - m.zNeg,
+    maxZ: el.position.z + hd + m.zPos,
+  };
 }
 
 /**
@@ -244,10 +308,13 @@ export function clampYToCollisions(
 
 /** Pushes box out of XZ overlaps with all free-standing solid elements (cabinets, shelves, boards, boxkuchenny), accounting for maskowanica/blenda/plinth children of blockers. */
 export function pushOutCollisions(box: BoxElement, allElements: BoxElement[]): { x: number; z: number } {
+  const base = getMovingAABB(box, allElements);
+  const mxNeg = box.position.x - base.minX;
+  const mxPos = base.maxX - box.position.x;
+  const mzNeg = box.position.z - base.minZ;
+  const mzPos = base.maxZ - box.position.z;
   let x = box.position.x;
   let z = box.position.z;
-  const hw = ehw(box);
-  const hd = ehd(box);
   const boxMinY = box.position.y;
   const boxMaxY = box.position.y + box.dimensions.height;
   const groupIds = new Set<string>(allElements.filter((e) => e.type === 'group').map((e) => e.id));
@@ -261,21 +328,26 @@ export function pushOutCollisions(box: BoxElement, allElements: BoxElement[]): {
     const yOverlap = boxMinY < aabb.maxY && boxMaxY > aabb.minY;
     if (!yOverlap) continue;
 
-    const otherHW = (aabb.maxX - aabb.minX) / 2;
-    const otherHD = (aabb.maxZ - aabb.minZ) / 2;
-    const otherCX = (aabb.maxX + aabb.minX) / 2;
-    const otherCZ = (aabb.maxZ + aabb.minZ) / 2;
+    const bMinX = x - mxNeg;
+    const bMaxX = x + mxPos;
+    const bMinZ = z - mzNeg;
+    const bMaxZ = z + mzPos;
 
-    const overlapX = (hw + otherHW) - Math.abs(x - otherCX);
-    const overlapZ = (hd + otherHD) - Math.abs(z - otherCZ);
+    const overlapX = Math.min(bMaxX - aabb.minX, aabb.maxX - bMinX);
+    const overlapZ = Math.min(bMaxZ - aabb.minZ, aabb.maxZ - bMinZ);
     if (overlapX <= 0 || overlapZ <= 0) continue;
+
+    const bCX = (bMinX + bMaxX) / 2;
+    const bCZ = (bMinZ + bMaxZ) / 2;
+    const otherCX = (aabb.minX + aabb.maxX) / 2;
+    const otherCZ = (aabb.minZ + aabb.maxZ) / 2;
 
     if (other.type !== 'countertop' && overlapX > STACK_OVERLAP && overlapZ > STACK_OVERLAP) continue;
 
     if (overlapX <= overlapZ) {
-      x += overlapX * (x >= otherCX ? 1 : -1);
+      x += overlapX * (bCX >= otherCX ? 1 : -1);
     } else {
-      z += overlapZ * (z >= otherCZ ? 1 : -1);
+      z += overlapZ * (bCZ >= otherCZ ? 1 : -1);
     }
   }
   return { x, z };
