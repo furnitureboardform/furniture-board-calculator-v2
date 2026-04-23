@@ -5,6 +5,7 @@ export const SNAP_DIST = 0.05;      // side-by-side wall snap tolerance (5 cm)
 export const FRONT_INSET = 0.002;   // 2 mm gap on each side between front panel and cabinet edge
 export const HDF_T = 0.003;         // HDF back panel thickness 3 mm
 export const HDF_INSET = 0.002;     // 2 mm inset on each side of the HDF panel
+export const PLINTH_INSET = 0.002;  // 2 mm inset on each side of the plinth
 export const STACK_OVERLAP = 0.10;  // minimum overlap in each axis to trigger stacking (10 cm)
 export const ATTACH_DIST = SNAP_DIST; // auto-attach distance
 export const DETACH_DIST = 0.08;    // 80 mm drag displacement to detach

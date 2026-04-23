@@ -1,5 +1,5 @@
 import type { BoxElement } from './types';
-import { PANEL_T, FRONT_INSET, HDF_T, HDF_INSET } from './constants';
+import { PANEL_T, FRONT_INSET, HDF_T, HDF_INSET, PLINTH_INSET } from './constants';
 
 function isGroupMember(e: BoxElement, groupId: string): boolean {
   return !!e.groupIds?.includes(groupId) && (e.type === 'cabinet' || e.type === 'boxkuchenny');
@@ -80,7 +80,7 @@ export function computePlinthForCabinet(plinth: BoxElement, cab: BoxElement, all
   const halfD = cab.dimensions.depth / 2;
   let posX = cab.position.x;
   let posZ = cab.position.z;
-  let dimW = cab.dimensions.width;
+  let dimW = cab.dimensions.width - 2 * PLINTH_INSET;
   if (rot === 0)        { posZ = cab.position.z + halfD + PANEL_T / 2; }
   else if (rot === 90)  { posX = cab.position.x + halfD + PANEL_T / 2; }
   else if (rot === 180) { posZ = cab.position.z - halfD - PANEL_T / 2; }
@@ -498,7 +498,7 @@ export function computePlinthForGroup(plinth: BoxElement, group: BoxElement): Bo
   return {
     ...plinth,
     dimensions: {
-      width: group.dimensions.width,
+      width: group.dimensions.width - 2 * PLINTH_INSET,
       height: plinth.dimensions.height || 0.1,
       depth: PANEL_T,
     },
