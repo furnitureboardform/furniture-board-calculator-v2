@@ -24,8 +24,7 @@ import {
   computeCountertopForGroup,
 } from '../computeElements';
 import { computeDividerBounds, computeYForBox, fitDrawerToBay, switchShelfToNextBay, switchDrawerToNextBay, switchDividerToNextSlot, DRAWER_FACE_H_DEFAULT, DRAWER_EXT_FRONT_H } from '../geometry';
-import { createBox, createBoxKuchenny, createShelf, createBoard } from '../factories';
-import { counters } from '../elementCounters';
+import { createBox, createBoxKuchenny, createShelf, createBoard, counters } from '../factories';
 
 function isSideBlendaWithStretch(e: BoxElement, cabinetId: string): boolean {
   return e.type === 'blenda' && e.cabinetId === cabinetId && e.blendaScope === 'cabinet' && (e.blendaSide === 'left' || e.blendaSide === 'right') && !!e.stretchWithLegs;

@@ -55,7 +55,7 @@ export function computeYForBox(box: BoxElement, allElements: BoxElement[], roomH
   }
   const legs = allElements.filter((e) => e.type === 'leg' && e.cabinetId === box.id);
   if (legs.length > 0) {
-    maxTop = Math.max(maxTop, maxTop + legs[0].dimensions.height);
+    maxTop += legs[0].dimensions.height;
   }
   return Math.min(maxTop, Math.max(0, roomH - box.dimensions.height));
 }
@@ -63,7 +63,7 @@ export function computeYForBox(box: BoxElement, allElements: BoxElement[], roomH
 /** When a cabinet is placed on top of another cabinet, match its width/depth to the lower one. */
 export function fitCabinetToBelow(cabinet: BoxElement, allElements: BoxElement[]): BoxElement {
   for (const other of allElements) {
-    if (other.id === cabinet.id || other.type !== 'cabinet') continue;
+    if (other.id === cabinet.id || !isCabinetType(other.type)) continue;
     const otherTop = other.position.y + other.dimensions.height;
     if (Math.abs(cabinet.position.y - otherTop) > 0.001) continue;
     if (Math.abs(cabinet.position.x - other.position.x) > SNAP_DIST) continue;

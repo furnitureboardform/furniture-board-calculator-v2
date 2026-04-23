@@ -1,8 +1,7 @@
 import * as THREE from 'three';
 import type { BoxElement } from './types';
-import { HDF_T, DRAWER_BOX_REAR_OFFSET, BOX_OVERLAY_Y_OFFSET, COUNTERTOP_MAX_SHEET } from './constants';
+import { PANEL_T, HDF_T, DRAWER_BOX_REAR_OFFSET, BOX_OVERLAY_Y_OFFSET, COUNTERTOP_MAX_SHEET } from './constants';
 
-const PANEL_T = 0.018;
 export const HDF_GRAY = '#8a8a8a';
 const HDF_COLOR = new THREE.Color(HDF_GRAY);
 const ROD_RADIUS = 0.0125;
