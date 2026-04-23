@@ -85,16 +85,3 @@ export function createShelf(): BoxElement {
   };
 }
 
-export function createSzafkaDolna(width: number): BoxElement {
-  const color = nextColor();
-  const label = width === 0.6 ? '60' : width === 0.4 ? '40' : '30';
-  return {
-    id: crypto.randomUUID(),
-    name: `Szafka dolna ${label} ${szafkaDolnaCounter++}`,
-    type: 'boxkuchenny',
-    dimensions: { width, height: 0.72, depth: 0.53 },
-    position: { x: 0, y: 0, z: 0 },
-    color,
-    finishId: DEFAULT_FINISH_ID,
-  };
-}

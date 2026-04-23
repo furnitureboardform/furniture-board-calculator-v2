@@ -13,7 +13,7 @@ import {
 } from './computeElements';
 
 export function isCabinetType(t?: string): boolean {
-  return t === 'cabinet' || t === 'boxkuchenny' || t === 'szafkadolna60' || t === 'szafkadolna40' || t === 'szafkadolna30';
+  return t === 'cabinet' || t === 'boxkuchenny';
 }
 
 export function effectiveHW(el: BoxElement): number {

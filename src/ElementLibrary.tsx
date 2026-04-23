@@ -16,7 +16,7 @@ function pickCornerSystemForBox(options: CornerSystemOption[], box: BoxElement):
 }
 
 interface CatalogItem {
-  type: 'cabinet' | 'shelf' | 'board' | 'boxkuchenny' | 'szafkadolna60' | 'szafkadolna40' | 'szafkadolna30';
+  type: 'cabinet' | 'shelf' | 'board' | 'boxkuchenny';
   label: string;
   icon: React.ReactNode;
 }
@@ -75,51 +75,6 @@ const CATALOG: CatalogItem[] = [
       </svg>
     ),
   },
-  {
-    type: 'szafkadolna60',
-    label: 'Szafka 60',
-    icon: (
-      <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="catalog-icon">
-        <rect x="4" y="6" width="28" height="24" rx="1" fill="none" stroke="#9cdcfe" strokeWidth="1" strokeDasharray="3 2"/>
-        <rect x="4" y="6" width="3" height="24" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5"/>
-        <rect x="29" y="6" width="3" height="24" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5"/>
-        <rect x="7" y="27" width="22" height="3" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5"/>
-        <rect x="7" y="6" width="22" height="3" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5" opacity="0.5"/>
-        <rect x="7" y="9" width="22" height="3" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5" opacity="0.5"/>
-        <text x="18" y="22" textAnchor="middle" fontSize="7" fill="#9cdcfe" fontFamily="monospace">60</text>
-      </svg>
-    ),
-  },
-  {
-    type: 'szafkadolna40',
-    label: 'Szafka 40',
-    icon: (
-      <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="catalog-icon">
-        <rect x="4" y="6" width="28" height="24" rx="1" fill="none" stroke="#9cdcfe" strokeWidth="1" strokeDasharray="3 2"/>
-        <rect x="4" y="6" width="3" height="24" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5"/>
-        <rect x="29" y="6" width="3" height="24" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5"/>
-        <rect x="7" y="27" width="22" height="3" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5"/>
-        <rect x="7" y="6" width="22" height="3" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5" opacity="0.5"/>
-        <rect x="7" y="9" width="22" height="3" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5" opacity="0.5"/>
-        <text x="18" y="22" textAnchor="middle" fontSize="7" fill="#9cdcfe" fontFamily="monospace">40</text>
-      </svg>
-    ),
-  },
-  {
-    type: 'szafkadolna30',
-    label: 'Szafka 30',
-    icon: (
-      <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="catalog-icon">
-        <rect x="4" y="6" width="28" height="24" rx="1" fill="none" stroke="#9cdcfe" strokeWidth="1" strokeDasharray="3 2"/>
-        <rect x="4" y="6" width="3" height="24" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5"/>
-        <rect x="29" y="6" width="3" height="24" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5"/>
-        <rect x="7" y="27" width="22" height="3" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5"/>
-        <rect x="7" y="6" width="22" height="3" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5" opacity="0.5"/>
-        <rect x="7" y="9" width="22" height="3" rx="0" fill="#1a4a6e" stroke="#9cdcfe" strokeWidth="1.5" opacity="0.5"/>
-        <text x="18" y="22" textAnchor="middle" fontSize="7" fill="#9cdcfe" fontFamily="monospace">30</text>
-      </svg>
-    ),
-  },
 ];
 
 interface Props {
@@ -131,7 +86,7 @@ interface Props {
   onSelect: (id: string) => void;
   onMultiSelectToggle: (id: string) => void;
   onGroup: (ids: string[]) => void;
-  onAdd: (type: 'cabinet' | 'shelf' | 'board' | 'boxkuchenny' | 'szafkadolna60' | 'szafkadolna40' | 'szafkadolna30') => void;
+  onAdd: (type: 'cabinet' | 'shelf' | 'board' | 'boxkuchenny') => void;
   onAddShelfToCabinet: (cabinetId: string) => void;
   onAddDrawerToCabinet: (cabinetId: string) => void;
   onAddDrawerboxToCabinet: (cabinetId: string) => void;
