@@ -140,7 +140,8 @@ const ModelOverlay: React.FC<Props> = ({
     const all         = elements.filter((e) => e.cabinetId === cab.id && e.type !== 'blenda' && e.type !== 'maskowanica' && e.type !== 'drawer');
     const hdfItems    = all.filter((e) => e.type === 'hdf' || e.type === 'rearboard');
     const boardItems  = all.filter((e) => e.type === 'shelf' || e.type === 'divider');
-    const additionals = all.filter((e) => e.type === 'leg' || e.type === 'rod' || e.type === 'plinth');
+    const additionals = all.filter((e) => e.type === 'leg' || e.type === 'rod');
+    const plinths     = all.filter((e) => e.type === 'plinth');
     const maskowanice = elements.filter((e) => e.cabinetId === cab.id && e.type === 'maskowanica');
     const interiors   = all.filter((e) => e.type === 'drawerbox' || e.type === 'front');
     const directDrawers = elements.filter((e) => e.cabinetId === cab.id && e.type === 'drawer');
@@ -175,11 +176,11 @@ const ModelOverlay: React.FC<Props> = ({
           ))}
         </div>
 
-        {/* Maskowanice */}
-        {maskowanice.length > 0 && (
+        {/* Maskowanice i cokoły */}
+        {(maskowanice.length > 0 || plinths.length > 0) && (
           <div className="mo-section">
-            <div className="mo-section-label">Maskowanice</div>
-            {maskowanice.map((el) => (
+            <div className="mo-section-label">Maskowanice i cokoły</div>
+            {[...maskowanice, ...plinths].map((el) => (
               <div key={el.id} className="mo-panel-row">
                 <span className="mo-panel-line" />
                 <span className="mo-panel-name">{el.name}</span>
