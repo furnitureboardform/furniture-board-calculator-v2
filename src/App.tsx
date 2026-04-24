@@ -135,6 +135,8 @@ const App: React.FC = () => {
     handleAddFrontToCabinet,
     handleAddDoubleFrontToCabinet,
     handleAddLegsToCabinet,
+    handleToggleBoxKuchennyVariant,
+    handleToggleBoxKuchennyCorner,
     handleAddLegsToBoxKuchenny,
     handleAddHdfToCabinet,
     handleAddPlinthToCabinet,
@@ -377,6 +379,8 @@ const App: React.FC = () => {
           onCornerSystemIdChange={handleCornerSystemIdChange}
           onCornerSystemSideChange={handleCornerSystemSideChange}
           onCornerSystemModelTypeChange={handleCornerSystemModelTypeChange}
+          onToggleBoxKuchennyVariant={handleToggleBoxKuchennyVariant}
+          onToggleBoxKuchennyCorner={handleToggleBoxKuchennyCorner}
         />
       </aside>
     </div>

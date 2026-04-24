@@ -35,6 +35,7 @@ const PRICE_TIPON       = 72.00;
 const PRICE_COUPLING    = 8.00;
 const PRICE_LEG         = 6.00;
 const PRICE_TIPON_FRONT = 16.00;
+const PRICE_WALL_HOOK   = 5.00;
 
 const T = PANEL_T;
 
@@ -224,8 +225,15 @@ function getBoxKuchennyStructPanels(cab: BoxElement): PanelEntry[] {
     { id: cab.id + '_sl', w: T,     h: H, d: D,      elemType: 'cabinet_side', finishId: fid },
     { id: cab.id + '_sr', w: T,     h: H, d: D,      elemType: 'cabinet_side', finishId: fid },
     { id: cab.id + '_b',  w: inner, h: T, d: D,      elemType: 'cabinet_top',  finishId: fid },
-    { id: cab.id + '_rF', w: inner, h: T, d: RAIL_D, elemType: 'drawerbox_rail', finishId: fid },
-    { id: cab.id + '_rB', w: inner, h: T, d: RAIL_D, elemType: 'drawerbox_rail', finishId: fid },
+    ...(cab.isWall
+      ? [{ id: cab.id + '_t', w: inner, h: T, d: D,      elemType: 'cabinet_top' as const,  finishId: fid }]
+      : [
+          { id: cab.id + '_rF', w: inner, h: T, d: RAIL_D, elemType: 'drawerbox_rail' as const, finishId: fid },
+          { id: cab.id + '_rB', w: inner, h: T, d: RAIL_D, elemType: 'drawerbox_rail' as const, finishId: fid },
+        ]),
+    ...(cab.isWall && cab.isCorner
+      ? [{ id: cab.id + '_junct', w: 0.100, h: H, d: T, elemType: 'cabinet_side' as const, finishId: fid }]
+      : []),
   ];
 }
 
@@ -442,6 +450,11 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const costCargo = cargoGroups.reduce((s, g) => s + g.cost, 0);
     const costCornerSystems = cornerSystemGroups.reduce((s, g) => s + g.cost, 0);
 
+    const wallBoxCount = elements.filter(e => e.type === 'boxkuchenny' && e.isWall).length;
+    const wallHookQty  = wallBoxCount;     // per side (left or right)
+    const wallHookCount = wallHookQty * 2;
+    const costWallHooks = wallHookCount * PRICE_WALL_HOOK;
+
     const totalCountertopCut = countertopPanels.reduce((s, p) => s + cutMeters(p.w, p.h, p.d), 0);
     const costCutCountertop  = totalCountertopCut * PRICE_CUT_COUNTERTOP_M;
 
@@ -466,7 +479,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
       costCutKorpus + costCutObicie + costCutHdf + costCutCountertop +
       costEdgeSvcKorpus + costEdgeSvcObicie +
       costOkleinaK + costOkleinaO +
-      costRods + costHinges + costSlides + costPtoSlides + costTipOn + costCouplings + costHandles + costTipOnFronts + costLegs + costDrawerSystems + costCountertops + costCargo + costCornerSystems;
+      costRods + costHinges + costSlides + costPtoSlides + costTipOn + costCouplings + costHandles + costTipOnFronts + costLegs + costDrawerSystems + costCountertops + costCargo + costCornerSystems + costWallHooks;
 
     return {
       hasUnknownFinish:
@@ -481,6 +494,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
       hdfAreaByFinish, plytaAreaByFinish,
       rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, tipOnFrontCount, legCount,
       drawerSystemGroups, cargoGroups, cornerSystemGroups, countertopGroups,
+      wallHookQty, wallHookCount, costWallHooks,
       costKorpus, costObicie, costHdf,
       totalCountertopCut,
       costCutKorpus, costCutObicie, costCutHdf, costCutCountertop,
@@ -575,7 +589,8 @@ const AdditionalSection: React.FC<{
   drawerSystemGroups: Array<{ label: string; count: number; unitPrice: number }>;
   cargoGroups: Array<{ label: string; count: number; unitPrice: number }>;
   cornerSystemGroups: Array<{ label: string; count: number; unitPrice: number }>;
-}> = ({ rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, tipOnFrontCount, legCount, drawerSystemGroups, cargoGroups, cornerSystemGroups }) => {
+  wallHookQty: number;
+}> = ({ rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, tipOnFrontCount, legCount, drawerSystemGroups, cargoGroups, cornerSystemGroups, wallHookQty }) => {
   const items: Array<{ name: string; qty: number; note?: string; warning?: boolean }> = [];
   if (rodCount > 0)         items.push({ name: 'Drążki',              qty: rodCount });
   if (hingeCount > 0)       items.push({ name: 'Zawiasy',             qty: hingeCount,       note: 'na drzwi (wg wysokości drzwi)' });
@@ -589,6 +604,8 @@ const AdditionalSection: React.FC<{
   for (const g of handleGroups) items.push({ name: g.label, qty: g.count, note: '1 na drzwi', warning: g.warning });
   if (tipOnFrontCount > 0)  items.push({ name: 'Tip-On',      qty: tipOnFrontCount,  note: '1 na front' });
   if (legCount > 0)         items.push({ name: 'Nóżki',               qty: legCount,         note: '4 na box' });
+  if (wallHookQty > 0)      items.push({ name: 'Zawieszka meblowa Blum lewa',  qty: wallHookQty, note: `${PRICE_WALL_HOOK.toFixed(2)} zł/szt.` });
+  if (wallHookQty > 0)      items.push({ name: 'Zawieszka meblowa Blum prawa', qty: wallHookQty, note: `${PRICE_WALL_HOOK.toFixed(2)} zł/szt.` });
 
   return (
     <div className="om-section">
@@ -626,6 +643,7 @@ const SummaryTab: React.FC<{ data: ReturnType<typeof useOrderData>; finishes: Fi
       drawerSystemGroups={data.drawerSystemGroups}
       cargoGroups={data.cargoGroups}
       cornerSystemGroups={data.cornerSystemGroups}
+      wallHookQty={data.wallHookQty}
     />
   </div>
 );
@@ -775,7 +793,7 @@ const CostTab: React.FC<{
 }> = ({ data, fin, setFin, finishes, hdfFinishes }) => {
   const hardwareSubtotal =
     data.costRods + data.costHinges + data.costSlides + data.costPtoSlides + data.costTipOn +
-    data.costCouplings + data.costHandles + data.costTipOnFronts + data.costLegs + data.costDrawerSystems + data.costCargo + data.costCornerSystems;
+    data.costCouplings + data.costHandles + data.costTipOnFronts + data.costLegs + data.costDrawerSystems + data.costCargo + data.costCornerSystems + data.costWallHooks;
   return (
     <div className="om-tab-content">
       <FinishCostSection title="Płyta" areaByFinish={data.plytaAreaByFinish} subtotal={data.costKorpus + data.costObicie}
@@ -817,6 +835,8 @@ const CostTab: React.FC<{
         {data.legCount > 0     && <CostRow label="Nóżki"               qty={data.legCount}      unit="szt." price={PRICE_LEG}      cost={data.costLegs} />}
         {data.cargoGroups.map(g => <CostRow key={g.id} label={`Cargo ${g.label}`} qty={g.count} unit="szt." price={g.unitPrice} cost={g.cost} />)}
         {data.cornerSystemGroups.map(g => <CostRow key={g.id} label={`System narożny ${g.label}`} qty={g.count} unit="szt." price={g.unitPrice} cost={g.cost} />)}
+        {data.wallHookQty > 0 && <CostRow label="Zawieszka meblowa Blum lewa"  qty={data.wallHookQty} unit="szt." price={PRICE_WALL_HOOK} cost={data.wallHookQty * PRICE_WALL_HOOK} />}
+        {data.wallHookQty > 0 && <CostRow label="Zawieszka meblowa Blum prawa" qty={data.wallHookQty} unit="szt." price={PRICE_WALL_HOOK} cost={data.wallHookQty * PRICE_WALL_HOOK} />}
         {hardwareSubtotal === 0 && <div className="om-empty-row">brak</div>}
       </CostSection>
 
@@ -877,6 +897,8 @@ function generatePdf(data: ReturnType<typeof useOrderData>, finishes: FinishOpti
   for (const g of data.handleGroups) addonRows.push([g.label, `${g.count} szt.`, '1 na drzwi']);
   if (data.tipOnFrontCount > 0) addonRows.push(['Tip-On',           `${data.tipOnFrontCount} szt.`, '1 na front']);
   if (data.legCount > 0)       addonRows.push(['Nóżki',                    `${data.legCount} szt.`,      '4 na box']);
+  if (data.wallHookQty > 0)  addonRows.push(['Zawieszka meblowa Blum lewa',  `${data.wallHookQty} szt.`, `${PRICE_WALL_HOOK.toFixed(2)} zł/szt.`]);
+  if (data.wallHookQty > 0)  addonRows.push(['Zawieszka meblowa Blum prawa', `${data.wallHookQty} szt.`, `${PRICE_WALL_HOOK.toFixed(2)} zł/szt.`]);
   for (const g of data.countertopGroups) addonRows.push([`Blat: ${g.label}`, `${g.sqm.toFixed(2)} m²`, `${g.unitPrice.toFixed(2)} zł/m²`]);
 
   const addonsContent: Content = addonRows.length === 0

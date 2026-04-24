@@ -423,6 +423,14 @@ export function useElementActions({
     });
   }, [setElements, setSelectedId]);
 
+  const handleToggleBoxKuchennyVariant = useCallback((boxId: string) => {
+    setElements((prev) => prev.map((e) => e.id === boxId ? { ...e, isWall: !e.isWall, isCorner: false } : e));
+  }, [setElements]);
+
+  const handleToggleBoxKuchennyCorner = useCallback((boxId: string) => {
+    setElements((prev) => prev.map((e) => e.id === boxId ? { ...e, isCorner: !e.isCorner } : e));
+  }, [setElements]);
+
   const handleAddLegsToBoxKuchenny = useCallback((boxId: string) => {
     setElements((prev) => {
       const box = prev.find((e) => e.id === boxId);
@@ -1550,6 +1558,8 @@ export function useElementActions({
     handleAddFrontToCabinet,
     handleAddDoubleFrontToCabinet,
     handleAddLegsToCabinet,
+    handleToggleBoxKuchennyVariant,
+    handleToggleBoxKuchennyCorner,
     handleAddLegsToBoxKuchenny,
     handleAddHdfToCabinet,
     handleAddPlinthToCabinet,

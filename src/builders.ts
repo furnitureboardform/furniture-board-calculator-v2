@@ -308,19 +308,49 @@ export function rebuildMaskowanica(parent: THREE.Mesh, element: BoxElement, colo
 }
 
 export function rebuildBoxKuchenny(parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) {
-  const { width, height, depth } = element.dimensions;
+  const { width: W, height: H, depth: D } = element.dimensions;
   const t = PANEL_T;
   const RAIL_D = 0.100;
   clearChildren(parent);
 
-  const innerW = width - 2 * t;
-  const panels = [
-    { w: t,      h: height, d: depth,  px: -width / 2 + t / 2, py: 0,                   pz: 0 },
-    { w: t,      h: height, d: depth,  px:  width / 2 - t / 2, py: 0,                   pz: 0 },
-    { w: innerW, h: t,      d: depth,  px: 0,                   py: -height / 2 + t / 2, pz: 0 },
-    { w: innerW, h: t,      d: RAIL_D, px: 0,                   py:  height / 2 - t / 2, pz:  depth / 2 - RAIL_D / 2 },
-    { w: innerW, h: t,      d: RAIL_D, px: 0,                   py:  height / 2 - t / 2, pz: -depth / 2 + RAIL_D / 2 },
-  ];
+  let panels: { w: number; h: number; d: number; px: number; py: number; pz: number }[];
+
+  if (element.isWall && element.isCorner) {
+    // L-shaped corner wall cabinet:
+    // Left arm: x from -W/2 to 0, full depth -D/2 to D/2
+    // Right arm: x from 0 to W/2, back half -D/2 to 0
+    panels = [
+      // Left arm front cap (far end of left arm)
+      { w: W/2-2*t, h: H, d: t,   px: -W/4,      py: 0,         pz:  D/2-t/2 },
+      // Right outer side (back half only — far corner of right arm)
+      { w: t,       h: H, d: D/2, px:  W/2-t/2, py: 0,         pz: -D/4 },
+      // Bottom back half (full inner width)
+      { w: W-2*t,   h: t, d: D/2, px: 0,         py: -H/2+t/2, pz: -D/4 },
+      // Bottom front half (left arm only)
+      { w: W/2-2*t, h: t, d: D/2, px: -W/4,      py: -H/2+t/2, pz: D/4 },
+      // Top back half (full inner width)
+      { w: W-2*t,   h: t, d: D/2, px: 0,         py:  H/2-t/2, pz: -D/4 },
+      // Top front half (left arm only)
+      { w: W/2-2*t, h: t, d: D/2, px: -W/4,      py:  H/2-t/2, pz: D/4 },
+      // Outer corner post (full height, outer convex corner at x=W/2, z=0)
+      { w: t,       h: H, d: RAIL_D, px: W/2-t/2,  py: 0,         pz: -RAIL_D/2 },
+      // Inner junction panel (100mm deep, full height, at the inner corner joining both arms)
+      { w: t,       h: H, d: 0.100, px: 0,         py: 0,         pz: -0.050 },
+    ];
+  } else {
+    const innerW = W - 2 * t;
+    panels = [
+      { w: t,      h: H, d: D,      px: -W/2+t/2, py: 0,        pz: 0 },
+      { w: t,      h: H, d: D,      px:  W/2-t/2, py: 0,        pz: 0 },
+      { w: innerW, h: t, d: D,      px: 0,         py: -H/2+t/2, pz: 0 },
+      ...(element.isWall
+        ? [{ w: innerW, h: t, d: D,      px: 0,         py:  H/2-t/2, pz: 0 }]
+        : [
+            { w: innerW, h: t, d: RAIL_D, px: 0,         py:  H/2-t/2, pz:  D/2 - RAIL_D/2 },
+            { w: innerW, h: t, d: RAIL_D, px: 0,         py:  H/2-t/2, pz: -D/2 + RAIL_D/2 },
+          ]),
+    ];
+  }
 
   for (const p of panels) {
     const geo = new THREE.BoxGeometry(p.w, p.h, p.d);

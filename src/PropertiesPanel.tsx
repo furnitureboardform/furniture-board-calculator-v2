@@ -49,6 +49,8 @@ interface Props {
   onCornerSystemIdChange?: (csElId: string, option: CornerSystemOption) => void;
   onCornerSystemSideChange?: (csElId: string, side: CornerSystemSide) => void;
   onCornerSystemModelTypeChange?: (csElId: string, modelType: string | undefined) => void;
+  onToggleBoxKuchennyVariant?: (id: string) => void;
+  onToggleBoxKuchennyCorner?: (id: string) => void;
 }
 
 type DimKey = keyof BoxDimensions;
@@ -57,7 +59,7 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerOpenChange, onDrawerExternalFrontChange, onDrawerInsetChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onFrontTipOnChange, onFrontWysowChange, onFrontLoweredChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange, cornerSystemOptions, onCornerSystemIdChange, onCornerSystemSideChange, onCornerSystemModelTypeChange }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerOpenChange, onDrawerExternalFrontChange, onDrawerInsetChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onFrontTipOnChange, onFrontWysowChange, onFrontLoweredChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange, cornerSystemOptions, onCornerSystemIdChange, onCornerSystemSideChange, onCornerSystemModelTypeChange, onToggleBoxKuchennyVariant, onToggleBoxKuchennyCorner }) => {
   const [finishOpen, setFinishOpen] = useState(false);
   const [handleOpen, setHandleOpen] = useState(false);
   const [frontFinishOpen, setFrontFinishOpen] = useState(false);
@@ -497,6 +499,38 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
             </label>
           </div>
           <div className="prop-divider" />
+        </>
+      )}
+
+{element.type === 'boxkuchenny' && onToggleBoxKuchennyVariant && (
+        <>
+          <div className="prop-divider" />
+          <div className="prop-front-state">
+            <span className="prop-label" style={{ color: '#c0c0e0' }}>Typ szafki</span>
+            <label className="prop-toggle">
+              <input
+                type="checkbox"
+                checked={!!element.isWall}
+                onChange={() => onToggleBoxKuchennyVariant(element.id)}
+              />
+              <span className="prop-toggle-track" />
+              <span className="prop-toggle-text">{element.isWall ? 'Wisząca' : 'Stojąca'}</span>
+            </label>
+          </div>
+          {element.isWall && onToggleBoxKuchennyCorner && (
+            <div className="prop-front-state">
+              <span className="prop-label" style={{ color: '#c0c0e0' }}>Kształt</span>
+              <label className="prop-toggle">
+                <input
+                  type="checkbox"
+                  checked={!!element.isCorner}
+                  onChange={() => onToggleBoxKuchennyCorner(element.id)}
+                />
+                <span className="prop-toggle-track" />
+                <span className="prop-toggle-text">{element.isCorner ? 'Narożna' : 'Prosta'}</span>
+              </label>
+            </div>
+          )}
         </>
       )}
 
