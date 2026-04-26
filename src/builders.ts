@@ -333,9 +333,9 @@ export function rebuildBoxKuchenny(parent: THREE.Mesh, element: BoxElement, colo
       // Top front half (left arm only)
       { w: W/2-2*t, h: t, d: D/2, px: -W/4,      py:  H/2-t/2, pz: D/4 },
       // Outer corner post (full height, outer convex corner at x=W/2, z=0)
-      { w: t,       h: H, d: RAIL_D, px: W/2-t/2,  py: 0,         pz: -RAIL_D/2 },
-      // Inner junction panel (100mm deep, full height, at the inner corner joining both arms)
-      { w: t,       h: H, d: 0.100, px: 0,         py: 0,         pz: -0.050 },
+      { w: t,       h: H, d: RAIL_D, px:  W/2-t/2,  py: 0, pz: -RAIL_D/2 },
+      // Inner corner post (full height, outer front-left corner at x=-W/2, z=-D/2)
+      { w: t,       h: H, d: RAIL_D, px: -W/2+3*t/2,  py: 0, pz: -D/2+RAIL_D/2 },
     ];
   } else {
     const innerW = W - 2 * t;
@@ -364,6 +364,7 @@ export function rebuildBoxKuchenny(parent: THREE.Mesh, element: BoxElement, colo
     panel.userData = { elementId: element.id };
     parent.add(panel);
   }
+
 }
 
 export function rebuildRearboard(parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) {

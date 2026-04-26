@@ -232,7 +232,7 @@ function getBoxKuchennyStructPanels(cab: BoxElement): PanelEntry[] {
           { id: cab.id + '_rB', w: inner, h: T, d: RAIL_D, elemType: 'drawerbox_rail' as const, finishId: fid },
         ]),
     ...(cab.isWall && cab.isCorner
-      ? [{ id: cab.id + '_junct', w: 0.100, h: H, d: T, elemType: 'cabinet_side' as const, finishId: fid }]
+      ? [{ id: cab.id + '_junct', w: RAIL_D, h: H, d: T, elemType: 'cabinet_side' as const, finishId: fid }]
       : []),
   ];
 }
