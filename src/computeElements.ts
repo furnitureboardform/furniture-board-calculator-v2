@@ -15,10 +15,19 @@ export function computeHdfForCabinet(hdf: BoxElement, cab: BoxElement): BoxEleme
   else if (rot === 90)  { posX = cab.position.x - halfD - HDF_T / 2; }
   else if (rot === 180) { posZ = cab.position.z + halfD + HDF_T / 2; }
   else                  { posX = cab.position.x + halfD + HDF_T / 2; }
+  const isCornerCab = cab.isWall && cab.isCorner;
+  const cornerExtra = isCornerCab
+    ? { hdfCornerW: cab.dimensions.width, hdfCornerD: cab.dimensions.depth }
+    : {};
+  const W = cab.dimensions.width;
+  // Corner cabinet has no left outer side panel, so back HDF uses only one-sided inset on the right.
+  // posX shifts left by half the saved inset so right edge stays in the groove of the right panel.
+  if (isCornerCab && rot === 0) posX -= HDF_INSET / 2;
   return {
     ...hdf,
+    ...cornerExtra,
     dimensions: {
-      width: Math.max(0.001, cab.dimensions.width - 2 * HDF_INSET),
+      width: Math.max(0.001, isCornerCab ? W - HDF_INSET : W - 2 * HDF_INSET),
       height: Math.max(0.001, cab.dimensions.height - 2 * HDF_INSET),
       depth: HDF_T,
     },

@@ -220,18 +220,19 @@ function getBoxKuchennyStructPanels(cab: BoxElement): PanelEntry[] {
   const D = cab.dimensions.depth;
   const inner = W - 2 * T;
   const RAIL_D = 0.100;
+  const isCornerCab = cab.isWall && cab.isCorner;
   const fid = cab.finishId;
   return [
-    { id: cab.id + '_sl', w: T,     h: H, d: D,      elemType: 'cabinet_side', finishId: fid },
-    { id: cab.id + '_sr', w: T,     h: H, d: D,      elemType: 'cabinet_side', finishId: fid },
-    { id: cab.id + '_b',  w: inner, h: T, d: D,      elemType: 'cabinet_top',  finishId: fid },
+    ...(isCornerCab ? [] : [{ id: cab.id + '_sl', w: T, h: H, d: D, elemType: 'cabinet_side' as const, finishId: fid }]),
+    { id: cab.id + '_sr', w: T,     h: H, d: D,      elemType: 'cabinet_side' as const, finishId: fid },
+    { id: cab.id + '_b',  w: inner, h: T, d: D,      elemType: 'cabinet_top' as const,  finishId: fid },
     ...(cab.isWall
       ? [{ id: cab.id + '_t', w: inner, h: T, d: D,      elemType: 'cabinet_top' as const,  finishId: fid }]
       : [
           { id: cab.id + '_rF', w: inner, h: T, d: RAIL_D, elemType: 'drawerbox_rail' as const, finishId: fid },
           { id: cab.id + '_rB', w: inner, h: T, d: RAIL_D, elemType: 'drawerbox_rail' as const, finishId: fid },
         ]),
-    ...(cab.isWall && cab.isCorner
+    ...(isCornerCab
       ? [{ id: cab.id + '_junct', w: RAIL_D, h: H, d: T, elemType: 'cabinet_side' as const, finishId: fid }]
       : []),
   ];

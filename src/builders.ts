@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { BoxElement } from './types';
-import { PANEL_T, HDF_T, DRAWER_BOX_REAR_OFFSET, BOX_OVERLAY_Y_OFFSET, COUNTERTOP_MAX_SHEET } from './constants';
+import { PANEL_T, HDF_T, HDF_INSET, DRAWER_BOX_REAR_OFFSET, BOX_OVERLAY_Y_OFFSET, COUNTERTOP_MAX_SHEET } from './constants';
 
 export const HDF_GRAY = '#8a8a8a';
 const HDF_COLOR = new THREE.Color(HDF_GRAY);
@@ -269,16 +269,41 @@ export function rebuildFront(parent: THREE.Mesh, element: BoxElement, color: THR
 export function rebuildHdf(parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) {
   clearChildren(parent);
   const { width, height, depth } = element.dimensions;
-  const geo = new THREE.BoxGeometry(width, height, depth);
   const backMat   = new THREE.MeshStandardMaterial({ color: HDF_COLOR, emissive, roughness: 0.6, metalness: 0.05 });
   const insideMat = new THREE.MeshStandardMaterial({ color, emissive, roughness: 0.6, metalness: 0.05 });
   // BoxGeometry face order: +X, -X, +Y, -Y, +Z (front/inside), -Z (back/outside)
   const mats = [backMat, backMat, backMat, backMat, insideMat, backMat];
-  const panel = new THREE.Mesh(geo, mats);
+
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), mats);
   panel.castShadow = true;
   panel.receiveShadow = true;
   panel.userData = { elementId: element.id };
   parent.add(panel);
+
+  // For L-shaped corner boxkuchenny: add left arm outer side HDF panel
+  if (element.hdfCornerW != null && element.hdfCornerD != null) {
+    const W = element.hdfCornerW;
+    const D = element.hdfCornerD;
+    const sideH = height;
+
+    // Left arm outer side: covers the full depth D of the left outer structural panel.
+    // Back edge flush with inside face of panel 1 (global z = -D/2).
+    // Front edge flush with front face of left outer structural panel (global z = +D/2).
+    // Center local z = D/2 + HDF_T/2
+    const mats3 = [insideMat, backMat, backMat, backMat, backMat, backMat];
+    // Depth: starts at inner face of back panel (z=-D/2 in world = local z=+D/2+HDF_T/2-HDF_T = +D/2-HDF_T/2 ... )
+    // Back edge at world z = cabZ-D/2 (inner face of main back HDF), front edge at cabZ+D/2-HDF_INSET.
+    const sideD = D - HDF_INSET;
+    const panel3 = new THREE.Mesh(
+      new THREE.BoxGeometry(HDF_T, sideH, sideD),
+      mats3,
+    );
+    panel3.position.set(-(W / 2 + HDF_T / 2), 0, D / 2 + HDF_T / 2 - HDF_INSET / 2);
+    panel3.castShadow = true;
+    panel3.receiveShadow = true;
+    panel3.userData = { elementId: element.id };
+    parent.add(panel3);
+  }
 }
 
 export function rebuildRod(parent: THREE.Mesh, element: BoxElement, color: THREE.Color, emissive: THREE.Color) {
@@ -321,21 +346,22 @@ export function rebuildBoxKuchenny(parent: THREE.Mesh, element: BoxElement, colo
     // Right arm: x from 0 to W/2, back half -D/2 to 0
     panels = [
       // Left arm front cap (far end of left arm)
-      { w: W/2-2*t, h: H, d: t,   px: -W/4,      py: 0,         pz:  D/2-t/2 },
+      { w: W/2,   h: H, d: t,   px: -W/4,    py: 0,         pz:  D/2-t/2 },
       // Right outer side (back half only — far corner of right arm)
-      { w: t,       h: H, d: D/2, px:  W/2-t/2, py: 0,         pz: -D/4 },
-      // Bottom back half (full inner width)
-      { w: W-2*t,   h: t, d: D/2, px: 0,         py: -H/2+t/2, pz: -D/4 },
+      { w: t,     h: H, d: D/2, px:  W/2-t/2, py: 0,         pz: -D/4 },
+      // Bottom back half (full inner width, left side open)
+      { w: W-t,   h: t, d: D/2, px: -t/2,    py: -H/2+t/2, pz: -D/4 },
       // Bottom front half (left arm only)
-      { w: W/2-2*t, h: t, d: D/2, px: -W/4,      py: -H/2+t/2, pz: D/4 },
-      // Top back half (full inner width)
-      { w: W-2*t,   h: t, d: D/2, px: 0,         py:  H/2-t/2, pz: -D/4 },
+      { w: W/2,   h: t, d: D/2, px: -W/4,    py: -H/2+t/2, pz: D/4 },
+      // Top back half (full inner width, left side open)
+      { w: W-t,   h: t, d: D/2, px: -t/2,    py:  H/2-t/2, pz: -D/4 },
       // Top front half (left arm only)
-      { w: W/2-2*t, h: t, d: D/2, px: -W/4,      py:  H/2-t/2, pz: D/4 },
+      { w: W/2,   h: t, d: D/2, px: -W/4,    py:  H/2-t/2, pz: D/4 },
       // Outer corner post (full height, outer convex corner at x=W/2, z=0)
       { w: t,       h: H, d: RAIL_D, px:  W/2-t/2,  py: 0, pz: -RAIL_D/2 },
-      // Inner corner post (full height, outer front-left corner at x=-W/2, z=-D/2)
-      { w: t,       h: H, d: RAIL_D, px: -W/2+3*t/2,  py: 0, pz: -D/2+RAIL_D/2 },
+      // Helper panel (full back-half depth, full height, at the far-left inner corner of the left arm)
+      { w: t,       h: H, d: RAIL_D,  px: -W/2+t/2,   py: 0, pz: -D/2+RAIL_D/2 },
+      // Left outer side removed (open side for corner cabinet)
     ];
   } else {
     const innerW = W - 2 * t;
