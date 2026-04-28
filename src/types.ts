@@ -85,6 +85,8 @@ export interface BoxElement {
   cornerSystemModelType?: string;      // only for cornersystem: selected modelType filter
   isWall?: boolean;                    // only for boxkuchenny: true = szafka wisząca (full top panel instead of two rails)
   isCorner?: boolean;                  // only for boxkuchenny with isWall=true: true = narożna (L-shaped corner cabinet)
+  cornerLeftArmDepth?: number;  // only for isCorner: total depth of the left arm (metres); default = dimensions.depth
+  cornerRightArmWidth?: number; // only for isCorner: total width of the right arm (metres); default = dimensions.width/2
   hdfCornerW?: number;          // only for hdf of L-shaped corner boxkuchenny: cabinet width (for 2nd perpendicular panel)
   hdfCornerD?: number;          // only for hdf of L-shaped corner boxkuchenny: cabinet depth (for 2nd perpendicular panel)
   drawerOpen?: boolean;         // only for drawer/drawerbox: visually pull out in 3D view

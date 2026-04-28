@@ -341,27 +341,27 @@ export function rebuildBoxKuchenny(parent: THREE.Mesh, element: BoxElement, colo
   let panels: { w: number; h: number; d: number; px: number; py: number; pz: number }[];
 
   if (element.isWall && element.isCorner) {
-    // L-shaped corner wall cabinet:
-    // Left arm: x from -W/2 to 0, full depth -D/2 to D/2
-    // Right arm: x from 0 to W/2, back half -D/2 to 0
+    const LA = element.cornerLeftArmDepth ?? D;
+    const RA = element.cornerRightArmWidth ?? (W / 2);
+    const BD = D / 2;
+    const FD = Math.max(0.001, LA - BD);
     panels = [
-      // Left arm front cap (far end of left arm)
-      { w: W/2,   h: H, d: t,   px: -W/4,    py: 0,         pz:  D/2-t/2 },
-      // Right outer side (back half only — far corner of right arm)
-      { w: t,     h: H, d: D/2, px:  W/2-t/2, py: 0,         pz: -D/4 },
-      // Bottom back half (full inner width, left side open)
-      { w: W-t,   h: t, d: D/2, px: -t/2,    py: -H/2+t/2, pz: -D/4 },
-      // Bottom front half (left arm only)
-      { w: W/2,   h: t, d: D/2, px: -W/4,    py: -H/2+t/2, pz: D/4 },
-      // Top back half (full inner width, left side open)
-      { w: W-t,   h: t, d: D/2, px: -t/2,    py:  H/2-t/2, pz: -D/4 },
-      // Top front half (left arm only)
-      { w: W/2,   h: t, d: D/2, px: -W/4,    py:  H/2-t/2, pz: D/4 },
-      // Outer corner post (full height, outer convex corner at x=W/2, z=0)
-      { w: t,       h: H, d: RAIL_D, px:  W/2-t/2,  py: 0, pz: -RAIL_D/2 },
-      // Helper panel (full back-half depth, full height, at the far-left inner corner of the left arm)
-      { w: t,       h: H, d: RAIL_D,  px: -W/2+t/2,   py: 0, pz: -D/2+RAIL_D/2 },
-      // Left outer side removed (open side for corner cabinet)
+      // Left arm front cap
+      { w: W/2, h: H, d: t,   px: -W/4,                  py: 0,          pz: -BD + LA - t/2 },
+      // Right arm right wall
+      { w: t,   h: H, d: BD,  px: RA - t/2,               py: 0,          pz: -D/4 },
+      // Bottom back section (left+right arms)
+      { w: W/2 + RA - t, h: t, d: BD, px: (-W/2 + RA - t) / 2, py: -H/2 + t/2, pz: -D/4 },
+      // Bottom front section (left arm only)
+      { w: W/2, h: t, d: FD,  px: -W/4,                  py: -H/2 + t/2, pz: FD / 2 },
+      // Top back section
+      { w: W/2 + RA - t, h: t, d: BD, px: (-W/2 + RA - t) / 2, py:  H/2 - t/2, pz: -D/4 },
+      // Top front section (left arm only)
+      { w: W/2, h: t, d: FD,  px: -W/4,                  py:  H/2 - t/2, pz: FD / 2 },
+      // Corner post at right arm inner face
+      { w: t,   h: H, d: RAIL_D, px: RA - t/2,            py: 0,          pz: -RAIL_D/2 },
+      // Helper post at back-left of left arm
+      { w: t,   h: H, d: RAIL_D, px: -W/2 + t/2,          py: 0,          pz: -D/2 + RAIL_D/2 },
     ];
   } else {
     const innerW = W - 2 * t;

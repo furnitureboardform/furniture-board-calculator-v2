@@ -51,6 +51,7 @@ interface Props {
   onCornerSystemModelTypeChange?: (csElId: string, modelType: string | undefined) => void;
   onToggleBoxKuchennyVariant?: (id: string) => void;
   onToggleBoxKuchennyCorner?: (id: string) => void;
+  onCornerArmChange?: (id: string, which: 'left' | 'right', value: number) => void;
 }
 
 type DimKey = keyof BoxDimensions;
@@ -59,7 +60,7 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerOpenChange, onDrawerExternalFrontChange, onDrawerInsetChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onFrontTipOnChange, onFrontWysowChange, onFrontLoweredChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange, cornerSystemOptions, onCornerSystemIdChange, onCornerSystemSideChange, onCornerSystemModelTypeChange, onToggleBoxKuchennyVariant, onToggleBoxKuchennyCorner }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerOpenChange, onDrawerExternalFrontChange, onDrawerInsetChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onFrontTipOnChange, onFrontWysowChange, onFrontLoweredChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange, cornerSystemOptions, onCornerSystemIdChange, onCornerSystemSideChange, onCornerSystemModelTypeChange, onToggleBoxKuchennyVariant, onToggleBoxKuchennyCorner, onCornerArmChange }) => {
   const [finishOpen, setFinishOpen] = useState(false);
   const [handleOpen, setHandleOpen] = useState(false);
   const [frontFinishOpen, setFrontFinishOpen] = useState(false);
@@ -79,6 +80,8 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
   const [frontHeightDraft, setFrontHeightDraft] = useState('');
   const [distLeftDraft, setDistLeftDraft] = useState('');
   const [distRightDraft, setDistRightDraft] = useState('');
+  const [cornerLeftArmDraft, setCornerLeftArmDraft] = useState('');
+  const [cornerRightArmDraft, setCornerRightArmDraft] = useState('');
 
   const getDividerCab = () => element?.type === 'divider' ? elements?.find((e) => e.id === element.cabinetId) : undefined;
 
@@ -114,9 +117,13 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
         setDistRightDraft(Math.round((innerRight - element.position.x - element.dimensions.width / 2) * 1000).toString());
       }
     }
+    if (element.type === 'boxkuchenny' && element.isWall && element.isCorner) {
+      setCornerLeftArmDraft(toMm(element.cornerLeftArmDepth ?? element.dimensions.depth));
+      setCornerRightArmDraft(toMm(element.cornerRightArmWidth ?? (element.dimensions.width / 2)));
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [element?.id, element?.dimensions.width, element?.dimensions.height, element?.dimensions.depth, element?.position.y, element?.position.x, (element as BoxElement & { adjustedFrontHeight?: number })?.adjustedFrontHeight]);
+  }, [element?.id, element?.dimensions.width, element?.dimensions.height, element?.dimensions.depth, element?.position.y, element?.position.x, (element as BoxElement & { adjustedFrontHeight?: number })?.adjustedFrontHeight, element?.isCorner]);
 
   if (!element) {
     return (
@@ -266,6 +273,15 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
   const colors: Record<DimKey, string> = { width: '#cccccc', height: '#cccccc', depth: '#cccccc' };
   const isVerticalSide = (element.type === 'maskowanica' && (element.maskownicaSide === 'left' || element.maskownicaSide === 'right'))
     || (element.type === 'blenda' && (element.blendaSide === 'left' || element.blendaSide === 'right'));
+
+  const commitArm = onCornerArmChange ? (which: 'left' | 'right') => {
+    const draft = which === 'left' ? cornerLeftArmDraft : cornerRightArmDraft;
+    const setDraft = which === 'left' ? setCornerLeftArmDraft : setCornerRightArmDraft;
+    const fallback = which === 'left' ? (element.cornerLeftArmDepth ?? element.dimensions.depth) : (element.cornerRightArmWidth ?? (element.dimensions.width / 2));
+    const v = fromMm(draft);
+    if (isNaN(v) || v <= 0) { setDraft(toMm(fallback)); return; }
+    onCornerArmChange(element.id, which, v);
+  } : null;
 
   return (
     <div className="properties">
@@ -531,6 +547,38 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
               </label>
             </div>
           )}
+          {element.isWall && element.isCorner && commitArm && (
+            <>
+              <div className="prop-row">
+                <label className="prop-label" style={{ color: '#88ccff' }}>Ramię lewe</label>
+                <input
+                  className="prop-input"
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={cornerLeftArmDraft}
+                  onChange={(e) => setCornerLeftArmDraft(e.target.value)}
+                  onBlur={() => commitArm('left')}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { commitArm('left'); (e.target as HTMLInputElement).blur(); } }}
+                />
+                <span className="prop-unit">mm</span>
+              </div>
+              <div className="prop-row">
+                <label className="prop-label" style={{ color: '#88ccff' }}>Ramię prawe</label>
+                <input
+                  className="prop-input"
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={cornerRightArmDraft}
+                  onChange={(e) => setCornerRightArmDraft(e.target.value)}
+                  onBlur={() => commitArm('right')}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { commitArm('right'); (e.target as HTMLInputElement).blur(); } }}
+                />
+                <span className="prop-unit">mm</span>
+              </div>
+            </>
+          )}
         </>
       )}
 
@@ -549,6 +597,7 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
       {(['width', 'height', 'depth'] as const).filter((axis) => {
         if (element.type === 'leg') return axis === 'height';
         if (element.drawerSystemType) return false;
+        if (element.type === 'boxkuchenny' && element.isWall && element.isCorner && axis === 'width') return false;
         return true;
       }).map((axis) => (
         <div className="prop-row" key={axis}>

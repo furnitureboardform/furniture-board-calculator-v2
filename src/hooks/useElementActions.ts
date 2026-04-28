@@ -431,6 +431,12 @@ export function useElementActions({
     setElements((prev) => prev.map((e) => e.id === boxId ? { ...e, isCorner: !e.isCorner } : e));
   }, [setElements]);
 
+  const handleCornerArmChange = useCallback((boxId: string, which: 'left' | 'right', value: number) => {
+    setElements((prev) => prev.map((e) => e.id === boxId
+      ? { ...e, ...(which === 'left' ? { cornerLeftArmDepth: value } : { cornerRightArmWidth: value }) }
+      : e));
+  }, [setElements]);
+
   const handleAddLegsToBoxKuchenny = useCallback((boxId: string) => {
     setElements((prev) => {
       const box = prev.find((e) => e.id === boxId);
@@ -1605,6 +1611,7 @@ export function useElementActions({
     handleCornerSystemIdChange,
     handleCornerSystemSideChange,
     handleCornerSystemModelTypeChange,
+    handleCornerArmChange,
     handleClearAll,
   };
 }
