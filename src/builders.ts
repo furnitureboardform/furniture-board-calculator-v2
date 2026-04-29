@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { BoxElement } from './types';
-import { PANEL_T, HDF_T, HDF_INSET, DRAWER_BOX_REAR_OFFSET, BOX_OVERLAY_Y_OFFSET, COUNTERTOP_MAX_SHEET, FRONT_INSET } from './constants';
+import { PANEL_T, HDF_T, HDF_INSET, DRAWER_BOX_REAR_OFFSET, BOX_OVERLAY_Y_OFFSET, COUNTERTOP_MAX_SHEET } from './constants';
 
 export const HDF_GRAY = '#8a8a8a';
 const HDF_COLOR = new THREE.Color(HDF_GRAY);
