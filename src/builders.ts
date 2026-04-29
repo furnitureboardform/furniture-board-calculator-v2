@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { BoxElement } from './types';
-import { PANEL_T, HDF_T, HDF_INSET, DRAWER_BOX_REAR_OFFSET, BOX_OVERLAY_Y_OFFSET, COUNTERTOP_MAX_SHEET } from './constants';
+import { PANEL_T, HDF_T, HDF_INSET, DRAWER_BOX_REAR_OFFSET, BOX_OVERLAY_Y_OFFSET, COUNTERTOP_MAX_SHEET, FRONT_INSET } from './constants';
 
 export const HDF_GRAY = '#8a8a8a';
 const HDF_COLOR = new THREE.Color(HDF_GRAY);
@@ -254,13 +254,23 @@ export function rebuildFront(parent: THREE.Mesh, element: BoxElement, color: THR
   panel.userData = { elementId: element.id };
   parent.add(panel);
 
+  if (element.splitFront && element.splitFrontSecW) {
+    const secW = element.splitFrontSecW;
+    const secOffsetX = element.splitFrontSecOffsetX ?? 0;
+    const secGeo = new THREE.BoxGeometry(secW, height, depth);
+    const secPanel = new THREE.Mesh(secGeo, mat.clone());
+    secPanel.position.x = secOffsetX;
+    secPanel.userData = { elementId: element.id };
+    parent.add(secPanel);
+  }
+
   if (elementHasHandle(element)) {
     if (element.wysow) {
       const handleLength = Math.min(width * 0.4, 0.150);
       addHandle(parent, new THREE.BoxGeometry(handleLength, 0.012, 0.012), 0, 0, depth / 2 + 0.007, element.id);
     } else {
       const handleLength = Math.min(height * 0.4, 0.128);
-      const handleX = element.frontSide === 'right' ? -(width / 2 - 0.05) : width / 2 - 0.05;
+      const handleX = (element.frontSide === 'right' || element.splitFront === 'left') ? -(width / 2 - 0.05) : width / 2 - 0.05;
       addHandle(parent, new THREE.BoxGeometry(0.012, handleLength, 0.012), handleX, 0, depth / 2 + 0.007, element.id);
     }
   }

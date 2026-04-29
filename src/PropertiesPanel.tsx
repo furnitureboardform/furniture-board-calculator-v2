@@ -35,6 +35,7 @@ interface Props {
   onFrontTipOnChange?: (v: boolean) => void;
   onFrontWysowChange?: (v: boolean) => void;
   onFrontLoweredChange?: (v: boolean) => void;
+  onSplitFrontWidthChange?: (side: 'left' | 'right', mm: number) => void;
   onRotate?: (id: string) => void;
   onFinishChange?: (id: string, finishId: string | undefined) => void;
   onDrawerFrontFinishChange?: (id: string, finishId: string | undefined) => void;
@@ -60,7 +61,7 @@ type DimKey = keyof BoxDimensions;
 const toMm = (m: number) => Math.round(m * 1000).toString();
 const fromMm = (mm: string) => parseFloat(mm) / 1000;
 
-const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerOpenChange, onDrawerExternalFrontChange, onDrawerInsetChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onFrontTipOnChange, onFrontWysowChange, onFrontLoweredChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange, cornerSystemOptions, onCornerSystemIdChange, onCornerSystemSideChange, onCornerSystemModelTypeChange, onToggleBoxKuchennyVariant, onToggleBoxKuchennyCorner, onCornerArmChange }) => {
+const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFinishes, onChange, onYChange, onDividerXChange, hasFront, onOpenFrontsChange, onHasBottomPanelChange, onHasTopRailsChange, onHasSidePanelsChange, onDrawerAdjustFrontChange, onDrawerFrontHeightChange, onDrawerPushToOpenChange, onDrawerOpenChange, onDrawerExternalFrontChange, onDrawerInsetChange, onShelfSwitchBay, onDividerSwitchSlot, onMaskownicaNiepelnaChange, onStretchWithLegsChange, onFrontNoHandleChange, onFrontTipOnChange, onFrontWysowChange, onFrontLoweredChange, onSplitFrontWidthChange, onRotate, onFinishChange, onDrawerFrontFinishChange, handles, onHandleChange, drawerSystems, countertops, onCountertopTypeChange, cargoOptions, onCargoIdChange, cornerSystemOptions, onCornerSystemIdChange, onCornerSystemSideChange, onCornerSystemModelTypeChange, onToggleBoxKuchennyVariant, onToggleBoxKuchennyCorner, onCornerArmChange }) => {
   const [finishOpen, setFinishOpen] = useState(false);
   const [handleOpen, setHandleOpen] = useState(false);
   const [frontFinishOpen, setFrontFinishOpen] = useState(false);
@@ -415,6 +416,54 @@ const PropertiesPanel: React.FC<Props> = ({ element, elements, finishes, hdfFini
               </label>
             </div>
             <div className="prop-divider" />
+          </>
+        );
+      })()}
+
+      {element.type === 'front' && element.splitFront && onSplitFrontWidthChange && (() => {
+        const totalMm = Math.round((element.dimensions.width + (element.splitFrontSecW ?? 0)) * 1000);
+        const maxMm = totalMm - 1;
+        return (
+          <>
+            <div className="prop-divider" />
+            <div className="prop-row">
+              <span className="prop-label" style={{ color: '#c0c0e0' }}>Szerokość lewa (mm)</span>
+              <input
+                type="number"
+                className="prop-input"
+                min={1}
+                max={maxMm}
+                step={1}
+                value={Math.round(
+                  element.splitFront === 'left'
+                    ? (element.splitFrontLeftMm ?? element.dimensions.width * 1000)
+                    : (element.splitFrontLeftMm ?? (element.splitFrontSecW ?? 0) * 1000)
+                )}
+                onChange={(e) => {
+                  const v = Math.min(maxMm, Math.max(1, parseInt(e.target.value) || 1));
+                  onSplitFrontWidthChange('left', v);
+                }}
+              />
+            </div>
+            <div className="prop-row">
+              <span className="prop-label" style={{ color: '#c0c0e0' }}>Szerokość prawa (mm)</span>
+              <input
+                type="number"
+                className="prop-input"
+                min={1}
+                max={maxMm}
+                step={1}
+                value={Math.round(
+                  element.splitFront === 'right'
+                    ? (element.splitFrontRightMm ?? element.dimensions.width * 1000)
+                    : (element.splitFrontRightMm ?? (element.splitFrontSecW ?? 0) * 1000)
+                )}
+                onChange={(e) => {
+                  const v = Math.min(maxMm, Math.max(1, parseInt(e.target.value) || 1));
+                  onSplitFrontWidthChange('right', v);
+                }}
+              />
+            </div>
           </>
         );
       })()}

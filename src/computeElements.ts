@@ -179,6 +179,34 @@ export function computeFrontForCabinet(front: BoxElement, cab: BoxElement): BoxE
   else if (rot === 180) { posZ = cab.position.z - halfD - PANEL_T / 2; }
   else                  { posX = cab.position.x - halfD - PANEL_T / 2; }
 
+  if (front.splitFront) {
+    const isLeft = front.splitFront === 'left';
+    const mmToM = (mm: number | undefined, fallback: number) =>
+      mm != null ? Math.max(0.001, mm / 1000) : fallback;
+    const mainMm = isLeft ? front.splitFrontLeftMm  : front.splitFrontRightMm;
+    const secMm  = isLeft ? front.splitFrontRightMm : front.splitFrontLeftMm;
+    const mainW = mmToM(mainMm, Math.max(0.001, faceW * 0.9 - 2 * FRONT_INSET));
+    const secW  = mmToM(secMm,  Math.max(0.001, faceW * 0.1 - 2 * FRONT_INSET));
+    const halfFaceW = faceW / 2;
+    const mainCenterOff = isLeft
+      ? -halfFaceW + FRONT_INSET + mainW / 2
+      :  halfFaceW - FRONT_INSET - mainW / 2;
+    const secCenterOff = isLeft
+      ?  halfFaceW - FRONT_INSET - secW / 2
+      : -halfFaceW + FRONT_INSET + secW / 2;
+    return {
+      ...front,
+      dimensions: { width: mainW, height: fullH, depth: PANEL_T },
+      position: {
+        x: rotated ? posX : cab.position.x + mainCenterOff,
+        y: yPos,
+        z: rotated ? cab.position.z + mainCenterOff : posZ,
+      },
+      splitFrontSecW: secW,
+      splitFrontSecOffsetX: secCenterOff - mainCenterOff,
+    };
+  }
+
   if (front.frontSide === 'left' || front.frontSide === 'right') {
     const leafW = Math.max(0.001, faceW / 2 - 2 * FRONT_INSET);
     const offset = faceW / 4;

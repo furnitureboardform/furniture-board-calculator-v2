@@ -53,6 +53,11 @@ export interface BoxElement {
   cabinetId?: string; // if set, element is locked inside this cabinet (or group for groupFront)
   groupIds?: string[];  // for cabinets: which groups they belong to (a cabinet can belong to multiple groups)
   frontSide?: 'left' | 'right'; // only for double-door fronts
+  splitFront?: 'left' | 'right';     // front lewy/prawy: two-panel system
+  splitFrontLeftMm?: number;         // only for splitFront: explicit left panel width (mm)
+  splitFrontRightMm?: number;        // only for splitFront: explicit right panel width (mm)
+  splitFrontSecW?: number;           // computed: secondary panel width (metres)
+  splitFrontSecOffsetX?: number;     // computed: secondary panel X offset from main center (metres)
   legCorner?: 'FL' | 'FR' | 'BL' | 'BR'; // only for legs: Front-Left, Front-Right, Back-Left, Back-Right
   blendaSide?: 'left' | 'right' | 'top'; // only for blenda elements
   blendaScope?: 'cabinet' | 'group'; // set on standalone cabinet blendas (left/right/top), absent on drawerbox blendas; 'group' for group-level blendas

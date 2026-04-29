@@ -134,6 +134,7 @@ const App: React.FC = () => {
     handleAddDividerToCabinet,
     handleAddFrontToCabinet,
     handleAddDoubleFrontToCabinet,
+    handleAddKuchennyFrontToCabinet,
     handleAddLegsToCabinet,
     handleToggleBoxKuchennyVariant,
     handleToggleBoxKuchennyCorner,
@@ -170,6 +171,7 @@ const App: React.FC = () => {
     handleFrontTipOnChange,
     handleFrontWysowChange,
     handleFrontLoweredChange,
+    handleSplitFrontWidthChange,
     handleShelfSwitchBay,
     handleDividerSwitchSlot,
     handleRotateCabinet,
@@ -279,6 +281,7 @@ const App: React.FC = () => {
           onAddDividerToCabinet={handleAddDividerToCabinet}
           onAddFrontToCabinet={handleAddFrontToCabinet}
           onAddDoubleFrontToCabinet={handleAddDoubleFrontToCabinet}
+          onAddKuchennyFrontToCabinet={handleAddKuchennyFrontToCabinet}
           onAddRodToCabinet={handleAddRodToCabinet}
           onAddLegsToCabinet={handleAddLegsToCabinet}
           onAddLegsToBoxKuchenny={handleAddLegsToBoxKuchenny}
@@ -364,6 +367,7 @@ const App: React.FC = () => {
           onFrontTipOnChange={(v) => selectedElement && handleFrontTipOnChange(selectedElement.id, v)}
           onFrontWysowChange={(v) => selectedElement && handleFrontWysowChange(selectedElement.id, v)}
           onFrontLoweredChange={(v) => selectedElement && handleFrontLoweredChange(selectedElement.id, v)}
+          onSplitFrontWidthChange={(side, mm) => selectedElement && handleSplitFrontWidthChange(selectedElement.id, side, mm)}
           onShelfSwitchBay={handleShelfSwitchBay}
           onDividerSwitchSlot={handleDividerSwitchSlot}
           onRotate={(id) => handleRotateCabinet(id)}

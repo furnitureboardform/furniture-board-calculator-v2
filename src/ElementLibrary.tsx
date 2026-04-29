@@ -93,6 +93,7 @@ interface Props {
   onAddDividerToCabinet: (cabinetId: string) => void;
   onAddFrontToCabinet: (cabinetId: string) => void;
   onAddDoubleFrontToCabinet: (cabinetId: string) => void;
+  onAddKuchennyFrontToCabinet: (cabinetId: string, side: 'left' | 'right') => void;
   onAddRodToCabinet: (cabinetId: string) => void;
   onAddLegsToCabinet: (cabinetId: string) => void;
   onAddLegsToBoxKuchenny: (boxId: string) => void;
@@ -134,7 +135,7 @@ const ElementLibrary: React.FC<Props> = ({
   boardSize, onBoardSizeChange,
   onSelect, onMultiSelectToggle, onGroup, onAdd,
   onAddShelfToCabinet, onAddDrawerToCabinet, onAddDrawerboxToCabinet, onAddDividerToCabinet,
-  onAddFrontToCabinet, onAddDoubleFrontToCabinet,
+  onAddFrontToCabinet, onAddDoubleFrontToCabinet, onAddKuchennyFrontToCabinet,
   onAddRodToCabinet, onAddLegsToCabinet, onAddLegsToBoxKuchenny, onAddHdfToCabinet, onAddPlinthToCabinet, onAddPlinthToGroup, onAddBlendaToCabinet,
   onAddBlendaToGroup,
   onAddFrontToGroup, onAddDoubleFrontToGroup,
@@ -353,6 +354,16 @@ const ElementLibrary: React.FC<Props> = ({
                   <span className="element-indent-line" />
                   <span className="element-add-icon">＋</span>
                   <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj podwójny front</span>
+                </li>
+                <li className="element-item element-item--add" onClick={() => onAddKuchennyFrontToCabinet(cab.id, 'left')}>
+                  <span className="element-indent-line" />
+                  <span className="element-add-icon">＋</span>
+                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front lewy</span>
+                </li>
+                <li className="element-item element-item--add" onClick={() => onAddKuchennyFrontToCabinet(cab.id, 'right')}>
+                  <span className="element-indent-line" />
+                  <span className="element-add-icon">＋</span>
+                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front prawy</span>
                 </li>
               </>
             )}
@@ -586,6 +597,16 @@ const ElementLibrary: React.FC<Props> = ({
                   <span className="element-indent-line" />
                   <span className="element-add-icon">＋</span>
                   <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj podwójny front</span>
+                </li>
+                <li className="element-item element-item--add" onClick={() => onAddKuchennyFrontToCabinet(box.id, 'left')}>
+                  <span className="element-indent-line" />
+                  <span className="element-add-icon">＋</span>
+                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front lewy</span>
+                </li>
+                <li className="element-item element-item--add" onClick={() => onAddKuchennyFrontToCabinet(box.id, 'right')}>
+                  <span className="element-indent-line" />
+                  <span className="element-add-icon">＋</span>
+                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front prawy</span>
                 </li>
               </>
             )}

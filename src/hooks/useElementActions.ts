@@ -380,6 +380,26 @@ export function useElementActions({
     });
   }, [setElements, setSelectedId]);
 
+  const handleAddKuchennyFrontToCabinet = useCallback((cabinetId: string, side: 'left' | 'right') => {
+    setElements((prev) => {
+      const cab = prev.find((e) => e.id === cabinetId);
+      if (!cab) return prev;
+      if (prev.some((e) => e.type === 'front' && e.cabinetId === cabinetId)) return prev;
+      const front: BoxElement = computeFrontForCabinet({
+        id: crypto.randomUUID(),
+        name: `Front ${side === 'left' ? 'lewy' : 'prawy'} ${counters.front++}`,
+        type: 'front',
+        splitFront: side,
+        cabinetId,
+        dimensions: { width: 0, height: 0, depth: 0 },
+        position: { x: 0, y: 0, z: 0 },
+        color: cab.color,
+      }, cab);
+      setSelectedId(cabinetId);
+      return [...prev, front];
+    });
+  }, [setElements, setSelectedId]);
+
   const handleAddLegsToCabinet = useCallback((cabinetId: string) => {
     setElements((prev) => {
       const cab = prev.find((e) => e.id === cabinetId);
@@ -1345,6 +1365,21 @@ export function useElementActions({
     });
   }, [setElements]);
 
+  const handleSplitFrontWidthChange = useCallback((frontId: string, side: 'left' | 'right', mm: number) => {
+    setElements((prev) => {
+      const front = prev.find((e) => e.id === frontId);
+      if (!front) return prev;
+      const cab = front.cabinetId ? prev.find((e) => e.id === front.cabinetId) : undefined;
+      const totalMm = cab ? Math.round((cab.dimensions.width - 4 * FRONT_INSET) * 1000) : null;
+      const otherMm = totalMm != null ? Math.max(1, totalMm - mm) : undefined;
+      const updated = side === 'left'
+        ? { ...front, splitFrontLeftMm: mm, splitFrontRightMm: otherMm ?? front.splitFrontRightMm }
+        : { ...front, splitFrontRightMm: mm, splitFrontLeftMm: otherMm ?? front.splitFrontLeftMm };
+      const recomputed = cab && cab.type !== 'group' ? computeFrontForCabinet(updated, cab) : updated;
+      return prev.map((e) => e.id === frontId ? recomputed : e);
+    });
+  }, [setElements]);
+
   const handleShelfSwitchBay = useCallback((shelfId: string) => {
     setElements((prev) => {
       const shelf = prev.find((e) => e.id === shelfId);
@@ -1563,6 +1598,7 @@ export function useElementActions({
     handleAddDividerToCabinet,
     handleAddFrontToCabinet,
     handleAddDoubleFrontToCabinet,
+    handleAddKuchennyFrontToCabinet,
     handleAddLegsToCabinet,
     handleToggleBoxKuchennyVariant,
     handleToggleBoxKuchennyCorner,
@@ -1600,6 +1636,7 @@ export function useElementActions({
     handleFrontTipOnChange,
     handleFrontWysowChange,
     handleFrontLoweredChange,
+    handleSplitFrontWidthChange,
     handleShelfSwitchBay,
     handleDividerSwitchSlot,
     handleRotateCabinet,

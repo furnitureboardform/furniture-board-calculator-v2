@@ -340,6 +340,9 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
         }
       } else if (el.type === 'front') {
         obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'front', finishId: el.finishId });
+        if (el.splitFront && el.splitFrontSecW) {
+          obiciePanels.push({ id: el.id + '_sec', w: el.splitFrontSecW, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'front', finishId: el.finishId });
+        }
       } else if (el.type === 'plinth') {
         obiciePanels.push({ id: el.id, w: el.dimensions.width, h: el.dimensions.height, d: el.dimensions.depth, elemType: 'plinth', finishId: el.finishId });
       } else if (el.type === 'blenda') {
