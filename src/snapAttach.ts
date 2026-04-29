@@ -1,6 +1,6 @@
 import type { BoxElement } from './types';
 import { PANEL_T, SNAP_DIST, STACK_OVERLAP, ATTACH_DIST } from './constants';
-import { computeDividerBounds, clampYBoundsToObstacles, effectiveHW as ehw, effectiveHD as ehd } from './geometry';
+import { computeDividerBounds, clampYBoundsToObstacles, effectiveHW as ehw, effectiveHD as ehd, isCabinetType } from './geometry';
 
 /** Like findNearCabinet but skips `avoidCabId` until the element has moved past the hysteresis zone. */
 export function findNearCabinetHysteresis(
@@ -185,6 +185,23 @@ function isBoundChild(el: BoxElement, groupIds: Set<string>): boolean {
 }
 
 /**
+ * Returns XZ front-panel margins derived from cabinet geometry.
+ * A front panel adds PANEL_T in the forward direction based on rotationY.
+ */
+export function getFrontMargins(el: BoxElement, allElements: BoxElement[]): { xNeg: number; xPos: number; zNeg: number; zPos: number } {
+  const m = { xNeg: 0, xPos: 0, zNeg: 0, zPos: 0 };
+  if (!isCabinetType(el.type)) return m;
+  const hasFront = allElements.some((e) => e.cabinetId === el.id && e.type === 'front');
+  if (!hasFront) return m;
+  const rot = el.rotationY ?? 0;
+  if (rot === 0)        m.zPos = PANEL_T;
+  else if (rot === 90)  m.xPos = PANEL_T;
+  else if (rot === 180) m.zNeg = PANEL_T;
+  else                  m.xNeg = PANEL_T;
+  return m;
+}
+
+/**
  * Returns XZ blenda margins {xNeg, xPos, zNeg, zPos} derived from cabinet geometry,
  * independent of child.position (safe to call even when blenda positions are stale).
  */
@@ -231,6 +248,11 @@ function getBlockerAABB(
   maxX += bm.xPos;
   minZ -= bm.zNeg;
   maxZ += bm.zPos;
+  const fm = getFrontMargins(el, allElements);
+  minX -= fm.xNeg;
+  maxX += fm.xPos;
+  minZ -= fm.zNeg;
+  maxZ += fm.zPos;
   // Non-blenda solid children (maskowanica, plinth, countertop): use child.position
   for (const child of allElements) {
     if (child.cabinetId !== el.id) continue;
@@ -257,11 +279,12 @@ function getMovingAABB(
   const hw = ehw(el);
   const hd = ehd(el);
   const m = getBlendaMargins(el, allElements);
+  const fm = getFrontMargins(el, allElements);
   return {
-    minX: el.position.x - hw - m.xNeg,
-    maxX: el.position.x + hw + m.xPos,
-    minZ: el.position.z - hd - m.zNeg,
-    maxZ: el.position.z + hd + m.zPos,
+    minX: el.position.x - hw - m.xNeg - fm.xNeg,
+    maxX: el.position.x + hw + m.xPos + fm.xPos,
+    minZ: el.position.z - hd - m.zNeg - fm.zNeg,
+    maxZ: el.position.z + hd + m.zPos + fm.zPos,
   };
 }
 
