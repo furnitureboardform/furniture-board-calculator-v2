@@ -673,13 +673,21 @@ const COUNTERTOP_DEPTH = 0.600;
 
 export function computeCountertopForCabinet(ct: BoxElement, cab: BoxElement): BoxElement {
   const thickness = ct.dimensions.height;
+  const rot = cab.rotationY ?? 0;
+  const offset = (COUNTERTOP_DEPTH - cab.dimensions.depth) / 2;
+  let posX = cab.position.x;
+  let posZ = cab.position.z;
+  if (rot === 90)       posX += offset;
+  else if (rot === 180) posZ -= offset;
+  else if (rot === 270) posX -= offset;
+  else                  posZ += offset;
   return {
     ...ct,
     dimensions: { width: cab.dimensions.width, height: thickness, depth: COUNTERTOP_DEPTH },
     position: {
-      x: cab.position.x,
+      x: posX,
       y: cab.position.y + cab.dimensions.height,
-      z: cab.position.z + (COUNTERTOP_DEPTH - cab.dimensions.depth) / 2,
+      z: posZ,
     },
   };
 }
