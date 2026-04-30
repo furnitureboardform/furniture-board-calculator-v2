@@ -8,7 +8,33 @@ React 19, TypeScript, Vite, Three.js, Firebase/Firestore, pdfmake.
 ## Architecture
 
 ### Data model
-Jedna tablica `BoxElement[]` trzymana w `useHistory` (reducer z undo/redo). Każdy element ma `type` (discriminated union) — patrz `src/types.ts`. Elementy dziecięce (front, hdf, leg, plinth, blenda, maskowanica, rearboard, countertop, shelf, drawer, drawerbox, divider, rod, cargo, cornersystem) mają `cabinetId` wskazujące rodzica (szafka, grupa lub drawerbox). `groupIds?: string[]` — szafka może należeć do wielu grup.
+Jedna tablica `BoxElement[]` trzymana w `useHistory` (reducer z undo/redo). Każdy element ma `type` (discriminated union). Elementy dziecięce mają `cabinetId` wskazujące rodzica (szafka, grupa lub drawerbox). `groupIds?: string[]` — szafka może należeć do wielu grup.
+
+#### Typy elementów (`BoxElement.type`)
+**Kontenery (samodzielne root):**
+- `cabinet` — szafa wolnostojąca (isCabinetType = true)
+- `boxkuchenny` — szafka kuchenna dolna (`isWall=false`) lub wisząca (`isWall=true`), opcjonalnie narożna (`isCorner=true`) (isCabinetType = true)
+- `group` — wirtualny kontener; `dimensions`/`position` liczone z członków
+- `board` — wolna płyta 18mm
+- `shelf` — wolna półka lub półka wewnątrz szafki
+
+**Zawsze bindowane** (wymagają `cabinetId`; pozycja/wymiary liczone przez `computeElements.ts`):
+- `front` — front drzwiowy; `frontSide` (left/right) dla dwuskrzydłowych; `splitFront` dla dwupanelowych
+- `hdf` — plecy HDF 3mm
+- `rearboard` — plecy 18mm (zamiast HDF)
+- `leg` — nóżki (4 szt. jako jeden element); `legCorner` (FL/FR/BL/BR) dla pojedynczych
+- `plinth` — cokół
+- `blenda` — blenda boczna/górna; `blendaSide` (left/right/top); `blendaScope` (cabinet/group)
+- `maskowanica` — maskowanica; `maskownicaSide` (left/right/bottom/top)
+- `countertop` — blat; ref do Firestore przez `countertopId`
+- `cargo` — kosz cargo; ref przez `cargoId`
+- `cornersystem` — system narożny; ref przez `cornerSystemId`
+
+**Wewnętrzne** (wymagają `cabinetId`; pozycja ręczna, wymiary z geometrii szafki):
+- `drawer` — szuflada; `drawerSystemType` dla systemów (Modernbox itp.); `externalFront` gdy w zwykłej szafce
+- `drawerbox` — zabudowa szufladowa (kontener dla szuflad)
+- `divider` — dzielnik pionowy
+- `rod` — drążek
 
 ### Layer responsibilities
 - **`src/types.ts`** — typy domenowe (`BoxElement`, `BoardSize`, opcje z Firestore).
@@ -16,7 +42,8 @@ Jedna tablica `BoxElement[]` trzymana w `useHistory` (reducer z undo/redo). Każ
 - **`src/factories.ts`** — `createBox`, `createShelf`, `createBoard`, `createBoxKuchenny` + `counters` (jedna współdzielona pula liczników nazw). Mutacja przez `counters.X++` przy tworzeniu.
 - **`src/geometry.ts`** — czyste funkcje geometryczne (overlap, stack, fit-to-bay, snap-divider, clamp-Y). Bez Three.js.
 - **`src/snapAttach.ts`** — magnetyzm drag'n'drop (attach/detach od szafki, push-out kolizji, hysteresis).
-- **`src/computeElements.ts`** — funkcje `computeXForCabinet/ForGroup` liczące pochodne wymiary/pozycje elementów związanych z rodzicem. `recomputeGroups` — po mutacji przelicza grupy i ich bindowane elementy w 7-stopniowym pipeline.
+- **`src/computeElements.ts`** — funkcje `computeXForCabinet/ForGroup` liczące pochodne wymiary/pozycje. Eksporty: `computeHdfForCabinet`, `computeRearboardForCabinet`, `computeLegsForCabinet`, `computePlinthForCabinet`, `computePlinthsForGroup`, `computeBlendaForCabinet`, `computeBlendaForGroup`, `computeBlendaTopForGroup`, `computeFrontForCabinet`, `computeFrontForGroup`, `computeMaskowanicaForCabinet`, `computeMaskowanicaForGroup`, `computeMaskowanicasHorizForGroup`, `recomputeHorizMaskGeometry`, `computeCountertopForCabinet`, `computeCountertopForGroup`, `computeCargoForParent`, `computeCornerSystemForParent`, `computeGroupBounds`, `recomputeGroups(elements: BoxElement[]): BoxElement[]`.
+- **`src/geometry.ts`** — czyste funkcje geometryczne. Kluczowe eksporty: `isCabinetType(t?)`, `getBoxOverlap`, `getBoxStackOverlap`, `computeYForBox`, `fitCabinetToBelow`, `fitShelfToBay`, `fitDrawerToBay`, `computeDividerBounds`, `recomputeAllY`, `clampYBoundsToObstacles`, `computeDrawerYBounds`, `switchShelfToNextBay`, `switchDrawerToNextBay`, `switchDividerToNextSlot`. Stałe: `DRAWER_FACE_H_DEFAULT = 0.170`, `DRAWER_BOX_H = 0.145`, `DRAWER_EXT_FRONT_H = 0.196`.
 - **`src/builders.ts`** — `rebuild*` generujące siatki Three.js z `BoxElement`. Mutuje `THREE.Mesh` przekazany jako `parent`.
 - **`src/useThreeScene.ts`** — główny hook renderujący; zarządza sceną, kontrolami kamery, drag/select/ruler.
 - **`src/hooks/useElementActions.ts`** — ~30 handlerów dodawania/modyfikowania elementów. Importuje `counters` z `factories.ts`.
@@ -28,11 +55,29 @@ Jedna tablica `BoxElement[]` trzymana w `useHistory` (reducer z undo/redo). Każ
 
 ### Key invariants
 - **Jednostki w stanie** — metry (Three.js), jednostki w UI — milimetry. Konwersja na granicy.
-- **`PANEL_T = 0.018`** — grubość płyty meblowej. Zawsze `import { PANEL_T } from './constants'`, nie redefiniować lokalnie.
-- **Elementy bindowane** (front, hdf, leg, plinth, blenda, maskowanica, rearboard, countertop) są pochodne — ich pozycja/wymiary są przeliczane z rodzica funkcjami `computeXForCabinet`. Modyfikacja ręczna jest ignorowana lub nadpisywana.
+- **Elementy bindowane** (front, hdf, leg, plinth, blenda, maskowanica, rearboard, countertop, cargo, cornersystem) są pochodne — ich pozycja/wymiary są przeliczane z rodzica funkcjami `computeXForCabinet`. Modyfikacja ręczna jest ignorowana lub nadpisywana.
 - **Grupy** — `type: 'group'` to wirtualny kontener; jego `dimensions`/`position` liczone z członków przez `computeGroupBounds` wywoływane w `recomputeGroups`.
 - **Rotacja** — tylko szafki (`cabinet`, `boxkuchenny`) mają `rotationY` (0/90/180/270). Children dziedziczą przez Three.js scene graph.
 - **`isCabinetType(t)`** — jedyny właściwy sposób sprawdzenia czy element to szafka (pokrywa `cabinet` i `boxkuchenny`). Nie porównywać `type === 'cabinet'` dla tej semantyki.
+
+#### Stałe fizyczne (`src/constants.ts`) — pełna lista
+Zawsze `import { X } from './constants'`, nigdy redefiniować lokalnie.
+
+| Stała | Wartość | Opis |
+|---|---|---|
+| `PANEL_T` | 0.018 m | grubość płyty meblowej (18 mm) |
+| `HDF_T` | 0.003 m | grubość pleców HDF (3 mm) |
+| `FRONT_INSET` | 0.002 m | wcięcie frontu od krawędzi szafki (2 mm każda strona) |
+| `HDF_INSET` | 0.002 m | wcięcie HDF od krawędzi (2 mm każda strona) |
+| `PLINTH_INSET` | 0.002 m | wcięcie cokołu (2 mm każda strona) |
+| `SNAP_DIST` | 0.05 m | tolerancja side-by-side snap (attach) |
+| `DETACH_DIST` | 0.08 m | przemieszczenie drag do detachu |
+| `HYSTERESIS_DIST` | 0.15 m | dystans przed re-snapem do tej samej szafki |
+| `DIVIDER_EDGE_SNAP` | 0.04 m | snap dzielnika do krawędzi |
+| `DRAWER_RAIL_CLEARANCE` | 0.0125 m | luz prowadnic szuflady (każda strona) |
+| `DRAWER_BOX_REAR_OFFSET` | 0.024 m | odsunięcie tylne dna drawerboxa |
+| `COUNTERTOP_MAX_SHEET` | 4.1 m | max szerokość arkusza blatu |
+| `BOX_OVERLAY_Y_OFFSET` | 0.016 m | opadnięcie frontu overlay względem środka |
 
 ### Firestore collections
 - `finishes` — okleiny/laminaty/akryle dla korpusów i frontów.
