@@ -24,7 +24,7 @@ interface CatalogItem {
 const CATALOG: CatalogItem[] = [
   {
     type: 'cabinet',
-    label: 'Box',
+    label: 'Box szafa',
     icon: (
       <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="catalog-icon">
         <polygon points="18,4 32,11 32,25 18,32 4,25 4,11" fill="#0e3a5a" stroke="#569cd6" strokeWidth="1.5"/>
@@ -63,7 +63,7 @@ const CATALOG: CatalogItem[] = [
   },
   {
     type: 'boxkuchenny',
-    label: 'Box kuchenny',
+    label: 'Box kuchnia',
     icon: (
       <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="catalog-icon">
         <polygon points="18,4 32,11 32,25 18,32 4,25 4,11" fill="#0e3a5a" stroke="#569cd6" strokeWidth="1.5"/>

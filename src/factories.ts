@@ -40,7 +40,7 @@ export function createBox(): BoxElement {
   const color = nextColor();
   return {
     id: crypto.randomUUID(),
-    name: `Box ${counters.box++}`,
+    name: `Box szafa ${counters.box++}`,
     type: 'cabinet',
     dimensions: { width: 1, height: 1, depth: 1 },
     position: { x: 0, y: 0, z: 0 },
@@ -53,7 +53,7 @@ export function createBoxKuchenny(): BoxElement {
   const color = nextColor();
   return {
     id: crypto.randomUUID(),
-    name: `Box kuchenny ${counters.szafkaDolna++}`,
+    name: `Box kuchnia ${counters.szafkaDolna++}`,
     type: 'boxkuchenny',
     dimensions: { width: 0.6, height: 0.72, depth: 0.53 },
     position: { x: 0, y: 0, z: 0 },
