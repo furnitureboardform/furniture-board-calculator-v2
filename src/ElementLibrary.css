@@ -224,6 +224,28 @@
   flex-shrink: 0;
 }
 
+/* ── Three-panel scrollable wrapper ──────────────────────────────────────────── */
+.element-sections {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.element-section-block {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  max-height: 40%;
+  min-height: 44px;
+  border-top: 1px solid #3d3d3d;
+}
+
+.element-section-block--grow {
+  flex: 1 1 auto;
+  max-height: none;
+}
+
 /* ── Added elements list ─────────────────────────────────────────────────────── */
 .element-list {
   list-style: none;
@@ -231,6 +253,16 @@
   flex: 1;
   padding: 4px 0;
 }
+
+.element-list--flat {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.element-list--flat::-webkit-scrollbar { width: 4px; }
+.element-list--flat::-webkit-scrollbar-track { background: transparent; }
+.element-list--flat::-webkit-scrollbar-thumb { background: #454545; border-radius: 2px; }
 
 .element-list::-webkit-scrollbar { width: 4px; }
 .element-list::-webkit-scrollbar-track { background: transparent; }

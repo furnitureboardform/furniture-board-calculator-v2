@@ -151,7 +151,6 @@ const ElementLibrary: React.FC<Props> = ({
   const [draftDepth, setDraftDepth] = useState(String(boardSize.depth));
   const [draftHeight, setDraftHeight] = useState(String(boardSize.height));
 
-  // Keep drafts in sync if boardSize changes from outside
   useEffect(() => { setDraftWidth(String(boardSize.width)); }, [boardSize.width]);
   useEffect(() => { setDraftDepth(String(boardSize.depth)); }, [boardSize.depth]);
   useEffect(() => { setDraftHeight(String(boardSize.height)); }, [boardSize.height]);
@@ -188,7 +187,7 @@ const ElementLibrary: React.FC<Props> = ({
       setDraftHeight(String(boardSize.height));
     }
   };
-  // Cabinets that don't belong to any group
+
   const standaloneCabinets = elements.filter((e) => e.type === 'cabinet' && !e.groupIds?.length);
   const groups = elements.filter((e) => e.type === 'group');
   const freeShelves = elements.filter((e) => (e.type === 'shelf' || e.type === 'board' || e.type === 'rod') && !e.cabinetId);
@@ -199,7 +198,6 @@ const ElementLibrary: React.FC<Props> = ({
   const handleCabinetClick = (e: React.MouseEvent, id: string) => {
     if (e.ctrlKey || e.metaKey) {
       e.stopPropagation();
-      // On the very first ctrl-click, pull the currently single-selected item into multi-select too
       if (selectedId && multiSelectedIds.length === 0 && selectedId !== id) {
         onMultiSelectToggle(selectedId);
       }
@@ -250,35 +248,25 @@ const ElementLibrary: React.FC<Props> = ({
             ✕
           </button>
         </li>
-        {isExpanded && (
-          <>
-            {drawers.map((drawer) => (
-              <li
-                key={drawer.id}
-                className={`element-item element-item--child ${drawer.id === selectedId ? 'selected' : ''}`}
-                onClick={() => onSelect(drawer.id)}
-              >
-                <span className="element-indent-line" />
-                <span className="element-indent-line" />
-                <span className="element-color" style={{ background: drawer.color }} />
-                <span className="element-name">{drawer.name}</span>
-                <button
-                  className="btn-delete"
-                  onClick={(ev) => { ev.stopPropagation(); onDelete(drawer.id); }}
-                  title="Usuń"
-                >
-                  ✕
-                </button>
-              </li>
-            ))}
-            <li className="element-item element-item--add" onClick={() => onAddDrawerToCabinet(dbox.id)}>
-              <span className="element-indent-line" />
-              <span className="element-indent-line" />
-              <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj szufladę</span>
-            </li>
-          </>
-        )}
+        {isExpanded && drawers.map((drawer) => (
+          <li
+            key={drawer.id}
+            className={`element-item element-item--child ${drawer.id === selectedId ? 'selected' : ''}`}
+            onClick={() => onSelect(drawer.id)}
+          >
+            <span className="element-indent-line" />
+            <span className="element-indent-line" />
+            <span className="element-color" style={{ background: drawer.color }} />
+            <span className="element-name">{drawer.name}</span>
+            <button
+              className="btn-delete"
+              onClick={(ev) => { ev.stopPropagation(); onDelete(drawer.id); }}
+              title="Usuń"
+            >
+              ✕
+            </button>
+          </li>
+        ))}
       </React.Fragment>
     );
   };
@@ -288,7 +276,12 @@ const ElementLibrary: React.FC<Props> = ({
     const countertop = elements.find((e) => e.cabinetId === cab.id && e.type === 'countertop');
     const isSelected = cab.id === selectedId;
     const isMulti = multiSelectedIds.includes(cab.id);
-    const isExpanded = isSelected || children.some((c) => c.id === selectedId) || countertop?.id === selectedId;
+    const isExpanded = isSelected ||
+      children.some((c) => c.id === selectedId) ||
+      countertop?.id === selectedId ||
+      children.filter((c) => c.type === 'drawerbox').some((dbox) =>
+        elements.some((gc) => gc.cabinetId === dbox.id && gc.id === selectedId)
+      );
     return (
       <React.Fragment key={cab.id}>
         <li
@@ -309,223 +302,9 @@ const ElementLibrary: React.FC<Props> = ({
         </li>
         {isExpanded && (
           <>
-            {children.filter((c) => c.type !== 'drawerbox' && c.type !== 'blenda').map((child) => renderItem(child, true))}
+            {children.filter((c) => c.type !== 'drawerbox').map((child) => renderItem(child, true))}
             {children.filter((c) => c.type === 'drawerbox').map((dbox) => renderDrawerbox(dbox))}
-
-            {/* Section: Wnętrze */}
-            <li className="element-item element-item--section">
-              <span className="element-section-line" />
-              Wnętrze
-            </li>
-            <li className="element-item element-item--add" onClick={() => onAddShelfToCabinet(cab.id)}>
-              <span className="element-indent-line" />
-              <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj półkę</span>
-            </li>
-            <li className="element-item element-item--add" onClick={() => onAddDrawerToCabinet(cab.id)}>
-              <span className="element-indent-line" />
-              <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj szufladę</span>
-            </li>
-            <li className="element-item element-item--add" onClick={() => onAddDrawerboxToCabinet(cab.id)}>
-              <span className="element-indent-line" />
-              <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj box szuflady</span>
-            </li>
-            <li className="element-item element-item--add" onClick={() => onAddDividerToCabinet(cab.id)}>
-              <span className="element-indent-line" />
-              <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj przegrodę</span>
-            </li>
-
-            {/* Section: Wykończenie (fronty) */}
-            {!elements.some((e) => e.type === 'front' && e.cabinetId === cab.id) && (
-              <>
-                <li className="element-item element-item--section">
-                  <span className="element-section-line" />
-                  Front
-                </li>
-                <li className="element-item element-item--add" onClick={() => onAddFrontToCabinet(cab.id)}>
-                  <span className="element-indent-line" />
-                  <span className="element-add-icon">＋</span>
-                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front</span>
-                </li>
-                <li className="element-item element-item--add" onClick={() => onAddDoubleFrontToCabinet(cab.id)}>
-                  <span className="element-indent-line" />
-                  <span className="element-add-icon">＋</span>
-                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj podwójny front</span>
-                </li>
-                <li className="element-item element-item--add" onClick={() => onAddKuchennyFrontToCabinet(cab.id, 'left')}>
-                  <span className="element-indent-line" />
-                  <span className="element-add-icon">＋</span>
-                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front lewy</span>
-                </li>
-                <li className="element-item element-item--add" onClick={() => onAddKuchennyFrontToCabinet(cab.id, 'right')}>
-                  <span className="element-indent-line" />
-                  <span className="element-add-icon">＋</span>
-                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front prawy</span>
-                </li>
-              </>
-            )}
-
-            {/* Section: Blenda i cokół */}
-            {(!elements.some((e) => e.type === 'plinth' && e.cabinetId === cab.id) ||
-              !elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'left') ||
-              !elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'right') ||
-              !elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'top')) && (
-              <li className="element-item element-item--section">
-                <span className="element-section-line" />
-                Blenda i cokół
-              </li>
-            )}
-            {children.filter((c) => c.type === 'blenda').map((blenda) => renderItem(blenda, true))}
-            {!elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'left') && (
-              <li className="element-item element-item--add" onClick={() => onAddBlendaToCabinet(cab.id, 'left')}>
-                <span className="element-indent-line" />
-                <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę lewą</span>
-              </li>
-            )}
-            {!elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'right') && (
-              <li className="element-item element-item--add" onClick={() => onAddBlendaToCabinet(cab.id, 'right')}>
-                <span className="element-indent-line" />
-                <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę prawą</span>
-              </li>
-            )}
-            {!elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'top') && (
-              <li className="element-item element-item--add" onClick={() => onAddBlendaToCabinet(cab.id, 'top')}>
-                <span className="element-indent-line" />
-                <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę górną</span>
-              </li>
-            )}
-            {!elements.some((e) => e.type === 'plinth' && e.cabinetId === cab.id) && (
-              <li className="element-item element-item--add" onClick={() => onAddPlinthToCabinet(cab.id)}>
-                <span className="element-indent-line" />
-                <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cokoł</span>
-              </li>
-            )}
-
-            {/* Section: Maskowanie */}
-            {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id) && (
-              <li className="element-item element-item--section">
-                <span className="element-section-line" />
-                Maskowanie
-              </li>
-            )}
-            {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'left') && (
-              <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'left')}>
-                <span className="element-indent-line" />
-                <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę lewa</span>
-              </li>
-            )}
-            {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'right') && (
-              <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'right')}>
-                <span className="element-indent-line" />
-                <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę prawa</span>
-              </li>
-            )}
-            {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'bottom') && (
-              <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'bottom')}>
-                <span className="element-indent-line" />
-                <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę dół</span>
-              </li>
-            )}
-            {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'top') && (
-              <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'top')}>
-                <span className="element-indent-line" />
-                <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę góra</span>
-              </li>
-            )}
-
-            {/* Section: Płyta tylna */}
-            <li className="element-item element-item--section">
-              <span className="element-section-line" />
-              Płyta tylna
-            </li>
-            {!elements.some((e) => e.type === 'hdf' && e.cabinetId === cab.id) && (
-              <li className="element-item element-item--add" onClick={() => onAddHdfToCabinet(cab.id)}>
-                <span className="element-indent-line" />
-                <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj płytę HDF</span>
-              </li>
-            )}
-            {!elements.some((e) => e.type === 'rearboard' && e.cabinetId === cab.id) && (
-              <li className="element-item element-item--add" onClick={() => onAddRearboardToCabinet(cab.id)}>
-                <span className="element-indent-line" />
-                <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj płytę tylną</span>
-              </li>
-            )}
-
-            {/* Section: Dodatki */}
-            <li className="element-item element-item--section">
-              <span className="element-section-line" />
-              Dodatki
-            </li>
-            <li className="element-item element-item--add" onClick={() => onAddRodToCabinet(cab.id)}>
-              <span className="element-indent-line" />
-              <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj drążek</span>
-            </li>
-            {!elements.some((e) => e.type === 'leg' && e.cabinetId === cab.id) && (
-              <li className="element-item element-item--add" onClick={() => onAddLegsToCabinet(cab.id)}>
-                <span className="element-indent-line" />
-                <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj nóżki</span>
-              </li>
-            )}
-            {/* Cargo */}
-            {(() => {
-              const cargoEl = children.find((c) => c.type === 'cargo');
-              if (cargoEl) {
-                return (
-                  <li
-                    className={`element-item element-item--child ${cargoEl.id === selectedId ? 'selected' : ''}`}
-                    onClick={() => onSelect(cargoEl.id)}
-                  >
-                    <span className="element-indent-line" />
-                    <span className="element-color" style={{ background: cargoEl.color }} />
-                    <span className="element-name">{cargoEl.name}</span>
-                    <button
-                      className="btn-delete"
-                      onClick={(ev) => { ev.stopPropagation(); onDelete(cargoEl.id); }}
-                      title="Usuń"
-                    >✕</button>
-                  </li>
-                );
-              }
-              if (cargoOptions.length > 0) {
-                return (
-                  <li className="element-item element-item--add" onClick={() => onAddCargoToBox(cab.id, pickCargoForBox(cargoOptions, cab))}>
-                    <span className="element-indent-line" />
-                    <span className="element-add-icon">＋</span>
-                    <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cargo</span>
-                  </li>
-                );
-              }
-              return null;
-            })()}
-            {/* Blat */}
-            <li className="element-item element-item--section">
-              <span className="element-section-line" />
-              Blat
-            </li>
-            {countertop ? renderItem(countertop, true) : (
-              <li className="element-item element-item--add" onClick={() => {
-                onAddCountertopToCabinet(cab.id);
-              }}>
-                <span className="element-indent-line" />
-                <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blat</span>
-              </li>
-            )}
+            {countertop && renderItem(countertop, true)}
           </>
         )}
       </React.Fragment>
@@ -535,14 +314,9 @@ const ElementLibrary: React.FC<Props> = ({
   const renderBoxKuchenny = (box: BoxElement, extraIndent = false) => {
     const children = elements.filter((e) => e.cabinetId === box.id && e.type !== 'countertop');
     const countertop = elements.find((e) => e.cabinetId === box.id && e.type === 'countertop');
-    const legs = children.filter((e) => e.type === 'leg');
     const isSelected = box.id === selectedId;
     const isMulti = multiSelectedIds.includes(box.id);
     const isExpanded = isSelected || children.some((c) => c.id === selectedId) || countertop?.id === selectedId;
-    const noBlendaLeft  = !elements.some((e) => e.type === 'blenda' && e.cabinetId === box.id && e.blendaScope === 'cabinet' && e.blendaSide === 'left');
-    const noBlendaRight = !elements.some((e) => e.type === 'blenda' && e.cabinetId === box.id && e.blendaScope === 'cabinet' && e.blendaSide === 'right');
-    const noMaskLeft    = !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === box.id && e.maskownicaSide === 'left');
-    const noMaskRight   = !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === box.id && e.maskownicaSide === 'right');
     return (
       <React.Fragment key={box.id}>
         <li
@@ -563,222 +337,567 @@ const ElementLibrary: React.FC<Props> = ({
         </li>
         {isExpanded && (
           <>
-            {children.filter((c) => c.type !== 'leg').map((child) => renderItem(child, true))}
-
-            {/* Section: Wnętrze */}
-            <li className="element-item element-item--section">
-              <span className="element-section-line" />
-              Wnętrze
-            </li>
-            <li className="element-item element-item--add" onClick={() => onAddShelfToCabinet(box.id)}>
-              <span className="element-indent-line" />
-              <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj półkę</span>
-            </li>
-            <li className="element-item element-item--add" onClick={() => onAddDrawerToCabinet(box.id)}>
-              <span className="element-indent-line" />
-              <span className="element-add-icon">＋</span>
-              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj szufladę</span>
-            </li>
-
-            {/* Section: Front */}
-            {!elements.some((e) => e.type === 'front' && e.cabinetId === box.id) && (
-              <>
-                <li className="element-item element-item--section">
-                  <span className="element-section-line" />
-                  Front
-                </li>
-                <li className="element-item element-item--add" onClick={() => onAddFrontToCabinet(box.id)}>
-                  <span className="element-indent-line" />
-                  <span className="element-add-icon">＋</span>
-                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front</span>
-                </li>
-                <li className="element-item element-item--add" onClick={() => onAddDoubleFrontToCabinet(box.id)}>
-                  <span className="element-indent-line" />
-                  <span className="element-add-icon">＋</span>
-                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj podwójny front</span>
-                </li>
-                <li className="element-item element-item--add" onClick={() => onAddKuchennyFrontToCabinet(box.id, 'left')}>
-                  <span className="element-indent-line" />
-                  <span className="element-add-icon">＋</span>
-                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front lewy</span>
-                </li>
-                <li className="element-item element-item--add" onClick={() => onAddKuchennyFrontToCabinet(box.id, 'right')}>
-                  <span className="element-indent-line" />
-                  <span className="element-add-icon">＋</span>
-                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front prawy</span>
-                </li>
-              </>
-            )}
-
-            {/* Section: Płyta tylna */}
-            <li className="element-item element-item--section">
-              <span className="element-section-line" />
-              Płyta tylna
-            </li>
-            {!elements.some((e) => e.type === 'hdf' && e.cabinetId === box.id) && (
-              <li className="element-item element-item--add" onClick={() => onAddHdfToCabinet(box.id)}>
-                <span className="element-indent-line" />
-                <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj płytę HDF</span>
-              </li>
-            )}
-
-            {/* Section: Dodatki */}
-            <li className="element-item element-item--section">
-              <span className="element-section-line" />
-              Dodatki
-            </li>
-            {legs.map((leg) => renderItem(leg, true))}
-            {!legs.length && (
-              <li className="element-item element-item--add" onClick={() => onAddLegsToBoxKuchenny(box.id)}>
-                <span className="element-indent-line" />
-                <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj nóżki</span>
-              </li>
-            )}
-            {/* Cargo */}
-            {(() => {
-              const cargoEl = children.find((c) => c.type === 'cargo');
-              if (cargoEl) {
-                return (
-                  <li
-                    className={`element-item element-item--child ${cargoEl.id === selectedId ? 'selected' : ''}`}
-                    onClick={() => onSelect(cargoEl.id)}
-                  >
-                    <span className="element-indent-line" />
-                    <span className="element-color" style={{ background: cargoEl.color }} />
-                    <span className="element-name">{cargoEl.name}</span>
-                    <button
-                      className="btn-delete"
-                      onClick={(ev) => { ev.stopPropagation(); onDelete(cargoEl.id); }}
-                      title="Usuń"
-                    >✕</button>
-                  </li>
-                );
-              }
-              if (cargoOptions.length > 0) {
-                return (
-                  <li className="element-item element-item--add" onClick={() => onAddCargoToBox(box.id, pickCargoForBox(cargoOptions, box))}>
-                    <span className="element-indent-line" />
-                    <span className="element-add-icon">＋</span>
-                    <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cargo</span>
-                  </li>
-                );
-              }
-              return null;
-            })()}
-            {/* System narożny */}
-            {(() => {
-              const csEl = children.find((c) => c.type === 'cornersystem');
-              if (csEl) {
-                return (
-                  <li
-                    className={`element-item element-item--child ${csEl.id === selectedId ? 'selected' : ''}`}
-                    onClick={() => onSelect(csEl.id)}
-                  >
-                    <span className="element-indent-line" />
-                    <span className="element-color" style={{ background: csEl.color }} />
-                    <span className="element-name">{csEl.name}</span>
-                    <button className="btn-delete" onClick={(ev) => { ev.stopPropagation(); onDelete(csEl.id); }} title="Usuń">✕</button>
-                  </li>
-                );
-              }
-              if (cornerSystemOptions.length > 0) {
-                return (
-                  <li className="element-item element-item--add" onClick={() => onAddCornerSystemToBox(box.id, pickCornerSystemForBox(cornerSystemOptions, box), 'left')}>
-                    <span className="element-indent-line" />
-                    <span className="element-add-icon">＋</span>
-                    <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj system narożny</span>
-                  </li>
-                );
-              }
-              return null;
-            })()}
-            {/* Section: Blenda i cokół */}
-            {(!elements.some((e) => e.type === 'plinth' && e.cabinetId === box.id)) && (
-              <>
-                <li className="element-item element-item--section">
-                  <span className="element-section-line" />
-                  Cokół
-                </li>
-                <li className="element-item element-item--add" onClick={() => onAddPlinthToCabinet(box.id)}>
-                  <span className="element-indent-line" />
-                  <span className="element-add-icon">＋</span>
-                  <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cokoł</span>
-                </li>
-              </>
-            )}
-
-            {(noBlendaLeft || noBlendaRight) && (
-              <>
-                <li className="element-item element-item--section">
-                  <span className="element-section-line" />
-                  Blenda
-                </li>
-                {noBlendaLeft && (
-                  <li className="element-item element-item--add" onClick={() => onAddBlendaToCabinet(box.id, 'left')}>
-                    <span className="element-indent-line" />
-                    <span className="element-add-icon">＋</span>
-                    <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę lewą</span>
-                  </li>
-                )}
-                {noBlendaRight && (
-                  <li className="element-item element-item--add" onClick={() => onAddBlendaToCabinet(box.id, 'right')}>
-                    <span className="element-indent-line" />
-                    <span className="element-add-icon">＋</span>
-                    <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę prawą</span>
-                  </li>
-                )}
-              </>
-            )}
-
-            {(noMaskLeft || noMaskRight) && (
-              <>
-                <li className="element-item element-item--section">
-                  <span className="element-section-line" />
-                  Maskownica
-                </li>
-                {noMaskLeft && (
-                  <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(box.id, 'left')}>
-                    <span className="element-indent-line" />
-                    <span className="element-add-icon">＋</span>
-                    <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę lewą</span>
-                  </li>
-                )}
-                {noMaskRight && (
-                  <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(box.id, 'right')}>
-                    <span className="element-indent-line" />
-                    <span className="element-add-icon">＋</span>
-                    <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę prawą</span>
-                  </li>
-                )}
-              </>
-            )}
-
-            {/* Blat */}
-            <li className="element-item element-item--section">
-              <span className="element-section-line" />
-              Blat
-            </li>
-            {countertop ? renderItem(countertop, true) : (
-              <li className="element-item element-item--add" onClick={() => {
-                onAddCountertopToCabinet(box.id);
-              }}>
-                <span className="element-indent-line" />
-                <span className="element-add-icon">＋</span>
-                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blat</span>
-              </li>
-            )}
+            {children.map((child) => renderItem(child, true))}
+            {countertop && renderItem(countertop, true)}
           </>
         )}
       </React.Fragment>
     );
   };
 
+  const renderGroup = (grp: BoxElement) => {
+    const members = elements.filter((e) => e.groupIds?.includes(grp.id) && (e.type === 'cabinet' || e.type === 'boxkuchenny'));
+    const groupFronts = elements.filter((e) => e.type === 'front' && e.cabinetId === grp.id);
+    const groupMaskowanice = elements.filter((e) => e.type === 'maskowanica' && e.cabinetId === grp.id);
+    const groupBlendy = elements.filter((e) => (e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group') || (e.type === 'plinth' && e.cabinetId === grp.id));
+    const groupCountertop = elements.find((e) => e.type === 'countertop' && e.cabinetId === grp.id);
+    const isSelected = grp.id === selectedId;
+    const isExpanded = isSelected ||
+      members.some((m) => m.id === selectedId) ||
+      members.some((m) => elements.some((c) => c.cabinetId === m.id && c.id === selectedId)) ||
+      groupFronts.some((f) => f.id === selectedId) ||
+      groupMaskowanice.some((m) => m.id === selectedId) ||
+      groupBlendy.some((b) => b.id === selectedId) ||
+      groupCountertop?.id === selectedId;
+    return (
+      <React.Fragment key={grp.id}>
+        <li
+          className={`element-item group-item ${isSelected ? 'selected' : ''}`}
+          onClick={() => { onSelect(grp.id); members.forEach((m) => onMultiSelectToggle(m.id)); }}
+        >
+          <span className="group-icon">▤</span>
+          <span className="element-name">{grp.name}</span>
+          <button
+            className="btn-ungroup"
+            onClick={(e) => { e.stopPropagation(); onUngroup(grp.id); }}
+            title="Rozdziel grupę"
+          >
+            ⇥
+          </button>
+          <button
+            className="btn-delete"
+            onClick={(e) => { e.stopPropagation(); onDelete(grp.id); }}
+            title="Usuń grupę i wszystkie elementy"
+          >
+            ✕
+          </button>
+        </li>
+        {isExpanded && (
+          <>
+            {groupFronts.map((f) => renderItem(f, true))}
+            {groupMaskowanice.map((m) => renderItem(m, true))}
+            {groupBlendy.map((b) => renderItem(b, true))}
+            {groupCountertop && renderItem(groupCountertop, true)}
+            {members.map((m) => m.type === 'boxkuchenny' ? renderBoxKuchenny(m, true) : renderCabinet(m, true))}
+          </>
+        )}
+      </React.Fragment>
+    );
+  };
+
+  const renderCabinetAddOptions = (cab: BoxElement) => {
+    const children = elements.filter((e) => e.cabinetId === cab.id);
+    const countertop = elements.find((e) => e.cabinetId === cab.id && e.type === 'countertop');
+    const cargoEl = children.find((c) => c.type === 'cargo');
+    return (
+      <>
+        <li className="element-item element-item--section">
+          <span className="element-section-line" />
+          Wnętrze
+        </li>
+        <li className="element-item element-item--add" onClick={() => onAddShelfToCabinet(cab.id)}>
+          <span className="element-indent-line" />
+          <span className="element-add-icon">＋</span>
+          <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj półkę</span>
+        </li>
+        <li className="element-item element-item--add" onClick={() => onAddDrawerToCabinet(cab.id)}>
+          <span className="element-indent-line" />
+          <span className="element-add-icon">＋</span>
+          <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj szufladę</span>
+        </li>
+        <li className="element-item element-item--add" onClick={() => onAddDrawerboxToCabinet(cab.id)}>
+          <span className="element-indent-line" />
+          <span className="element-add-icon">＋</span>
+          <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj box szuflady</span>
+        </li>
+        <li className="element-item element-item--add" onClick={() => onAddDividerToCabinet(cab.id)}>
+          <span className="element-indent-line" />
+          <span className="element-add-icon">＋</span>
+          <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj przegrodę</span>
+        </li>
+
+        {!elements.some((e) => e.type === 'front' && e.cabinetId === cab.id) && (
+          <>
+            <li className="element-item element-item--section">
+              <span className="element-section-line" />
+              Front
+            </li>
+            <li className="element-item element-item--add" onClick={() => onAddFrontToCabinet(cab.id)}>
+              <span className="element-indent-line" />
+              <span className="element-add-icon">＋</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front</span>
+            </li>
+            <li className="element-item element-item--add" onClick={() => onAddDoubleFrontToCabinet(cab.id)}>
+              <span className="element-indent-line" />
+              <span className="element-add-icon">＋</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj podwójny front</span>
+            </li>
+            <li className="element-item element-item--add" onClick={() => onAddKuchennyFrontToCabinet(cab.id, 'left')}>
+              <span className="element-indent-line" />
+              <span className="element-add-icon">＋</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front lewy</span>
+            </li>
+            <li className="element-item element-item--add" onClick={() => onAddKuchennyFrontToCabinet(cab.id, 'right')}>
+              <span className="element-indent-line" />
+              <span className="element-add-icon">＋</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front prawy</span>
+            </li>
+          </>
+        )}
+
+        {(!elements.some((e) => e.type === 'plinth' && e.cabinetId === cab.id) ||
+          !elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'left') ||
+          !elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'right') ||
+          !elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'top')) && (
+          <li className="element-item element-item--section">
+            <span className="element-section-line" />
+            Blenda i cokół
+          </li>
+        )}
+        {!elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'left') && (
+          <li className="element-item element-item--add" onClick={() => onAddBlendaToCabinet(cab.id, 'left')}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę lewą</span>
+          </li>
+        )}
+        {!elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'right') && (
+          <li className="element-item element-item--add" onClick={() => onAddBlendaToCabinet(cab.id, 'right')}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę prawą</span>
+          </li>
+        )}
+        {!elements.some((e) => e.type === 'blenda' && e.cabinetId === cab.id && e.blendaScope === 'cabinet' && e.blendaSide === 'top') && (
+          <li className="element-item element-item--add" onClick={() => onAddBlendaToCabinet(cab.id, 'top')}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę górną</span>
+          </li>
+        )}
+        {!elements.some((e) => e.type === 'plinth' && e.cabinetId === cab.id) && (
+          <li className="element-item element-item--add" onClick={() => onAddPlinthToCabinet(cab.id)}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cokoł</span>
+          </li>
+        )}
+
+        {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id) && (
+          <li className="element-item element-item--section">
+            <span className="element-section-line" />
+            Maskowanie
+          </li>
+        )}
+        {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'left') && (
+          <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'left')}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę lewa</span>
+          </li>
+        )}
+        {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'right') && (
+          <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'right')}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę prawa</span>
+          </li>
+        )}
+        {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'bottom') && (
+          <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'bottom')}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę dół</span>
+          </li>
+        )}
+        {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === cab.id && e.maskownicaSide === 'top') && (
+          <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(cab.id, 'top')}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę góra</span>
+          </li>
+        )}
+
+        <li className="element-item element-item--section">
+          <span className="element-section-line" />
+          Płyta tylna
+        </li>
+        {!elements.some((e) => e.type === 'hdf' && e.cabinetId === cab.id) && (
+          <li className="element-item element-item--add" onClick={() => onAddHdfToCabinet(cab.id)}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj płytę HDF</span>
+          </li>
+        )}
+        {!elements.some((e) => e.type === 'rearboard' && e.cabinetId === cab.id) && (
+          <li className="element-item element-item--add" onClick={() => onAddRearboardToCabinet(cab.id)}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj płytę tylną</span>
+          </li>
+        )}
+
+        <li className="element-item element-item--section">
+          <span className="element-section-line" />
+          Dodatki
+        </li>
+        <li className="element-item element-item--add" onClick={() => onAddRodToCabinet(cab.id)}>
+          <span className="element-indent-line" />
+          <span className="element-add-icon">＋</span>
+          <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj drążek</span>
+        </li>
+        {!elements.some((e) => e.type === 'leg' && e.cabinetId === cab.id) && (
+          <li className="element-item element-item--add" onClick={() => onAddLegsToCabinet(cab.id)}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj nóżki</span>
+          </li>
+        )}
+        {!cargoEl && cargoOptions.length > 0 && (
+          <li className="element-item element-item--add" onClick={() => onAddCargoToBox(cab.id, pickCargoForBox(cargoOptions, cab))}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cargo</span>
+          </li>
+        )}
+
+        <li className="element-item element-item--section">
+          <span className="element-section-line" />
+          Blat
+        </li>
+        {!countertop && (
+          <li className="element-item element-item--add" onClick={() => onAddCountertopToCabinet(cab.id)}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blat</span>
+          </li>
+        )}
+      </>
+    );
+  };
+
+  const renderBoxKuchennyAddOptions = (box: BoxElement) => {
+    const children = elements.filter((e) => e.cabinetId === box.id);
+    const countertop = children.find((c) => c.type === 'countertop');
+    const legs = children.filter((e) => e.type === 'leg');
+    const cargoEl = children.find((c) => c.type === 'cargo');
+    const csEl = children.find((c) => c.type === 'cornersystem');
+    const noBlendaLeft  = !elements.some((e) => e.type === 'blenda' && e.cabinetId === box.id && e.blendaScope === 'cabinet' && e.blendaSide === 'left');
+    const noBlendaRight = !elements.some((e) => e.type === 'blenda' && e.cabinetId === box.id && e.blendaScope === 'cabinet' && e.blendaSide === 'right');
+    const noMaskLeft    = !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === box.id && e.maskownicaSide === 'left');
+    const noMaskRight   = !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === box.id && e.maskownicaSide === 'right');
+    return (
+      <>
+        <li className="element-item element-item--section">
+          <span className="element-section-line" />
+          Wnętrze
+        </li>
+        <li className="element-item element-item--add" onClick={() => onAddShelfToCabinet(box.id)}>
+          <span className="element-indent-line" />
+          <span className="element-add-icon">＋</span>
+          <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj półkę</span>
+        </li>
+        <li className="element-item element-item--add" onClick={() => onAddDrawerToCabinet(box.id)}>
+          <span className="element-indent-line" />
+          <span className="element-add-icon">＋</span>
+          <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj szufladę</span>
+        </li>
+
+        {!elements.some((e) => e.type === 'front' && e.cabinetId === box.id) && (
+          <>
+            <li className="element-item element-item--section">
+              <span className="element-section-line" />
+              Front
+            </li>
+            <li className="element-item element-item--add" onClick={() => onAddFrontToCabinet(box.id)}>
+              <span className="element-indent-line" />
+              <span className="element-add-icon">＋</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front</span>
+            </li>
+            <li className="element-item element-item--add" onClick={() => onAddDoubleFrontToCabinet(box.id)}>
+              <span className="element-indent-line" />
+              <span className="element-add-icon">＋</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj podwójny front</span>
+            </li>
+            <li className="element-item element-item--add" onClick={() => onAddKuchennyFrontToCabinet(box.id, 'left')}>
+              <span className="element-indent-line" />
+              <span className="element-add-icon">＋</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front lewy</span>
+            </li>
+            <li className="element-item element-item--add" onClick={() => onAddKuchennyFrontToCabinet(box.id, 'right')}>
+              <span className="element-indent-line" />
+              <span className="element-add-icon">＋</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front prawy</span>
+            </li>
+          </>
+        )}
+
+        <li className="element-item element-item--section">
+          <span className="element-section-line" />
+          Płyta tylna
+        </li>
+        {!elements.some((e) => e.type === 'hdf' && e.cabinetId === box.id) && (
+          <li className="element-item element-item--add" onClick={() => onAddHdfToCabinet(box.id)}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj płytę HDF</span>
+          </li>
+        )}
+
+        <li className="element-item element-item--section">
+          <span className="element-section-line" />
+          Dodatki
+        </li>
+        {!legs.length && (
+          <li className="element-item element-item--add" onClick={() => onAddLegsToBoxKuchenny(box.id)}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj nóżki</span>
+          </li>
+        )}
+        {!cargoEl && cargoOptions.length > 0 && (
+          <li className="element-item element-item--add" onClick={() => onAddCargoToBox(box.id, pickCargoForBox(cargoOptions, box))}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cargo</span>
+          </li>
+        )}
+        {!csEl && cornerSystemOptions.length > 0 && (
+          <li className="element-item element-item--add" onClick={() => onAddCornerSystemToBox(box.id, pickCornerSystemForBox(cornerSystemOptions, box), 'left')}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj system narożny</span>
+          </li>
+        )}
+
+        {!elements.some((e) => e.type === 'plinth' && e.cabinetId === box.id) && (
+          <>
+            <li className="element-item element-item--section">
+              <span className="element-section-line" />
+              Cokół
+            </li>
+            <li className="element-item element-item--add" onClick={() => onAddPlinthToCabinet(box.id)}>
+              <span className="element-indent-line" />
+              <span className="element-add-icon">＋</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cokoł</span>
+            </li>
+          </>
+        )}
+
+        {(noBlendaLeft || noBlendaRight) && (
+          <>
+            <li className="element-item element-item--section">
+              <span className="element-section-line" />
+              Blenda
+            </li>
+            {noBlendaLeft && (
+              <li className="element-item element-item--add" onClick={() => onAddBlendaToCabinet(box.id, 'left')}>
+                <span className="element-indent-line" />
+                <span className="element-add-icon">＋</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę lewą</span>
+              </li>
+            )}
+            {noBlendaRight && (
+              <li className="element-item element-item--add" onClick={() => onAddBlendaToCabinet(box.id, 'right')}>
+                <span className="element-indent-line" />
+                <span className="element-add-icon">＋</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę prawą</span>
+              </li>
+            )}
+          </>
+        )}
+
+        {(noMaskLeft || noMaskRight) && (
+          <>
+            <li className="element-item element-item--section">
+              <span className="element-section-line" />
+              Maskownica
+            </li>
+            {noMaskLeft && (
+              <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(box.id, 'left')}>
+                <span className="element-indent-line" />
+                <span className="element-add-icon">＋</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę lewą</span>
+              </li>
+            )}
+            {noMaskRight && (
+              <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToCabinet(box.id, 'right')}>
+                <span className="element-indent-line" />
+                <span className="element-add-icon">＋</span>
+                <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę prawą</span>
+              </li>
+            )}
+          </>
+        )}
+
+        <li className="element-item element-item--section">
+          <span className="element-section-line" />
+          Blat
+        </li>
+        {!countertop && (
+          <li className="element-item element-item--add" onClick={() => onAddCountertopToCabinet(box.id)}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blat</span>
+          </li>
+        )}
+      </>
+    );
+  };
+
+  const renderGroupAddOptions = (grp: BoxElement) => {
+    const groupFronts = elements.filter((e) => e.type === 'front' && e.cabinetId === grp.id);
+    const groupCountertop = elements.find((e) => e.type === 'countertop' && e.cabinetId === grp.id);
+    return (
+      <>
+        {!groupFronts.length && (
+          <>
+            <li className="element-item element-item--section">
+              <span className="element-section-line" />
+              Front
+            </li>
+            <li className="element-item element-item--add" onClick={() => onAddFrontToGroup(grp.id)}>
+              <span className="element-indent-line" />
+              <span className="element-add-icon">＋</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front grupy</span>
+            </li>
+            <li className="element-item element-item--add" onClick={() => onAddDoubleFrontToGroup(grp.id)}>
+              <span className="element-indent-line" />
+              <span className="element-add-icon">＋</span>
+              <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj podwójny front grupy</span>
+            </li>
+          </>
+        )}
+
+        {(!elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'left') ||
+          !elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'right') ||
+          !elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'top') ||
+          !elements.some((e) => e.type === 'plinth' && e.cabinetId === grp.id)) && (
+          <li className="element-item element-item--section">
+            <span className="element-section-line" />
+            Blenda i cokół grupy
+          </li>
+        )}
+        {!elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'left') && (
+          <li className="element-item element-item--add" onClick={() => onAddBlendaToGroup(grp.id, 'left')}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę lewą grupy</span>
+          </li>
+        )}
+        {!elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'right') && (
+          <li className="element-item element-item--add" onClick={() => onAddBlendaToGroup(grp.id, 'right')}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę prawą grupy</span>
+          </li>
+        )}
+        {!elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'top') && (
+          <li className="element-item element-item--add" onClick={() => onAddBlendaToGroup(grp.id, 'top')}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę górną grupy</span>
+          </li>
+        )}
+        {!elements.some((e) => e.type === 'plinth' && e.cabinetId === grp.id) && (
+          <li className="element-item element-item--add" onClick={() => onAddPlinthToGroup(grp.id)}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cokoł grupy</span>
+          </li>
+        )}
+
+        {(!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'left') ||
+          !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'right') ||
+          !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'top') ||
+          !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'bottom')) && (
+          <li className="element-item element-item--section">
+            <span className="element-section-line" />
+            Maskowanie
+          </li>
+        )}
+        {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'left') && (
+          <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToGroup(grp.id, 'left')}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę lewa grupy</span>
+          </li>
+        )}
+        {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'right') && (
+          <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToGroup(grp.id, 'right')}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę prawa grupy</span>
+          </li>
+        )}
+        {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'top') && (
+          <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToGroup(grp.id, 'top')}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę górna grupy</span>
+          </li>
+        )}
+        {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'bottom') && (
+          <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToGroup(grp.id, 'bottom')}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę dolna grupy</span>
+          </li>
+        )}
+
+        <li className="element-item element-item--section">
+          <span className="element-section-line" />
+          Blat
+        </li>
+        {!groupCountertop && (
+          <li className="element-item element-item--add" onClick={() => onAddCountertopToGroup(grp.id)}>
+            <span className="element-indent-line" />
+            <span className="element-add-icon">＋</span>
+            <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blat grupy</span>
+          </li>
+        )}
+      </>
+    );
+  };
+
+  const renderDrawerboxAddOptions = (dbox: BoxElement) => (
+    <>
+      <li className="element-item element-item--section">
+        <span className="element-section-line" />
+        Szuflady
+      </li>
+      <li className="element-item element-item--add" onClick={() => onAddDrawerToCabinet(dbox.id)}>
+        <span className="element-add-icon">＋</span>
+        <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj szufladę</span>
+      </li>
+    </>
+  );
+
+  const selectedEl = selectedId ? elements.find((e) => e.id === selectedId) ?? null : null;
+  const addOptions = (() => {
+    if (!selectedEl) return null;
+    if (selectedEl.type === 'cabinet') return renderCabinetAddOptions(selectedEl);
+    if (selectedEl.type === 'boxkuchenny') return renderBoxKuchennyAddOptions(selectedEl);
+    if (selectedEl.type === 'group') return renderGroupAddOptions(selectedEl);
+    if (selectedEl.type === 'drawerbox') return renderDrawerboxAddOptions(selectedEl);
+    return null;
+  })();
+
+  const hasElements = standaloneCabinets.length > 0 || freeShelves.length > 0 || freeBoxesKuchenne.length > 0;
+
   return (
     <div className="library">
-      {/* Board size */}
+      {/* Scena */}
       <div className="lib-section-title">Scena</div>
       <div className="board-size-inputs">
         <label className="board-size-field">
@@ -867,185 +986,42 @@ const ElementLibrary: React.FC<Props> = ({
 
       <div className="lib-divider" />
 
-      {/* Tree list */}
-      <div className="lib-section-title">Dodane</div>
-      <ul className="element-list">
-        {/* Groups */}
-        {groups.map((grp) => {
-          const members = elements.filter((e) => e.groupIds?.includes(grp.id) && (e.type === 'cabinet' || e.type === 'boxkuchenny'));
-          const groupFronts = elements.filter((e) => e.type === 'front' && e.cabinetId === grp.id);
-          const groupMaskowanice = elements.filter((e) => e.type === 'maskowanica' && e.cabinetId === grp.id);
-          const isSelected = grp.id === selectedId;
-          const groupCountertop = elements.find((e) => e.type === 'countertop' && e.cabinetId === grp.id);
-          const isExpanded = isSelected || members.some((m) => m.id === selectedId) ||
-            members.some((m) => elements.some((c) => c.cabinetId === m.id && c.id === selectedId)) ||
-            groupFronts.some((f) => f.id === selectedId) ||
-            groupMaskowanice.some((m) => m.id === selectedId) ||
-            groupCountertop?.id === selectedId;
-          return (
-            <React.Fragment key={grp.id}>
-              <li
-                className={`element-item group-item ${isSelected ? 'selected' : ''}`}
-                onClick={() => { onSelect(grp.id); members.forEach((m) => onMultiSelectToggle(m.id)); }}
-              >
-                <span className="group-icon">▤</span>
-                <span className="element-name">{grp.name}</span>
-                <button
-                  className="btn-ungroup"
-                  onClick={(e) => { e.stopPropagation(); onUngroup(grp.id); }}
-                  title="Rozdziel grupę"
-                >
-                  ⇥
-                </button>
-                <button
-                  className="btn-delete"
-                  onClick={(e) => { e.stopPropagation(); onDelete(grp.id); }}
-                  title="Usuń grupę i wszystkie elementy"
-                >
-                  ✕
-                </button>
-              </li>
-              {isExpanded && (
-                <>
-                  {groupFronts.map((f) => renderItem(f, true))}
-                  {groupMaskowanice.map((m) => renderItem(m, true))}
-                  {members.map((m) => m.type === 'boxkuchenny' ? renderBoxKuchenny(m, true) : renderCabinet(m, true))}
+      <div className="element-sections">
 
-                  {/* Section: Front */}
-                  {!groupFronts.length && (
-                    <>
-                      <li className="element-item element-item--section">
-                        <span className="element-section-line" />
-                        Front
-                      </li>
-                      <li className="element-item element-item--add" onClick={() => onAddFrontToGroup(grp.id)}>
-                        <span className="element-indent-line" />
-                        <span className="element-add-icon">＋</span>
-                        <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj front grupy</span>
-                      </li>
-                      <li className="element-item element-item--add" onClick={() => onAddDoubleFrontToGroup(grp.id)}>
-                        <span className="element-indent-line" />
-                        <span className="element-add-icon">＋</span>
-                        <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj podwójny front grupy</span>
-                      </li>
-                    </>
-                  )}
-
-                  {/* Section: Blenda i cokół grupy */}
-                  {(!elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'left') ||
-                    !elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'right') ||
-                    !elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'top') ||
-                    !elements.some((e) => e.type === 'plinth' && e.cabinetId === grp.id)) && (
-                    <li className="element-item element-item--section">
-                      <span className="element-section-line" />
-                      Blenda i cokół grupy
-                    </li>
-                  )}
-                  {elements.filter((e) => (e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group') || (e.type === 'plinth' && e.cabinetId === grp.id)).map((b) => renderItem(b, true))}
-                  {!elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'left') && (
-                    <li className="element-item element-item--add" onClick={() => onAddBlendaToGroup(grp.id, 'left')}>
-                      <span className="element-indent-line" />
-                      <span className="element-add-icon">＋</span>
-                      <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę lewą grupy</span>
-                    </li>
-                  )}
-                  {!elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'right') && (
-                    <li className="element-item element-item--add" onClick={() => onAddBlendaToGroup(grp.id, 'right')}>
-                      <span className="element-indent-line" />
-                      <span className="element-add-icon">＋</span>
-                      <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę prawą grupy</span>
-                    </li>
-                  )}
-                  {!elements.some((e) => e.type === 'blenda' && e.cabinetId === grp.id && e.blendaScope === 'group' && e.blendaSide === 'top') && (
-                    <li className="element-item element-item--add" onClick={() => onAddBlendaToGroup(grp.id, 'top')}>
-                      <span className="element-indent-line" />
-                      <span className="element-add-icon">＋</span>
-                      <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blendę górną grupy</span>
-                    </li>
-                  )}
-                  {!elements.some((e) => e.type === 'plinth' && e.cabinetId === grp.id) && (
-                    <li className="element-item element-item--add" onClick={() => onAddPlinthToGroup(grp.id)}>
-                      <span className="element-indent-line" />
-                      <span className="element-add-icon">＋</span>
-                      <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj cokoł grupy</span>
-                    </li>
-                  )}
-
-                  {/* Section: Maskowanie */}
-                  {(!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'left') ||
-                    !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'right') ||
-                    !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'top') ||
-                    !elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'bottom')) && (
-                    <li className="element-item element-item--section">
-                      <span className="element-section-line" />
-                      Maskowanie
-                    </li>
-                  )}
-                  {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'left') && (
-                    <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToGroup(grp.id, 'left')}>
-                      <span className="element-indent-line" />
-                      <span className="element-add-icon">＋</span>
-                      <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę lewa grupy</span>
-                    </li>
-                  )}
-                  {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'right') && (
-                    <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToGroup(grp.id, 'right')}>
-                      <span className="element-indent-line" />
-                      <span className="element-add-icon">＋</span>
-                      <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę prawa grupy</span>
-                    </li>
-                  )}
-                  {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'top') && (
-                    <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToGroup(grp.id, 'top')}>
-                      <span className="element-indent-line" />
-                      <span className="element-add-icon">＋</span>
-                      <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę górna grupy</span>
-                    </li>
-                  )}
-                  {!elements.some((e) => e.type === 'maskowanica' && e.cabinetId === grp.id && e.maskownicaSide === 'bottom') && (
-                    <li className="element-item element-item--add" onClick={() => onAddMaskowanicaToGroup(grp.id, 'bottom')}>
-                      <span className="element-indent-line" />
-                      <span className="element-add-icon">＋</span>
-                      <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj maskownicę dolna grupy</span>
-                    </li>
-                  )}
-
-                  {/* Blat grupy */}
-                  <li className="element-item element-item--section">
-                    <span className="element-section-line" />
-                    Blat
-                  </li>
-                  {(() => {
-                    const grpCt = elements.find((e) => e.type === 'countertop' && e.cabinetId === grp.id);
-                    return grpCt ? renderItem(grpCt, true) : (
-                      <li className="element-item element-item--add" onClick={() => {
-                        onAddCountertopToGroup(grp.id);
-                      }}>
-                        <span className="element-indent-line" />
-                        <span className="element-add-icon">＋</span>
-                        <span className="element-name" style={{ color: '#a0a8b0' }}>Dodaj blat grupy</span>
-                      </li>
-                    );
-                  })()}
-                </>
-              )}
-            </React.Fragment>
-          );
-        })}
-
-        {/* Standalone cabinets */}
-        {standaloneCabinets.map((cab) => renderCabinet(cab, false))}
-
-        {/* Free shelves / rods */}
-        {freeShelves.map((el) => renderItem(el, false))}
-
-        {/* Boxes kuchenne */}
-        {freeBoxesKuchenne.map((box) => renderBoxKuchenny(box))}
-
-        {elements.length === 0 && (
-          <li className="element-empty">Brak dodanych elementów.</li>
+        {groups.length > 0 && (
+          <div className="element-section-block">
+            <div className="lib-section-title">Grupy</div>
+            <ul className="element-list element-list--flat">
+              {groups.map((grp) => renderGroup(grp))}
+            </ul>
+          </div>
         )}
-      </ul>
+
+        <div className="element-section-block element-section-block--grow">
+          <div className="lib-section-title">Elementy</div>
+          <ul className="element-list element-list--flat">
+            {standaloneCabinets.map((cab) => renderCabinet(cab, false))}
+            {freeShelves.map((el) => renderItem(el, false))}
+            {freeBoxesKuchenne.map((box) => renderBoxKuchenny(box))}
+            {!hasElements && groups.length === 0 && (
+              <li className="element-empty">Brak dodanych elementów.</li>
+            )}
+            {!hasElements && groups.length > 0 && (
+              <li className="element-empty" style={{ padding: '8px 16px' }}>Brak wolnych elementów.</li>
+            )}
+          </ul>
+        </div>
+
+        {addOptions && selectedEl && (
+          <div className="element-section-block">
+            <div className="lib-section-title">Dodaj do: {selectedEl.name}</div>
+            <ul className="element-list element-list--flat">
+              {addOptions}
+            </ul>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 };
