@@ -7,7 +7,7 @@
 
 /* ── Section titles ─────────────────────────────────────────────────────────── */
 .lib-section-title {
-  padding: 10px 16px 5px;
+  padding: 6px 16px 4px;
   font-size: 10px;
   font-weight: 700;
   color: #9d9d9d;
@@ -30,8 +30,8 @@
 .board-size-inputs {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 4px 12px 10px;
+  gap: 2px;
+  padding: 2px 12px 6px;
   flex-shrink: 0;
 }
 
@@ -39,7 +39,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 11px;
   color: #9d9d9d;
 }
 
@@ -62,8 +62,8 @@
   border: 1px solid #3d3d3d;
   border-radius: 4px;
   color: #d4d4d4;
-  font-size: 12px;
-  padding: 4px 6px;
+  font-size: 11px;
+  padding: 3px 4px;
   text-align: right;
   outline: none;
   transition: border-color 0.15s;
@@ -78,8 +78,8 @@
 .clear-all-btn {
   display: block;
   width: calc(100% - 24px);
-  margin: 4px 12px 4px;
-  padding: 6px 12px;
+  margin: 2px 12px 2px;
+  padding: 4px 12px;
   background: transparent;
   border: 1px solid #3d3d3d;
   border-radius: 4px;
@@ -163,9 +163,9 @@
 /* ── Catalog grid ────────────────────────────────────────────────────────────── */
 .catalog-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  padding: 4px 12px 10px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 2px 12px 6px;
   flex-shrink: 0;
 }
 
@@ -173,8 +173,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  padding: 10px 6px 8px;
+  gap: 3px;
+  padding: 6px 4px 5px;
   background: #2d2d30;
   border: 1px solid #3d3d3d;
   border-radius: 6px;
@@ -205,8 +205,8 @@
 }
 
 .catalog-icon {
-  width: 32px;
-  height: 32px;
+  width: 22px;
+  height: 22px;
 }
 
 .catalog-label {
@@ -271,8 +271,8 @@
 .element-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px 6px 12px;
+  gap: 6px;
+  padding: 3px 8px 3px 10px;
   cursor: pointer;
   transition: background 0.1s;
   border-left: 2px solid transparent;
@@ -370,7 +370,7 @@
 
 /* ── Section header inside cabinet tree ─────────────────────────────────────── */
 .element-item--section {
-  padding: 10px 10px 2px 14px;
+  padding: 6px 10px 2px 12px;
   font-size: 10px;
   font-weight: 700;
   color: #a0a8b0;
