@@ -780,7 +780,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ grandTotal, fin, se
             <span className="om-fin-unit">zł</span>
           </div>
         </div>
-        <div className="om-fin-card om-fin-card--result">
+        <div className="om-fin-card om-fin-card--result om-fin-card--full">
           <div className="om-fin-label">Suma całkowita (koszt własny)</div>
           <div className="om-fin-result">{fmtPLN(ownCost)}</div>
         </div>
