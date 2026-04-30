@@ -28,7 +28,8 @@ const PRICE_CUT_COUNTERTOP_M = 9.00;
 const PRICE_EDGE_SVC_M       = 6.00;
 const PRICE_OKLEINA_M   = 1.00;
 const PRICE_ROD         = 15.00;
-const PRICE_HINGE       = 13.00;
+const PRICE_HINGE          = 13.00;
+const PRICE_HINGE_PARALLEL = 20.00;
 const PRICE_SLIDE       = 104.00;
 const PRICE_PTO_SLIDE   = 123.00;
 const PRICE_TIPON       = 72.00;
@@ -407,7 +408,16 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
 
     // Hardware counts (system drawers excluded — their slides are included in the system)
     const rodCount      = elements.filter(e => e.type === 'rod').length;
-    const hingeCount    = elements.filter(e => e.type === 'front' && !e.wysow).reduce((s, e) => s + hingesForFront(e), 0);
+    const { hingeCount, parallelHingeCount } = elements.reduce(
+      (acc, e) => {
+        if (e.type === 'front' && !e.wysow) {
+          const h = hingesForFront(e);
+          if (e.splitFront) acc.parallelHingeCount += h; else acc.hingeCount += h;
+        }
+        return acc;
+      },
+      { hingeCount: 0, parallelHingeCount: 0 }
+    );
     const slideCount    = elements.filter(e => e.type === 'drawer' && !e.pushToOpen && !e.drawerSystemType).length;
     const ptoSlideCount = elements.filter(e => e.type === 'drawer' && !!e.pushToOpen && !e.drawerSystemType).length;
     const couplingCount = slideCount + ptoSlideCount;
@@ -427,7 +437,8 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
     const costOkleinaK      = totalKorpusEdge * PRICE_OKLEINA_M;
     const costOkleinaO      = totalObicieEdge * PRICE_OKLEINA_M;
     const costRods          = rodCount      * PRICE_ROD;
-    const costHinges        = hingeCount    * PRICE_HINGE;
+    const costHinges         = hingeCount         * PRICE_HINGE;
+    const costParallelHinges = parallelHingeCount * PRICE_HINGE_PARALLEL;
     const costSlides        = slideCount    * PRICE_SLIDE;
     const costPtoSlides     = ptoSlideCount * PRICE_PTO_SLIDE;
     const costTipOn         = ptoSlideCount * PRICE_TIPON;
@@ -483,7 +494,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
       costCutKorpus + costCutObicie + costCutHdf + costCutCountertop +
       costEdgeSvcKorpus + costEdgeSvcObicie +
       costOkleinaK + costOkleinaO +
-      costRods + costHinges + costSlides + costPtoSlides + costTipOn + costCouplings + costHandles + costTipOnFronts + costLegs + costDrawerSystems + costCountertops + costCargo + costCornerSystems + costWallHooks;
+      costRods + costHinges + costParallelHinges + costSlides + costPtoSlides + costTipOn + costCouplings + costHandles + costTipOnFronts + costLegs + costDrawerSystems + costCountertops + costCargo + costCornerSystems + costWallHooks;
 
     return {
       hasUnknownFinish:
@@ -496,7 +507,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
       totalKorpusCut, totalObicieCut, totalHdfCut,
       totalKorpusEdge, totalObicieEdge,
       hdfAreaByFinish, plytaAreaByFinish,
-      rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, tipOnFrontCount, legCount,
+      rodCount, hingeCount, parallelHingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, tipOnFrontCount, legCount,
       drawerSystemGroups, cargoGroups, cornerSystemGroups, countertopGroups,
       wallHookQty, wallHookCount, costWallHooks,
       costKorpus, costObicie, costHdf,
@@ -504,7 +515,7 @@ function useOrderData(elements: BoxElement[], finishes: FinishOption[], hdfFinis
       costCutKorpus, costCutObicie, costCutHdf, costCutCountertop,
       costEdgeSvcKorpus, costEdgeSvcObicie,
       costOkleinaK, costOkleinaO,
-      costRods, costHinges, costSlides, costPtoSlides, costTipOn, costCouplings, costHandles, costTipOnFronts, costLegs,
+      costRods, costHinges, costParallelHinges, costSlides, costPtoSlides, costTipOn, costCouplings, costHandles, costTipOnFronts, costLegs,
       costDrawerSystems, costCargo, costCornerSystems, costCountertops,
       grandTotal,
     };
@@ -588,16 +599,17 @@ const CountertopGroupedSections: React.FC<{ panels: GroupedPanel[]; countertops:
 };
 
 const AdditionalSection: React.FC<{
-  rodCount: number; hingeCount: number; slideCount: number; ptoSlideCount: number;
+  rodCount: number; hingeCount: number; parallelHingeCount: number; slideCount: number; ptoSlideCount: number;
   couplingCount: number; handleGroups: Array<{ label: string; count: number; warning?: boolean }>; tipOnFrontCount: number; legCount: number;
   drawerSystemGroups: Array<{ label: string; count: number; unitPrice: number }>;
   cargoGroups: Array<{ label: string; count: number; unitPrice: number }>;
   cornerSystemGroups: Array<{ label: string; count: number; unitPrice: number }>;
   wallHookQty: number;
-}> = ({ rodCount, hingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, tipOnFrontCount, legCount, drawerSystemGroups, cargoGroups, cornerSystemGroups, wallHookQty }) => {
+}> = ({ rodCount, hingeCount, parallelHingeCount, slideCount, ptoSlideCount, couplingCount, handleGroups, tipOnFrontCount, legCount, drawerSystemGroups, cargoGroups, cornerSystemGroups, wallHookQty }) => {
   const items: Array<{ name: string; qty: number; note?: string; warning?: boolean }> = [];
-  if (rodCount > 0)         items.push({ name: 'Drążki',              qty: rodCount });
-  if (hingeCount > 0)       items.push({ name: 'Zawiasy',             qty: hingeCount,       note: 'na drzwi (wg wysokości drzwi)' });
+  if (rodCount > 0)              items.push({ name: 'Drążki',                              qty: rodCount });
+  if (hingeCount > 0)            items.push({ name: 'Zawiasy',                             qty: hingeCount,         note: 'na drzwi (wg wysokości drzwi)' });
+  if (parallelHingeCount > 0)    items.push({ name: 'Zawiasy równoległe wpuszczane',       qty: parallelHingeCount, note: 'na fronty lewy/prawy' });
   if (slideCount > 0)       items.push({ name: 'Prowadnice przesuwne', qty: slideCount,      note: '1 zestaw na szufladę' });
   if (ptoSlideCount > 0)    items.push({ name: 'Prowadnice push to open', qty: ptoSlideCount, note: '1 zestaw na szufladę' });
   if (ptoSlideCount > 0)    items.push({ name: 'TIP-ON BLUMOTION', qty: ptoSlideCount,       note: '1 na szufladę' });
@@ -638,6 +650,7 @@ const SummaryTab: React.FC<{ data: ReturnType<typeof useOrderData>; finishes: Fi
     <AdditionalSection
       rodCount={data.rodCount}
       hingeCount={data.hingeCount}
+      parallelHingeCount={data.parallelHingeCount}
       slideCount={data.slideCount}
       ptoSlideCount={data.ptoSlideCount}
       couplingCount={data.couplingCount}
@@ -796,7 +809,7 @@ const CostTab: React.FC<{
   hdfFinishes: FinishOption[];
 }> = ({ data, fin, setFin, finishes, hdfFinishes }) => {
   const hardwareSubtotal =
-    data.costRods + data.costHinges + data.costSlides + data.costPtoSlides + data.costTipOn +
+    data.costRods + data.costHinges + data.costParallelHinges + data.costSlides + data.costPtoSlides + data.costTipOn +
     data.costCouplings + data.costHandles + data.costTipOnFronts + data.costLegs + data.costDrawerSystems + data.costCargo + data.costCornerSystems + data.costWallHooks;
   return (
     <div className="om-tab-content">
@@ -828,7 +841,8 @@ const CostTab: React.FC<{
 
       <CostSection title="Koszty sprzętu" subtotal={hardwareSubtotal}>
         {data.rodCount > 0     && <CostRow label="Drążek"              qty={data.rodCount}      unit="szt." price={PRICE_ROD}      cost={data.costRods} />}
-        {data.hingeCount > 0   && <CostRow label="Zawiasy"             qty={data.hingeCount}    unit="szt." price={PRICE_HINGE}    cost={data.costHinges} />}
+        {data.hingeCount > 0          && <CostRow label="Zawiasy"                       qty={data.hingeCount}         unit="szt." price={PRICE_HINGE}          cost={data.costHinges} />}
+        {data.parallelHingeCount > 0  && <CostRow label="Zawiasy równoległe wpuszczane" qty={data.parallelHingeCount} unit="szt." price={PRICE_HINGE_PARALLEL} cost={data.costParallelHinges} />}
         {data.slideCount > 0    && <CostRow label="Prowadnice przesuwne"    qty={data.slideCount}    unit="szt." price={PRICE_SLIDE}    cost={data.costSlides} />}
         {data.ptoSlideCount > 0 && <CostRow label="Prowadnice push to open" qty={data.ptoSlideCount} unit="szt." price={PRICE_PTO_SLIDE} cost={data.costPtoSlides} />}
         {data.ptoSlideCount > 0 && <CostRow label="TIP-ON BLUMOTION"        qty={data.ptoSlideCount} unit="szt." price={PRICE_TIPON}     cost={data.costTipOn} />}
@@ -890,7 +904,8 @@ function generatePdf(data: ReturnType<typeof useOrderData>, finishes: FinishOpti
 
   const addonRows: string[][] = [];
   if (data.rodCount > 0)       addonRows.push(['Drążki',                   `${data.rodCount} szt.`,      '']);
-  if (data.hingeCount > 0)     addonRows.push(['Zawiasy',                  `${data.hingeCount} szt.`,    'na drzwi (wg wysokości drzwi)']);
+  if (data.hingeCount > 0)            addonRows.push(['Zawiasy',                        `${data.hingeCount} szt.`,         'na drzwi (wg wysokości drzwi)']);
+  if (data.parallelHingeCount > 0)    addonRows.push(['Zawiasy równoległe wpuszczane', `${data.parallelHingeCount} szt.`, 'na fronty lewy/prawy']);
   if (data.slideCount > 0)     addonRows.push(['Prowadnice przesuwne',     `${data.slideCount} szt.`,    '1 zestaw na szufladę']);
   if (data.ptoSlideCount > 0)  addonRows.push(['Prowadnice push to open',  `${data.ptoSlideCount} szt.`, '1 zestaw na szufladę']);
   if (data.ptoSlideCount > 0)  addonRows.push(['TIP-ON BLUMOTION',         `${data.ptoSlideCount} szt.`, '1 na szufladę']);
