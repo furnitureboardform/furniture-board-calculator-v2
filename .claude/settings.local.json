@@ -4,7 +4,7 @@
       "Bash(npx tsc:*)",
       "Bash(npm run:*)",
       "Bash(echo \"EXIT: $?\")",
-      "Read(//d/d/Projekty/furniture board form/furniture-board-calculator-v2/**)"
+      "Read(./**)"
     ]
   }
 }
